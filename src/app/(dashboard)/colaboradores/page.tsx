@@ -56,7 +56,7 @@ export default function ColaboradoresPage() {
   }
 
   async function handleDelete(id: number) {
-    if (!confirm("Desativar este colaborador?")) return;
+    if (!confirm("Excluir este colaborador? Ele não aparecerá mais no sistema.")) return;
     await fetch(`/api/colaboradores/${id}`, { method: "DELETE" });
     load();
   }
@@ -114,7 +114,7 @@ export default function ColaboradoresPage() {
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-2">
                     <button onClick={() => openEdit(c)} className="text-xs text-blue-400 hover:text-blue-300 transition">Editar</button>
-                    <button onClick={() => handleDelete(c.id)} className="text-xs text-red-400 hover:text-red-300 transition">Desativar</button>
+                    <button onClick={() => handleDelete(c.id)} className="text-xs text-red-400 hover:text-red-300 transition">Excluir</button>
                   </div>
                 </td>
               </tr>

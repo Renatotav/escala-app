@@ -14,9 +14,14 @@ function normalize(name) {
 
 const aliases = {
   "maria julya mendes callado": "maria julya lopes callado",
+  "ana carolina sa":             "ana carolina de sa alves",
+  "ana carolina sa alves":       "ana carolina de sa alves",
 };
 
-const skipSet = new Set(["nata caminha garcia"]);
+const skipSet = new Set([
+  "nata caminha garcia",
+  "francisco bruno batista porto", // não cadastrado ainda no sistema
+]);
 
 // Registros consolidados: cada objeto = 1 plantão com suas folgas
 // Múltiplas linhas com mesma data = 1 DOMINGO → folga1 + folga2 (já mescladas abaixo)
@@ -115,8 +120,33 @@ const plantoes = [
   // LORENA MARIA OLIVEIRA LEITE DA SILVA (08/03/2026 = Domingo; duas linhas mescladas)
   { nome: "Lorena Maria Oliveira Leite da Silva", data: "2026-03-08", tipo: "DOMINGO", folga1: "2026-05-08", folga2: "2026-05-15" },
 
-  // VITÓRIA LIMA AMORIM (03/05/2026 = Domingo)
-  { nome: "Vitória Lima Amorim",                  data: "2026-05-03", tipo: "DOMINGO", folga1: "2026-05-22", folga2: null },
+  // VITÓRIA LIMA AMORIM (17/05/2026 = Domingo) — corrigido: antes estava com data errada 03/05
+  { nome: "Vitória Lima Amorim",                  data: "2026-05-17", tipo: "DOMINGO", folga1: "2026-05-22", folga2: null },
+
+  // ── MAIO 2026 (escala oficial) ────────────────────────────────────────────
+
+  // FRANCISCO BRUNO DE OLIVEIRA SILVA (01/05/2026 = Sexta = Dia do Trabalho = FERIADO)
+  { nome: "Francisco Bruno de Oliveira Silva",    data: "2026-05-01", tipo: "FERIADO", folga1: null, folga2: null },
+
+  // ANA CAROLINA DE SÁ ALVES (03/05/2026 = Domingo)
+  { nome: "Ana Carolina de Sá Alves",             data: "2026-05-03", tipo: "DOMINGO", folga1: null, folga2: null },
+
+  // AUGUSTO CESAR MIRANDA LIMA FILHO (09/05/2026 = Sábado)
+  { nome: "Augusto Cesar Miranda Lima Filho",     data: "2026-05-09", tipo: "SABADO",  folga1: null, folga2: null },
+
+  // ANNE KAROLINE OLIVEIRA LOPES (10/05/2026 = Domingo)
+  { nome: "Anne Karoline Oliveira Lopes",         data: "2026-05-10", tipo: "DOMINGO", folga1: null, folga2: null },
+
+  // JOQUEBEDE GABRIELA DO NASCIMENTO BRAUNA FERREIRA (23/05/2026 = Sábado)
+  { nome: "Joquebede Gabriela do Nascimento Brauna Ferreira", data: "2026-05-23", tipo: "SABADO", folga1: null, folga2: null },
+
+  // FRANCISCA CRISTIANA GOMES RODRIGUES (24/05/2026 = Domingo)
+  { nome: "Francisca Cristiana Gomes Rodrigues", data: "2026-05-24", tipo: "DOMINGO", folga1: null, folga2: null },
+
+  // THAIS ANGELIM RODRIGUES (30/05/2026 = Sábado)
+  { nome: "Thais Angelim Rodrigues",              data: "2026-05-30", tipo: "SABADO",  folga1: null, folga2: null },
+
+  // FRANCISCO BRUNO BATISTA PORTO (31/05/2026 = Domingo) — SKIP: não cadastrado no sistema
 ];
 
 async function main() {

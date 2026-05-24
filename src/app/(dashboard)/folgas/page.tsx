@@ -82,7 +82,7 @@ export default function FolgasPage() {
             {folgas.map(f => (
               <tr key={f.id} className="border-b border-gray-800 last:border-0 hover:bg-gray-800/50 transition">
                 <td className="px-4 py-3 text-gray-300 font-mono">
-                  {new Date(f.data).toLocaleDateString("pt-BR")}
+                  {new Date(f.data).toLocaleDateString("pt-BR", { timeZone: "UTC" })}
                 </td>
                 <td className="px-4 py-3 text-white font-medium">{f.colaborador.nome}</td>
                 <td className="px-4 py-3">

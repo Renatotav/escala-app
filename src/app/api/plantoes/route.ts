@@ -30,6 +30,34 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(plantoes);
   }
 
+  if (view === "saldo") {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const colabs: any[] = await (prisma as any).colaborador.findMany({
+      where: { ativo: true },
+      include: { plantoes: true, equipe: { select: { nome: true } } },
+      orderBy: { nome: "asc" },
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const saldo = colabs.map((c: any) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const ps: any[] = c.plantoes ?? [];
+      const creditos = ps.reduce((acc: number, p: any) => acc + (p.tipo === "SABADO" ? 1 : 2), 0);
+      const agendadas = ps.reduce((acc: number, p: any) => acc + (p.folga1 ? 1 : 0) + (p.folga2 ? 1 : 0), 0);
+      return {
+        id: c.id,
+        nome: c.nome,
+        equipe: c.equipe.nome,
+        totalPlantoes: ps.length,
+        creditos,
+        agendadas,
+        pendentes: creditos - agendadas,
+      };
+    });
+
+    return NextResponse.json(saldo);
+  }
+
   return NextResponse.json(await getRanking());
 }
 

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 type Entry = { id: number; nome: string; equipe: string; sabados: number; domFer: number; total: number; score: number };
 type Historico = { id: number; data: string; tipo: string; folga1: string | null; folga2: string | null; descricao: string | null; colaborador: { nome: string; equipe: { nome: string } } };
+type Saldo = { id: number; nome: string; equipe: string; totalPlantoes: number; creditos: number; agendadas: number; pendentes: number };
 type Equipe = { id: number; nome: string };
 
 const TIPOS = [
@@ -27,9 +28,10 @@ function tipoBadge(tipo: string) {
 }
 
 export default function PlantoesPage() {
-  const [tab, setTab] = useState<"ranking" | "historico">("ranking");
+  const [tab, setTab] = useState<"ranking" | "historico" | "saldo">("ranking");
   const [ranking, setRanking] = useState<Entry[]>([]);
   const [historico, setHistorico] = useState<Historico[]>([]);
+  const [saldo, setSaldo] = useState<Saldo[]>([]);
   const [equipes, setEquipes] = useState<Equipe[]>([]);
   const [filtroEquipe, setFiltroEquipe] = useState("");
   const [modal, setModal] = useState<"novo" | "folga" | null>(null);
@@ -48,6 +50,11 @@ export default function PlantoesPage() {
     setHistorico(data);
   }
 
+  async function loadSaldo() {
+    const data = await fetch("/api/plantoes?view=saldo").then((r) => r.json());
+    setSaldo(data);
+  }
+
   useEffect(() => {
     loadRanking();
     fetch("/api/equipes").then((r) => r.json()).then(setEquipes);
@@ -55,7 +62,8 @@ export default function PlantoesPage() {
 
   useEffect(() => {
     if (tab === "historico") loadHistorico();
-  }, [tab]);
+    if (tab === "saldo") loadSaldo();
+  }, [tab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const lista = filtroEquipe ? ranking.filter((e) => e.equipe === filtroEquipe) : ranking;
   const minScore = lista.length ? lista[0].score : 0;
@@ -129,13 +137,15 @@ export default function PlantoesPage() {
 
       {/* Tabs */}
       <div className="flex gap-1 mb-4 bg-gray-900 border border-gray-800 rounded-lg p-1 w-fit">
-        {(["ranking", "historico"] as const).map((t) => (
+        {(["ranking", "historico", "saldo"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={`px-4 py-1.5 rounded-md text-sm font-medium transition ${tab === t ? "bg-blue-600 text-white" : "text-gray-400 hover:text-white"}`}
           >
-            {t === "ranking" ? "Ranking" : `Histórico${pendentes.length ? ` (${pendentes.length} pendente${pendentes.length > 1 ? "s" : ""})` : ""}`}
+            {t === "ranking" ? "Ranking"
+              : t === "historico" ? `Histórico${pendentes.length ? ` (${pendentes.length} pendente${pendentes.length > 1 ? "s" : ""})` : ""}`
+              : "Saldo de folgas"}
           </button>
         ))}
       </div>
@@ -240,6 +250,45 @@ export default function PlantoesPage() {
                   </tr>
                 );
               })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* SALDO */}
+      {tab === "saldo" && (
+        <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wide">
+                <th className="text-left px-4 py-3">Colaborador</th>
+                <th className="text-left px-4 py-3">Equipe</th>
+                <th className="text-center px-4 py-3">Plantões</th>
+                <th className="text-center px-4 py-3">Folgas devidas</th>
+                <th className="text-center px-4 py-3">Agendadas</th>
+                <th className="text-center px-4 py-3">Pendentes</th>
+              </tr>
+            </thead>
+            <tbody>
+              {saldo.length === 0 && (
+                <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-500">Nenhum registro encontrado</td></tr>
+              )}
+              {saldo.map((s) => (
+                <tr key={s.id} className={`border-b border-gray-800 last:border-0 transition hover:bg-gray-800/50 ${s.pendentes > 0 ? "bg-yellow-900/5" : ""}`}>
+                  <td className="px-4 py-3 text-white font-medium">{s.nome}</td>
+                  <td className="px-4 py-3">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-700 text-gray-300">{s.equipe}</span>
+                  </td>
+                  <td className="px-4 py-3 text-center text-gray-300">{s.totalPlantoes}</td>
+                  <td className="px-4 py-3 text-center text-gray-300">{s.creditos}</td>
+                  <td className="px-4 py-3 text-center text-green-400">{s.agendadas}</td>
+                  <td className="px-4 py-3 text-center">
+                    {s.pendentes > 0
+                      ? <span className="font-bold text-yellow-400">{s.pendentes}</span>
+                      : <span className="text-gray-600">0</span>}
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>

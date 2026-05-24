@@ -6,6 +6,14 @@ type Entry = { id: number; nome: string; equipe: string; sabados: number; domFer
 type Historico = { id: number; data: string; tipo: string; folga1: string | null; folga2: string | null; descricao: string | null; colaborador: { nome: string; equipe: { nome: string } } };
 type Saldo = { id: number; nome: string; equipe: string; totalPlantoes: number; creditos: number; agendadas: number; pendentes: number };
 type Equipe = { id: number; nome: string };
+type FolgaReg = { id: number; data: string; tipo: string; descricao: string | null; colaborador: { nome: string; equipe: { nome: string } } };
+
+const tipoLabel: Record<string, string> = { SABADO: "Sábado", DOMINGO: "Domingo", FERIADO: "Feriado" };
+const tipoBadgeFolga: Record<string, string> = {
+  SABADO:  "bg-purple-500/10 text-purple-400",
+  DOMINGO: "bg-orange-500/10 text-orange-400",
+  FERIADO: "bg-blue-500/10 text-blue-400",
+};
 
 const TIPOS = [
   { value: "SABADO",  label: "Sábado",  pts: 1, folgas: 1 },
@@ -28,10 +36,16 @@ function tipoBadge(tipo: string) {
 }
 
 export default function PlantoesPage() {
-  const [tab, setTab] = useState<"ranking" | "historico" | "saldo">("ranking");
+  const [tab, setTab] = useState<"ranking" | "historico" | "saldo" | "folgas">("ranking");
   const [ranking, setRanking] = useState<Entry[]>([]);
   const [historico, setHistorico] = useState<Historico[]>([]);
   const [saldo, setSaldo] = useState<Saldo[]>([]);
+  const [folgas, setFolgas] = useState<FolgaReg[]>([]);
+  const [mesFolga, setMesFolga] = useState(new Date().toISOString().slice(0, 7));
+  const [colaboradorFolga, setColaboradorFolga] = useState("");
+  const [modalFolga, setModalFolga] = useState(false);
+  const [formFolga, setFormFolga] = useState({ colaboradorId: "", data: "", tipo: "SABADO", descricao: "" });
+  const [savingFolga, setSavingFolga] = useState(false);
   const [equipes, setEquipes] = useState<Equipe[]>([]);
   const [filtroEquipe, setFiltroEquipe] = useState("");
   const [modal, setModal] = useState<"novo" | "folga" | null>(null);
@@ -55,6 +69,13 @@ export default function PlantoesPage() {
     setSaldo(data);
   }
 
+  async function loadFolgas() {
+    const params = new URLSearchParams({ mes: mesFolga });
+    if (colaboradorFolga) params.set("colaboradorId", colaboradorFolga);
+    const data = await fetch(`/api/folgas?${params}`).then((r) => r.json());
+    setFolgas(data);
+  }
+
   useEffect(() => {
     loadRanking();
     fetch("/api/equipes").then((r) => r.json()).then(setEquipes);
@@ -63,7 +84,27 @@ export default function PlantoesPage() {
   useEffect(() => {
     if (tab === "historico") loadHistorico();
     if (tab === "saldo") loadSaldo();
+    if (tab === "folgas") loadFolgas();
   }, [tab]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (tab === "folgas") loadFolgas();
+  }, [mesFolga, colaboradorFolga]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function handleSubmitFolga(e: { preventDefault(): void }) {
+    e.preventDefault();
+    setSavingFolga(true);
+    await fetch("/api/folgas", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...formFolga, colaboradorId: Number(formFolga.colaboradorId) }),
+    });
+    setSavingFolga(false);
+    setModalFolga(false);
+    setFormFolga({ colaboradorId: "", data: "", tipo: "SABADO", descricao: "" });
+    loadFolgas();
+    loadSaldo();
+  }
 
   const lista = filtroEquipe ? ranking.filter((e) => e.equipe === filtroEquipe) : ranking;
   const minScore = lista.length ? lista[0].score : 0;
@@ -124,20 +165,18 @@ export default function PlantoesPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-xl font-semibold text-white">Plantões</h2>
+          <h2 className="text-xl font-semibold text-white">Plantões & Folgas</h2>
           <p className="text-sm text-gray-400 mt-0.5">Sábado = 1 pt · Domingo / Feriado = 2 pts</p>
         </div>
-        <button
-          onClick={() => { setForm(emptyForm); setModal("novo"); }}
-          className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition"
-        >
-          + Registrar plantão
-        </button>
+        {tab === "folgas"
+          ? <button onClick={() => setModalFolga(true)} className="bg-green-600 hover:bg-green-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition">+ Registrar folga</button>
+          : <button onClick={() => { setForm(emptyForm); setModal("novo"); }} className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition">+ Registrar plantão</button>
+        }
       </div>
 
       {/* Tabs */}
       <div className="flex gap-1 mb-4 bg-gray-900 border border-gray-800 rounded-lg p-1 w-fit">
-        {(["ranking", "historico", "saldo"] as const).map((t) => (
+        {(["ranking", "historico", "saldo", "folgas"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -145,7 +184,8 @@ export default function PlantoesPage() {
           >
             {t === "ranking" ? "Ranking"
               : t === "historico" ? `Histórico${pendentes.length ? ` (${pendentes.length} pendente${pendentes.length > 1 ? "s" : ""})` : ""}`
-              : "Saldo de folgas"}
+              : t === "saldo" ? "Saldo"
+              : "Folgas"}
           </button>
         ))}
       </div>
@@ -291,6 +331,100 @@ export default function PlantoesPage() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* FOLGAS */}
+      {tab === "folgas" && (
+        <>
+          <div className="flex gap-3 mb-4">
+            <input type="month" value={mesFolga} onChange={e => setMesFolga(e.target.value)}
+              className="bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <select value={colaboradorFolga} onChange={e => setColaboradorFolga(e.target.value)}
+              className="bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="">Todos os colaboradores</option>
+              {ranking.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
+            </select>
+          </div>
+          <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wide">
+                  <th className="text-left px-4 py-3">Data</th>
+                  <th className="text-left px-4 py-3">Colaborador</th>
+                  <th className="text-left px-4 py-3">Equipe</th>
+                  <th className="text-left px-4 py-3">Tipo</th>
+                  <th className="text-left px-4 py-3">Observação</th>
+                </tr>
+              </thead>
+              <tbody>
+                {folgas.length === 0 && (
+                  <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-500">Nenhuma folga registrada neste mês</td></tr>
+                )}
+                {folgas.map(f => (
+                  <tr key={f.id} className="border-b border-gray-800 last:border-0 hover:bg-gray-800/50 transition">
+                    <td className="px-4 py-3 text-gray-300 font-mono">{fmt(f.data)}</td>
+                    <td className="px-4 py-3 text-white font-medium">{f.colaborador.nome}</td>
+                    <td className="px-4 py-3">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-700 text-gray-300">{f.colaborador.equipe.nome}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs ${tipoBadgeFolga[f.tipo] ?? "bg-gray-700 text-gray-300"}`}>
+                        {tipoLabel[f.tipo] ?? f.tipo}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-gray-400">{f.descricao ?? "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+
+      {/* MODAL — Registrar folga */}
+      {modalFolga && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4">
+          <div className="bg-gray-900 border border-gray-800 rounded-xl w-full max-w-sm p-6">
+            <h3 className="text-base font-semibold text-white mb-4">Registrar folga</h3>
+            <form onSubmit={handleSubmitFolga} className="space-y-3">
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Colaborador</label>
+                <select value={formFolga.colaboradorId} onChange={e => setFormFolga(f => ({ ...f, colaboradorId: e.target.value }))} required
+                  className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <option value="">Selecione...</option>
+                  {ranking.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Data</label>
+                <input type="date" value={formFolga.data} onChange={e => setFormFolga(f => ({ ...f, data: e.target.value }))} required
+                  className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Tipo</label>
+                <select value={formFolga.tipo} onChange={e => setFormFolga(f => ({ ...f, tipo: e.target.value }))}
+                  className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <option value="SABADO">Sábado</option>
+                  <option value="DOMINGO">Domingo</option>
+                  <option value="FERIADO">Feriado</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Observação <span className="text-gray-600">(opcional)</span></label>
+                <input value={formFolga.descricao} onChange={e => setFormFolga(f => ({ ...f, descricao: e.target.value }))}
+                  className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button type="button" onClick={() => setModalFolga(false)}
+                  className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-lg py-2 transition">Cancelar</button>
+                <button type="submit" disabled={savingFolga}
+                  className="flex-1 bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg py-2 transition">
+                  {savingFolga ? "Salvando..." : "Salvar"}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 

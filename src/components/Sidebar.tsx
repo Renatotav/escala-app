@@ -9,8 +9,7 @@ const navItems = [
   { href: "/lancamento", label: "Lançamento", icon: "📋" },
   { href: "/escala", label: "Escala", icon: "📅" },
   { href: "/banco-horas", label: "Banco de Horas", icon: "⏱" },
-  { href: "/folgas", label: "Folgas", icon: "🏖" },
-  { href: "/plantoes", label: "Plantões", icon: "🔔" },
+  { href: "/plantoes", label: "Plantões & Folgas", icon: "🔔" },
   { href: "/relatorio", label: "Relatórios", icon: "📊" },
   { href: "/configuracoes", label: "Configurações", icon: "⚙" },
 ];

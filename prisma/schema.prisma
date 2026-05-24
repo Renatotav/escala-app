@@ -87,6 +87,8 @@ model Plantao {
   colaborador   Colaborador @relation(fields: [colaboradorId], references: [id])
   data          DateTime    @db.Date
   tipo          TipoFolga
+  folga1        DateTime?   @db.Date
+  folga2        DateTime?   @db.Date
   descricao     String?
   createdAt     DateTime    @default(now())
 

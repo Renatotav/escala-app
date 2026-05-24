@@ -19,11 +19,8 @@ const aliases = {
   "luciana maria rocha de sousa":       "luciana maria rocha de souza miranda",
 };
 
-// Não estão no sistema — precisam ser cadastrados antes
-const notInSystem = new Set([
-  "brena ferreira bastos",
-  "luis fernando eduardo sales",
-]);
+// Colaboradores históricos não cadastrados (ex-funcionários externos)
+const notInSystem = new Set([]);
 
 // Saturdays going back (for the tipo SABADO placeholder dates)
 const saturdays = [

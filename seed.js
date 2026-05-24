@@ -48,6 +48,7 @@ const colaboradores = {
   ],
   "Migração": [
     "Ane Karoline Lima da Silva",
+    "Luis Fernando Eduardo Sales",
     "Mariana Cunha do Carmo",
     "Raffaela de Paiva Sousa",
     "Thais Angelim Rodrigues",
@@ -65,6 +66,7 @@ const colaboradores = {
     "Vivian da Silva Duarte",
   ],
   "Supervisão": [
+    "Brena Ferreira Bastos",
     "Bruno de Sousa Silva",
     "Renato Tavares Venâncio",
   ],
@@ -100,6 +102,12 @@ async function main() {
       console.log(`  + ${nome}`);
     }
   }
+
+  // Brena saiu da empresa — mantida para registro histórico mas inativa
+  await client.query(
+    `UPDATE "Colaborador" SET "ativo" = false WHERE "nome" = 'Brena Ferreira Bastos'`
+  );
+  console.log("Brena Ferreira Bastos marcada como inativa (registro histórico).");
 
   await client.end();
   console.log("Seed concluído!");

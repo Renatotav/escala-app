@@ -20,7 +20,6 @@ const aliases = {
 
 const skipSet = new Set([
   "nata caminha garcia",
-  "francisco bruno batista porto", // não cadastrado ainda no sistema
 ]);
 
 // Registros consolidados: cada objeto = 1 plantão com suas folgas
@@ -146,7 +145,8 @@ const plantoes = [
   // THAIS ANGELIM RODRIGUES (30/05/2026 = Sábado)
   { nome: "Thais Angelim Rodrigues",              data: "2026-05-30", tipo: "SABADO",  folga1: null, folga2: null },
 
-  // FRANCISCO BRUNO BATISTA PORTO (31/05/2026 = Domingo) — SKIP: não cadastrado no sistema
+  // FRANCISCO BRUNO BATISTA PORTO (31/05/2026 = Domingo)
+  { nome: "Francisco Bruno Batista Porto",        data: "2026-05-31", tipo: "DOMINGO", folga1: null, folga2: null },
 ];
 
 async function main() {

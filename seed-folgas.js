@@ -48,7 +48,7 @@ const folgas = [
   { nome: "GEORGIA NOGUEIRA DA SILVA FARIAS",         count: 3 },
   { nome: "JÉSSICA SOARES",                           count: 3 },
   { nome: "JOQUEBEDE GABRIELA DO NASCIMENTO BRAUNA",  count: 2 },
-  { nome: "JOSÉ ARAÚJO DA SILVA JUNIOR",              count: 1 },
+  { nome: "JOSÉ ARAÚJO DA SILVA JUNIOR",              count: 0 },
   { nome: "JOSÉ TARCISO GUIMÃES SAUNDERS NETO",       count: 3 },
   { nome: "LORENA MARIA OLIVEIRA LEITE DA SILVA",     count: 0 },
   { nome: "LUIS FERNANDO EDUARDO SALES",              count: 1 },

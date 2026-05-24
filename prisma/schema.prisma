@@ -1,0 +1,90 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Equipe {
+  id               Int           @id @default(autoincrement())
+  nome             String        @unique
+  thresholdAmarelo Int           @default(3)
+  thresholdVerde   Int           @default(4)
+  colaboradores    Colaborador[]
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+}
+
+model Colaborador {
+  id        Int             @id @default(autoincrement())
+  nome      String
+  cargo     String?
+  matricula String?         @unique
+  ativo     Boolean         @default(true)
+  equipeId  Int
+  equipe    Equipe          @relation(fields: [equipeId], references: [id])
+  escalas   EscalaSemana[]
+  pontos    RegistroPonto[]
+  folgas    Folga[]
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+}
+
+model EscalaSemana {
+  id            Int         @id @default(autoincrement())
+  colaboradorId Int
+  colaborador   Colaborador @relation(fields: [colaboradorId], references: [id])
+  semana        DateTime
+  tipo          TipoEscala
+  createdAt     DateTime    @default(now())
+
+  @@unique([colaboradorId, semana])
+}
+
+enum TipoEscala {
+  PRESENCIAL
+  REMOTO
+}
+
+model RegistroPonto {
+  id            Int         @id @default(autoincrement())
+  colaboradorId Int
+  colaborador   Colaborador @relation(fields: [colaboradorId], references: [id])
+  data          DateTime    @db.Date
+  entrada       DateTime?
+  saida         DateTime?
+  horasExtras   Float?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@unique([colaboradorId, data])
+}
+
+model Folga {
+  id            Int         @id @default(autoincrement())
+  colaboradorId Int
+  colaborador   Colaborador @relation(fields: [colaboradorId], references: [id])
+  data          DateTime    @db.Date
+  tipo          TipoFolga
+  descricao     String?
+  createdAt     DateTime    @default(now())
+
+  @@unique([colaboradorId, data])
+}
+
+enum TipoFolga {
+  SABADO
+  DOMINGO
+  FERIADO
+}
+
+model FeriadoCustomizado {
+  id        Int      @id @default(autoincrement())
+  data      DateTime @db.Date
+  descricao String
+  createdAt DateTime @default(now())
+
+  @@unique([data])
+}

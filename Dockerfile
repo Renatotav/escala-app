@@ -2,7 +2,7 @@ FROM node:22-alpine
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci
+RUN npm install --prefer-offline --no-audit --no-fund
 
 COPY . .
 RUN npx prisma generate

@@ -140,8 +140,7 @@ export default function EscalaPage() {
                                 Presencial
                               </button>
                               <button onClick={() => handleLancar(c.id, "REMOTO")}
-                                disabled={c.sinal === "VERMELHO"}
-                                className="text-xs px-2.5 py-1 rounded bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white transition">
+                                className="text-xs px-2.5 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white transition">
                                 Remoto
                               </button>
                             </div>

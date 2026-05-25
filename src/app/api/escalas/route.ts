@@ -54,3 +54,16 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json(registro);
 }
+
+export async function DELETE(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const colaboradorId = Number(searchParams.get("colaboradorId"));
+  const semana = searchParams.get("semana");
+  if (!colaboradorId || !semana) return NextResponse.json({ ok: false }, { status: 400 });
+
+  await prisma.escalaSemana.deleteMany({
+    where: { colaboradorId, semana: new Date(semana) },
+  });
+
+  return NextResponse.json({ ok: true });
+}

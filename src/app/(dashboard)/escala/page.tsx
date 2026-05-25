@@ -48,6 +48,14 @@ export default function EscalaPage() {
     setColaboradores(data);
   }
 
+  async function handleLimpar(colaboradorId: number) {
+    await fetch(`/api/escalas?colaboradorId=${colaboradorId}&semana=${semana}`, { method: "DELETE" });
+    const params = new URLSearchParams({ semana });
+    if (equipeId) params.set("equipeId", equipeId);
+    const data = await fetch(`/api/escalas?${params}`).then(r => r.json());
+    setColaboradores(data);
+  }
+
   const EQUIPES_EXCLUIDAS = ["Supervisão", "Coordenação"];
 
   const equipesEscala = equipes.filter(eq => !EQUIPES_EXCLUIDAS.includes(eq.nome));
@@ -143,6 +151,13 @@ export default function EscalaPage() {
                                 className="text-xs px-2.5 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white transition">
                                 Remoto
                               </button>
+                              {c.escalaSemana && (
+                                <button onClick={() => handleLimpar(c.id)}
+                                  title="Limpar lançamento desta semana"
+                                  className="text-xs px-2 py-1 rounded bg-red-900/40 hover:bg-red-800/60 text-red-400 hover:text-red-300 transition">
+                                  ✕
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>

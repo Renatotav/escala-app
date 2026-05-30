@@ -85,6 +85,8 @@ export default function PlantoesPage() {
   const [saldoVerColab, setSaldoVerColab] = useState<{ id: number; nome: string } | null>(null);
   const [saldoVerFolgas, setSaldoVerFolgas] = useState<FolgaAgendada[]>([]);
   const [toast, setToast] = useState<{ folga1: string; folga2?: string; plantaoData: string; plantaoTipo: string; nome: string } | null>(null);
+  const [obsColab, setObsColab] = useState<{ id: number; nome: string } | null>(null);
+  const [obsPlantoes, setObsPlantoes] = useState<Historico[]>([]);
 
   useEffect(() => {
     if (!toast) return;
@@ -272,6 +274,12 @@ export default function PlantoesPage() {
     loadSaldo();
   }
 
+  async function openObs(entry: Entry) {
+    const data = await fetch(`/api/plantoes?view=historico&colaboradorId=${entry.id}`).then(r => r.json()) as Historico[];
+    setObsColab({ id: entry.id, nome: entry.nome });
+    setObsPlantoes(data);
+  }
+
   async function openSaldoVerFolgas(s: Saldo) {
     const data = await fetch(`/api/plantoes?view=folgas-agendadas&colaboradorId=${s.id}`).then(r => r.json()) as FolgaAgendada[];
     setSaldoVerColab({ id: s.id, nome: s.nome });
@@ -387,7 +395,9 @@ export default function PlantoesPage() {
                   return (
                     <tr key={entry.id} className={`border-b border-gray-800 last:border-0 transition ${isNext && idx === 0 ? "bg-green-900/10" : "hover:bg-gray-800/50"}`}>
                       <td className="px-4 py-3 text-center text-gray-500 font-mono text-xs">{idx + 1}</td>
-                      <td className="px-4 py-3 text-white font-medium">{entry.nome}</td>
+                      <td className="px-4 py-3">
+                        <button onClick={() => openObs(entry)} className="text-white font-medium hover:text-blue-400 transition text-left">{entry.nome}</button>
+                      </td>
                       <td className="px-4 py-3">
                         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-700 text-gray-300">{entry.equipe}</span>
                       </td>
@@ -909,6 +919,48 @@ export default function PlantoesPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL — Observações de plantões (via Sequência) */}
+      {obsColab && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4">
+          <div className="bg-gray-900 border border-gray-800 rounded-xl w-full max-w-lg p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-base font-semibold text-white">{obsColab.nome}</h3>
+                <p className="text-xs text-gray-500 mt-0.5">Histórico de plantões e observações</p>
+              </div>
+              <button onClick={() => setObsColab(null)} className="text-gray-600 hover:text-gray-400 transition">✕</button>
+            </div>
+            {obsPlantoes.length === 0 ? (
+              <p className="text-sm text-gray-500 text-center py-6">Nenhum plantão registrado.</p>
+            ) : (
+              <div className="divide-y divide-gray-800 max-h-96 overflow-y-auto">
+                {obsPlantoes.map(h => (
+                  <div key={h.id} className="py-3 flex items-start justify-between gap-4">
+                    <div className="flex items-start gap-3">
+                      <div>
+                        <p className="text-sm text-gray-300 font-mono">{fmt(h.data)}</p>
+                        <div className="mt-0.5">{tipoBadge(h.tipo)}</div>
+                      </div>
+                      {h.descricao && (
+                        <p className="text-xs text-gray-400 italic mt-1">"{h.descricao}"</p>
+                      )}
+                    </div>
+                    <div className="text-right text-xs text-gray-600 shrink-0">
+                      {h.folga1 && <p>F1: {fmt(h.folga1)}</p>}
+                      {h.folga2 && <p>F2: {fmt(h.folga2)}</p>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <button onClick={() => setObsColab(null)}
+              className="mt-4 w-full bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-lg py-2 transition">
+              Fechar
+            </button>
           </div>
         </div>
       )}

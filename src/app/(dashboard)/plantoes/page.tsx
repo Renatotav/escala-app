@@ -9,6 +9,7 @@ type Equipe = { id: number; nome: string };
 type FolgaReg = { id: number; data: string; tipo: string; descricao: string | null; colaborador: { nome: string; equipe: { nome: string } } };
 type FolgaAgendada = { id: string; colaboradorId: number; data: string; dataPlantao: string; colaborador: { nome: string; equipe: { nome: string } }; tipoPlantao: string };
 type EscalaMensal = { id: number; data: string; tipo: string; colaborador: { id: number; nome: string; equipe: string } };
+type Atestado = { id: number; colaboradorId: number; dataInicio: string; dataFim: string; dias: number; descricao: string | null; colaborador: { nome: string; equipe: { nome: string } } };
 
 const tipoLabel: Record<string, string> = { SABADO: "Sábado", DOMINGO: "Domingo", FERIADO: "Feriado", PONTO_FACULTATIVO: "Pto. Facultativo" };
 const tipoBadgeFolga: Record<string, string> = {
@@ -55,7 +56,7 @@ function getDiasFinaisMes(mes: string): { data: string; tipo: "SABADO" | "DOMING
 }
 
 export default function PlantoesPage() {
-  const [tab, setTab] = useState<"ranking" | "historico" | "saldo" | "folgas" | "escala">("ranking");
+  const [tab, setTab] = useState<"ranking" | "historico" | "saldo" | "folgas" | "escala" | "atestados">("ranking");
   const [ranking, setRanking] = useState<Entry[]>([]);
   const [historico, setHistorico] = useState<Historico[]>([]);
   const [saldo, setSaldo] = useState<Saldo[]>([]);
@@ -82,6 +83,10 @@ export default function PlantoesPage() {
   const [folgaForm, setFolgaForm] = useState({ folga1: "", folga2: "" });
   const [folgasAgendadas, setFolgasAgendadas] = useState<FolgaAgendada[]>([]);
   const [saving, setSaving] = useState(false);
+  const [atestados, setAtestados] = useState<Atestado[]>([]);
+  const [modalAtestado, setModalAtestado] = useState(false);
+  const [formAtestado, setFormAtestado] = useState({ colaboradorId: "", dataInicio: "", dataFim: "", descricao: "" });
+  const [savingAtestado, setSavingAtestado] = useState(false);
   const [saldoPendingColab, setSaldoPendingColab] = useState<{ id: number; nome: string } | null>(null);
   const [saldoPendingPlantoes, setSaldoPendingPlantoes] = useState<Historico[]>([]);
   const [saldoVerColab, setSaldoVerColab] = useState<{ id: number; nome: string } | null>(null);
@@ -129,15 +134,25 @@ export default function PlantoesPage() {
     setFolgasAgendadas(data);
   }
 
+  async function loadAtestados() {
+    const data = await fetch("/api/atestados").then(r => r.json());
+    setAtestados(data);
+  }
+
   async function loadEscalaMensal() {
     const data = await fetch(`/api/escala-plantao?mes=${mesEscala}`).then((r) => r.json());
     setEscalaMensal(data);
   }
 
+  const [atestadosAtivos, setAtestadosAtivos] = useState<Set<number>>(new Set());
+
   useEffect(() => {
     loadRanking();
     loadSaldo();
     fetch("/api/equipes").then((r) => r.json()).then(setEquipes);
+    fetch("/api/atestados?ativos=true").then(r => r.json()).then((data: Atestado[]) => {
+      setAtestadosAtivos(new Set(data.map(a => a.colaboradorId)));
+    });
   }, []);
 
   useEffect(() => {
@@ -145,6 +160,7 @@ export default function PlantoesPage() {
     if (tab === "saldo") loadSaldo();
     if (tab === "folgas") loadFolgasAgendadas();
     if (tab === "escala") loadEscalaMensal();
+    if (tab === "atestados") loadAtestados();
   }, [tab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -203,6 +219,25 @@ export default function PlantoesPage() {
     loadSaldo();
   }
 
+
+  async function handleSubmitAtestado(e: { preventDefault(): void }) {
+    e.preventDefault();
+    setSavingAtestado(true);
+    await fetch("/api/atestados", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...formAtestado, colaboradorId: Number(formAtestado.colaboradorId) }),
+    });
+    setSavingAtestado(false);
+    setModalAtestado(false);
+    setFormAtestado({ colaboradorId: "", dataInicio: "", dataFim: "", descricao: "" });
+    loadAtestados();
+  }
+
+  async function handleDeleteAtestado(id: number) {
+    await fetch(`/api/atestados?id=${id}`, { method: "DELETE" });
+    loadAtestados();
+  }
 
   async function handleAddEscala(e: { preventDefault(): void }) {
     e.preventDefault();
@@ -344,6 +379,8 @@ export default function PlantoesPage() {
           )}
           {tab === "folgas"
             ? <button onClick={() => { setEditingFolga(null); setFormFolga({ colaboradorId: "", data: "", tipo: "SABADO", descricao: "" }); setModalFolga(true); }} className="bg-green-600 hover:bg-green-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition">+ Registrar folga</button>
+            : tab === "atestados"
+            ? <button onClick={() => { setFormAtestado({ colaboradorId: "", dataInicio: "", dataFim: "", descricao: "" }); setModalAtestado(true); }} className="bg-orange-600 hover:bg-orange-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition">+ Registrar atestado</button>
             : tab === "escala"
             ? null
             : <button onClick={() => { setForm(emptyForm); setModal("novo"); }} className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition">+ Registrar plantão</button>
@@ -353,7 +390,7 @@ export default function PlantoesPage() {
 
       {/* Tabs */}
       <div className="flex gap-1 mb-4 bg-gray-900 border border-gray-800 rounded-lg p-1 w-fit">
-        {(["ranking", "historico", "saldo", "folgas", "escala"] as const).map((t) => (
+        {(["ranking", "historico", "saldo", "folgas", "escala", "atestados"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -363,7 +400,8 @@ export default function PlantoesPage() {
               : t === "historico" ? "Histórico"
               : t === "saldo"     ? `Saldo${totalFolgasPendentes > 0 ? ` · ${totalFolgasPendentes} pendentes` : ""}`
               : t === "folgas"    ? "Folgas"
-              : "Escala do Mês"}
+              : t === "escala"   ? "Escala do Mês"
+              : "Atestados"}
           </button>
         ))}
       </div>
@@ -408,7 +446,12 @@ export default function PlantoesPage() {
                     <tr key={entry.id} className={`border-b border-gray-800 last:border-0 transition ${isNext && idx === 0 ? "bg-green-900/10" : "hover:bg-gray-800/50"}`}>
                       <td className="px-4 py-3 text-center text-gray-500 font-mono text-xs">{idx + 1}</td>
                       <td className="px-4 py-3">
-                        <button onClick={() => openObs(entry)} className="text-white font-medium hover:text-blue-400 transition text-left">{entry.nome}</button>
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => openObs(entry)} className="text-white font-medium hover:text-blue-400 transition text-left">{entry.nome}</button>
+                          {atestadosAtivos.has(entry.id) && (
+                            <span className="text-xs px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400 border border-orange-500/30">Afastado</span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-3">
                         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-700 text-gray-300">{entry.equipe}</span>
@@ -615,6 +658,52 @@ export default function PlantoesPage() {
             </table>
           </div>
         </>
+      )}
+
+      {/* ATESTADOS */}
+      {tab === "atestados" && (
+        <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wide">
+                <th className="text-left px-4 py-3">Colaborador</th>
+                <th className="text-left px-4 py-3">Equipe</th>
+                <th className="text-center px-4 py-3">Início</th>
+                <th className="text-center px-4 py-3">Fim</th>
+                <th className="text-center px-4 py-3">Dias</th>
+                <th className="text-left px-4 py-3">Observação</th>
+                <th className="px-4 py-3" />
+              </tr>
+            </thead>
+            <tbody>
+              {atestados.length === 0 && (
+                <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-500">Nenhum atestado registrado</td></tr>
+              )}
+              {atestados.map(a => {
+                const hoje = new Date().toISOString().slice(0, 10);
+                const ativo = a.dataInicio <= hoje && a.dataFim >= hoje;
+                return (
+                  <tr key={a.id} className={`border-b border-gray-800 last:border-0 hover:bg-gray-800/50 transition ${ativo ? "bg-orange-900/10" : ""}`}>
+                    <td className="px-4 py-3">
+                      <button onClick={() => openObs({ id: a.colaboradorId, nome: a.colaborador.nome })} className="text-white font-medium hover:text-blue-400 transition text-left">{a.colaborador.nome}</button>
+                      {ativo && <span className="ml-2 text-xs px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400 border border-orange-500/30">Afastado</span>}
+                    </td>
+                    <td className="px-4 py-3"><span className="text-xs px-2 py-0.5 rounded bg-gray-700 text-gray-300">{a.colaborador.equipe.nome}</span></td>
+                    <td className="px-4 py-3 text-center text-gray-300 font-mono">{fmt(a.dataInicio)}</td>
+                    <td className="px-4 py-3 text-center text-gray-300 font-mono">{fmt(a.dataFim)}</td>
+                    <td className="px-4 py-3 text-center">
+                      <span className={`font-bold ${ativo ? "text-orange-400" : "text-gray-400"}`}>{a.dias}</span>
+                    </td>
+                    <td className="px-4 py-3 text-gray-400 text-xs italic">{a.descricao ?? "—"}</td>
+                    <td className="px-4 py-3 text-right">
+                      <button onClick={() => handleDeleteAtestado(a.id)} className="text-xs text-red-400 hover:text-red-300 transition">Excluir</button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
 
       {/* ESCALA DO MÊS */}
@@ -826,6 +915,49 @@ export default function PlantoesPage() {
                 <button type="button" onClick={() => setModal(null)} className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-lg py-2 transition">Cancelar</button>
                 <button type="submit" disabled={saving} className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg py-2 transition">
                   {saving ? "Salvando..." : "Registrar"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL — Registrar atestado */}
+      {modalAtestado && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4">
+          <div className="bg-gray-900 border border-gray-800 rounded-xl w-full max-w-sm p-6">
+            <h3 className="text-base font-semibold text-white mb-4">Registrar atestado</h3>
+            <form onSubmit={handleSubmitAtestado} className="space-y-3">
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Colaborador</label>
+                <select value={formAtestado.colaboradorId} onChange={e => setFormAtestado(f => ({ ...f, colaboradorId: e.target.value }))} required
+                  className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+                  <option value="">Selecione...</option>
+                  {rankingAlfabetico.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Data início</label>
+                  <input type="date" value={formAtestado.dataInicio} onChange={e => setFormAtestado(f => ({ ...f, dataInicio: e.target.value }))} required
+                    className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Data fim</label>
+                  <input type="date" value={formAtestado.dataFim} onChange={e => setFormAtestado(f => ({ ...f, dataFim: e.target.value }))} required
+                    className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Observação <span className="text-gray-600">(opcional)</span></label>
+                <input value={formAtestado.descricao} onChange={e => setFormAtestado(f => ({ ...f, descricao: e.target.value }))}
+                  placeholder="Ex: Declaração médica, CID..."
+                  className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500" />
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button type="button" onClick={() => setModalAtestado(false)} className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-lg py-2 transition">Cancelar</button>
+                <button type="submit" disabled={savingAtestado} className="flex-1 bg-orange-600 hover:bg-orange-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg py-2 transition">
+                  {savingAtestado ? "Salvando..." : "Registrar"}
                 </button>
               </div>
             </form>

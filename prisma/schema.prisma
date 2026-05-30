@@ -31,6 +31,7 @@ model Colaborador {
   plantoes       Plantao[]
   bancoHoras          LancamentoBancoHoras[]
   escalaPlantao       EscalaPlantaoMensal[]
+  atestados           Atestado[]
   createdAt      DateTime               @default(now())
   updatedAt      DateTime               @updatedAt
 }
@@ -107,6 +108,16 @@ model EscalaPlantaoMensal {
   createdAt     DateTime    @default(now())
 
   @@unique([colaboradorId, data])
+}
+
+model Atestado {
+  id            Int         @id @default(autoincrement())
+  colaboradorId Int
+  colaborador   Colaborador @relation(fields: [colaboradorId], references: [id])
+  dataInicio    DateTime    @db.Date
+  dataFim       DateTime    @db.Date
+  descricao     String?
+  createdAt     DateTime    @default(now())
 }
 
 model LancamentoBancoHoras {

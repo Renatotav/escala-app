@@ -75,6 +75,7 @@ export default function PlantoesPage() {
   const [editingFolga, setEditingFolga] = useState<FolgaReg | null>(null);
   const [equipes, setEquipes] = useState<Equipe[]>([]);
   const [filtroEquipe, setFiltroEquipe] = useState("");
+  const [filtroColab, setFiltroColab] = useState("");
   const [modal, setModal] = useState<"novo" | "folga" | null>(null);
   const [selected, setSelected] = useState<Historico | null>(null);
   const [form, setForm] = useState(emptyForm);
@@ -223,7 +224,10 @@ export default function PlantoesPage() {
     loadEscalaMensal();
   }
 
-  const lista = filtroEquipe ? ranking.filter((e) => e.equipe === filtroEquipe) : ranking;
+  const lista = ranking.filter(e =>
+    (!filtroEquipe || e.equipe === filtroEquipe) &&
+    (!filtroColab || String(e.id) === filtroColab)
+  );
   const minScore = lista.length ? lista[0].score : 0;
   const maxScore = lista.length ? lista[lista.length - 1].score : 0;
 
@@ -365,14 +369,16 @@ export default function PlantoesPage() {
       {/* SEQUÊNCIA (RANKING) */}
       {tab === "ranking" && (
         <>
-          <div className="mb-4">
-            <select
-              value={filtroEquipe}
-              onChange={(e) => setFiltroEquipe(e.target.value)}
-              className="bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
+          <div className="flex gap-3 mb-4">
+            <select value={filtroEquipe} onChange={(e) => setFiltroEquipe(e.target.value)}
+              className="bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
               <option value="">Todas as equipes</option>
               {equipes.map((eq) => <option key={eq.id} value={eq.nome}>{eq.nome}</option>)}
+            </select>
+            <select value={filtroColab} onChange={(e) => setFiltroColab(e.target.value)}
+              className="bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="">Todos os colaboradores</option>
+              {ranking.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
             </select>
           </div>
 

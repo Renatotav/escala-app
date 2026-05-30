@@ -588,8 +588,12 @@ export default function PlantoesPage() {
       {tab === "escala" && (
         <>
           <div className="flex items-center justify-between mb-4">
-            <input type="month" value={mesEscala} onChange={e => setMesEscala(e.target.value)}
-              className="bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <div className="flex gap-3 items-center">
+              <button onClick={() => { const [y,m] = mesEscala.split("-").map(Number); const d = new Date(y,m-2,1); setMesEscala(d.toISOString().slice(0,7)); }} className="bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg px-3 py-2 text-sm transition">‹</button>
+              <input type="month" value={mesEscala} onChange={e => setMesEscala(e.target.value)}
+                className="bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <button onClick={() => { const [y,m] = mesEscala.split("-").map(Number); const d = new Date(y,m,1); setMesEscala(d.toISOString().slice(0,7)); }} className="bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg px-3 py-2 text-sm transition">›</button>
+            </div>
             <p className="text-xs text-gray-500">{diasMes.length} dias de fim de semana neste mês</p>
           </div>
 

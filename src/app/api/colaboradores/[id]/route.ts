@@ -6,7 +6,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   const { nome, cargo, matricula, equipeId } = await request.json();
   const colaborador = await prisma.colaborador.update({
     where: { id: Number(id) },
-    data: { nome, cargo, matricula, equipeId },
+    data: { nome, cargo: cargo || null, matricula: matricula || null, equipeId },
     include: { equipe: true },
   });
   return NextResponse.json(colaborador);

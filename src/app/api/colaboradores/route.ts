@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const { nome, cargo, matricula, equipeId } = await request.json();
   const colaborador = await prisma.colaborador.create({
-    data: { nome, cargo, matricula, equipeId },
+    data: { nome, cargo: cargo || null, matricula: matricula || null, equipeId },
     include: { equipe: true },
   });
   return NextResponse.json(colaborador, { status: 201 });

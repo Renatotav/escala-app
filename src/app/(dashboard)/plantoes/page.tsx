@@ -79,6 +79,8 @@ export default function PlantoesPage() {
   const [folgaForm, setFolgaForm] = useState({ folga1: "", folga2: "" });
   const [folgasAgendadas, setFolgasAgendadas] = useState<FolgaAgendada[]>([]);
   const [saving, setSaving] = useState(false);
+  const [saldoPendingColab, setSaldoPendingColab] = useState<{ id: number; nome: string } | null>(null);
+  const [saldoPendingPlantoes, setSaldoPendingPlantoes] = useState<Historico[]>([]);
 
   async function loadRanking() {
     const data = await fetch("/api/plantoes").then((r) => r.json());
@@ -243,6 +245,16 @@ export default function PlantoesPage() {
     setSelected(null);
     loadHistorico();
     loadFolgasAgendadas();
+  }
+
+  async function openSaldoFolga(s: Saldo) {
+    const data = await fetch(`/api/plantoes?view=historico&colaboradorId=${s.id}`).then(r => r.json()) as Historico[];
+    const pendentes = data.filter(h => {
+      const duplo = h.tipo === "DOMINGO" || h.tipo === "FERIADO";
+      return !h.folga1 || (duplo && !h.folga2);
+    });
+    setSaldoPendingColab({ id: s.id, nome: s.nome });
+    setSaldoPendingPlantoes(pendentes);
   }
 
   function openFolga(h: Historico) {
@@ -430,11 +442,12 @@ export default function PlantoesPage() {
                 <th className="text-center px-4 py-3">Folgas devidas</th>
                 <th className="text-center px-4 py-3">Agendadas</th>
                 <th className="text-center px-4 py-3">Pendentes</th>
+                <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody>
               {saldo.length === 0 && (
-                <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-500">Nenhum registro encontrado</td></tr>
+                <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-500">Nenhum registro encontrado</td></tr>
               )}
               {saldo.map((s) => (
                 <tr key={s.id} className={`border-b border-gray-800 last:border-0 transition hover:bg-gray-800/50 ${s.pendentes > 0 ? "bg-yellow-900/5" : ""}`}>
@@ -449,6 +462,14 @@ export default function PlantoesPage() {
                     {s.pendentes > 0
                       ? <span className="font-bold text-yellow-400">{s.pendentes}</span>
                       : <span className="text-gray-600">0</span>}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    {s.pendentes > 0 && (
+                      <button onClick={() => openSaldoFolga(s)}
+                        className="text-xs font-medium text-yellow-400 hover:text-yellow-300 transition">
+                        Agendar folga
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -707,6 +728,40 @@ export default function PlantoesPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL — Selecionar plantão pendente (via Saldo) */}
+      {saldoPendingColab && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4">
+          <div className="bg-gray-900 border border-gray-800 rounded-xl w-full max-w-md p-6">
+            <h3 className="text-base font-semibold text-white mb-1">Agendar folga</h3>
+            <p className="text-xs text-gray-400 mb-4">{saldoPendingColab.nome} · selecione o plantão</p>
+            {saldoPendingPlantoes.length === 0 ? (
+              <p className="text-sm text-gray-500 py-4 text-center">Nenhum plantão pendente encontrado.</p>
+            ) : (
+              <div className="divide-y divide-gray-800 max-h-72 overflow-y-auto">
+                {saldoPendingPlantoes.map(h => {
+                  const duplo = h.tipo === "DOMINGO" || h.tipo === "FERIADO";
+                  const falta = !h.folga1 ? (duplo ? "2 folgas" : "1 folga") : "Folga dupla";
+                  return (
+                    <button key={h.id} onClick={() => { setSaldoPendingColab(null); openFolga(h); }}
+                      className="w-full flex items-center justify-between px-2 py-3 hover:bg-gray-800 rounded transition text-left">
+                      <div>
+                        <p className="text-white text-sm font-medium">{fmt(h.data)}</p>
+                        <p className="text-xs text-gray-500">{tipoLabel[h.tipo]}</p>
+                      </div>
+                      <span className="text-xs text-yellow-400">falta {falta}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            <button onClick={() => setSaldoPendingColab(null)}
+              className="mt-4 w-full bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-lg py-2 transition">
+              Cancelar
+            </button>
           </div>
         </div>
       )}

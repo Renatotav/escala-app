@@ -32,7 +32,9 @@ export async function GET(request: NextRequest) {
   const view = new URL(request.url).searchParams.get("view");
 
   if (view === "historico") {
+    const colaboradorId = new URL(request.url).searchParams.get("colaboradorId");
     const plantoes = await prisma.plantao.findMany({
+      where: { ...(colaboradorId && { colaboradorId: Number(colaboradorId) }) },
       include: { colaborador: { select: { nome: true, equipe: { select: { nome: true } } } } },
       orderBy: { data: "desc" },
     });

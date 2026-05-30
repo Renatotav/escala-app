@@ -149,7 +149,7 @@ export default function BancoHorasPage() {
       </div>
 
       {/* Tabela */}
-      <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
+      <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wide">

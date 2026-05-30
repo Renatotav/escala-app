@@ -365,10 +365,10 @@ export default function PlantoesPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
         <div>
           <h2 className="text-xl font-semibold text-white">Plantões & Folgas</h2>
-          <p className="text-sm text-gray-400 mt-0.5">Sábado / Pto. Facultativo = 1 pt (folga simples) · Domingo / Feriado = 2 pts (folga dupla)</p>
+          <p className="text-xs text-gray-400 mt-0.5">Sáb / Pto. Fac. = 1 pt · Dom / Feriado = 2 pts</p>
         </div>
         <div className="flex gap-2">
           {(tab === "ranking" || tab === "historico" || tab === "saldo") && (
@@ -389,7 +389,7 @@ export default function PlantoesPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-4 bg-gray-900 border border-gray-800 rounded-lg p-1 w-fit">
+      <div className="flex gap-1 mb-4 bg-gray-900 border border-gray-800 rounded-lg p-1 overflow-x-auto w-full md:w-fit">
         {(["ranking", "historico", "saldo", "folgas", "escala", "atestados"] as const).map((t) => (
           <button
             key={t}
@@ -422,7 +422,7 @@ export default function PlantoesPage() {
             </select>
           </div>
 
-          <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
+          <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wide">
@@ -498,7 +498,7 @@ export default function PlantoesPage() {
             {rankingAlfabetico.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
           </select>
         </div>
-        <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
+        <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wide">
@@ -555,7 +555,7 @@ export default function PlantoesPage() {
             Total a agendar: <strong>{totalFolgasPendentes}</strong> folga{totalFolgasPendentes !== 1 ? "s" : ""} pendente{totalFolgasPendentes !== 1 ? "s" : ""}
           </div>
         )}
-        <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
+        <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wide">
@@ -622,7 +622,7 @@ export default function PlantoesPage() {
               {rankingAlfabetico.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
             </select>
           </div>
-          <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
+          <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wide">
@@ -662,7 +662,7 @@ export default function PlantoesPage() {
 
       {/* ATESTADOS */}
       {tab === "atestados" && (
-        <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
+        <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wide">

@@ -70,7 +70,7 @@ export default async function DashboardPage() {
     <div className="space-y-6">
       <h2 className="text-xl font-semibold text-white">Dashboard</h2>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4">
         {cards.map(card => (
           <div key={card.label} className="bg-gray-900 rounded-xl border border-gray-800 p-5 flex flex-col gap-2">
             <p className="text-xs text-gray-500">{card.label}</p>

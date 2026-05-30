@@ -94,7 +94,7 @@ export default function EscalaPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
         <h2 className="text-xl font-semibold text-white">Escala Semanal</h2>
         <div className="flex gap-3 items-center">
           <button onClick={() => { const d = new Date(semana); d.setDate(d.getDate() - 7); setSemana(d.toISOString().slice(0, 10)); }}
@@ -138,7 +138,7 @@ export default function EscalaPage() {
                   {equipe.nome}
                 </h3>
               )}
-              <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
+              <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wide">

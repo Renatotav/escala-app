@@ -84,6 +84,13 @@ export default function PlantoesPage() {
   const [saldoPendingPlantoes, setSaldoPendingPlantoes] = useState<Historico[]>([]);
   const [saldoVerColab, setSaldoVerColab] = useState<{ id: number; nome: string } | null>(null);
   const [saldoVerFolgas, setSaldoVerFolgas] = useState<FolgaAgendada[]>([]);
+  const [toast, setToast] = useState<{ folga1: string; folga2?: string; plantaoData: string; plantaoTipo: string; nome: string } | null>(null);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 5000);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   async function loadRanking() {
     const data = await fetch("/api/plantoes").then((r) => r.json());
@@ -250,9 +257,19 @@ export default function PlantoesPage() {
     });
     setSaving(false);
     setModal(null);
+    if (folgaForm.folga1) {
+      setToast({
+        folga1: folgaForm.folga1,
+        folga2: folgaForm.folga2 || undefined,
+        plantaoData: selected.data,
+        plantaoTipo: selected.tipo,
+        nome: selected.colaborador.nome,
+      });
+    }
     setSelected(null);
     loadHistorico();
     loadFolgasAgendadas();
+    loadSaldo();
   }
 
   async function openSaldoVerFolgas(s: Saldo) {
@@ -880,6 +897,35 @@ export default function PlantoesPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* TOAST — Folga agendada */}
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-50 bg-gray-900 border border-green-600/40 rounded-xl shadow-xl p-4 max-w-sm animate-in fade-in slide-in-from-bottom-2">
+          <div className="flex items-start gap-3">
+            <span className="text-green-400 text-lg mt-0.5">✓</span>
+            <div>
+              <p className="text-white text-sm font-semibold mb-1">Folga agendada</p>
+              <p className="text-xs text-gray-400">{toast.nome}</p>
+              <div className="mt-2 space-y-1">
+                <p className="text-xs text-gray-300">
+                  <span className="text-gray-500">Folga simples:</span>{" "}
+                  <span className="text-green-400 font-medium">{fmt(toast.folga1)}</span>
+                </p>
+                {toast.folga2 && (
+                  <p className="text-xs text-gray-300">
+                    <span className="text-gray-500">Folga dupla:</span>{" "}
+                    <span className="text-green-400 font-medium">{fmt(toast.folga2)}</span>
+                  </p>
+                )}
+                <p className="text-xs text-gray-500 pt-1 border-t border-gray-800">
+                  Plantão: {fmt(toast.plantaoData)} · {tipoLabel[toast.plantaoTipo] ?? toast.plantaoTipo}
+                </p>
+              </div>
+            </div>
+            <button onClick={() => setToast(null)} className="text-gray-600 hover:text-gray-400 text-xs ml-auto">✕</button>
           </div>
         </div>
       )}

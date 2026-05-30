@@ -34,6 +34,7 @@ export default function BancoHorasPage() {
   const [expandido, setExpandido] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [editingLancamento, setEditingLancamento] = useState<EditingLancamento | null>(null);
+  const [verHistorico, setVerHistorico] = useState<BancoItem | null>(null);
 
   function load() {
     const params = new URLSearchParams();
@@ -169,7 +170,7 @@ export default function BancoHorasPage() {
                   className={`border-b border-gray-800 transition ${expandido === d.id ? "bg-gray-800/60" : "hover:bg-gray-800/40"} ${d.saldoMinutos < 0 ? "bg-red-900/5" : ""}`}>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <span className="text-white font-medium">{d.nome}</span>
+                      <button onClick={() => setVerHistorico(d)} className="text-white font-medium hover:text-blue-400 transition text-left">{d.nome}</button>
                       {d.saldoMinutos < 0 && (
                         <span className="text-xs px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30 font-medium">
                           devendo
@@ -247,6 +248,44 @@ export default function BancoHorasPage() {
           </tbody>
         </table>
       </div>
+
+      {/* Modal — Histórico de lançamentos */}
+      {verHistorico && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4">
+          <div className="bg-gray-900 border border-gray-800 rounded-xl w-full max-w-lg p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-base font-semibold text-white">{verHistorico.nome}</h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {verHistorico.equipe.nome} · Saldo: <span className={`font-mono font-medium ${verHistorico.saldoMinutos >= 0 ? "text-green-400" : "text-red-400"}`}>{verHistorico.saldo}</span>
+                </p>
+              </div>
+              <button onClick={() => setVerHistorico(null)} className="text-gray-600 hover:text-gray-400 transition">✕</button>
+            </div>
+            {verHistorico.historico.length === 0 ? (
+              <p className="text-sm text-gray-500 text-center py-6">Nenhum lançamento registrado.</p>
+            ) : (
+              <div className="divide-y divide-gray-800 max-h-96 overflow-y-auto">
+                {verHistorico.historico.map(h => (
+                  <div key={h.id} className="flex items-center justify-between py-2.5">
+                    <div>
+                      <p className="text-sm text-gray-300 font-mono">{fmt(h.data)}</p>
+                      {h.descricao && <p className="text-xs text-gray-500 italic mt-0.5">"{h.descricao}"</p>}
+                    </div>
+                    <span className={`font-mono font-semibold text-sm ${h.horas >= 0 ? "text-green-400" : "text-red-400"}`}>
+                      {horasFmt(h.horas)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <button onClick={() => setVerHistorico(null)}
+              className="mt-4 w-full bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-lg py-2 transition">
+              Fechar
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Modal */}
       {modal && (

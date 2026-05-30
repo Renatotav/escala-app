@@ -17,15 +17,20 @@ export async function GET(request: NextRequest) {
   });
 
   const result = colaboradores.map((c) => {
+    // considera apenas escalas até a semana visualizada (inclusive)
+    const escalasAte = semana
+      ? c.escalas.filter(e => new Date(e.semana).toISOString().slice(0, 10) <= semana)
+      : c.escalas;
+
     // conta semanas presenciais consecutivas desde o último REMOTO
     let semanasPresencial = 0;
-    for (const e of c.escalas) {
+    for (const e of escalasAte) {
       if (e.tipo === "REMOTO") break;
       semanasPresencial++;
     }
 
-    // se a escala mais recente é REMOTO, já está elegível para remoto
-    const ultimaFoiRemoto = c.escalas[0]?.tipo === "REMOTO";
+    // se a escala mais recente (até a semana visualizada) é REMOTO, está elegível
+    const ultimaFoiRemoto = escalasAte[0]?.tipo === "REMOTO";
     const sinal = ultimaFoiRemoto
       ? ("VERDE" as const)
       : calcularSinal(semanasPresencial, c.equipe.thresholdAmarelo, c.equipe.thresholdVerde);

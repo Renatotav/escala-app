@@ -81,6 +81,8 @@ export default function PlantoesPage() {
   const [saving, setSaving] = useState(false);
   const [saldoPendingColab, setSaldoPendingColab] = useState<{ id: number; nome: string } | null>(null);
   const [saldoPendingPlantoes, setSaldoPendingPlantoes] = useState<Historico[]>([]);
+  const [saldoVerColab, setSaldoVerColab] = useState<{ id: number; nome: string } | null>(null);
+  const [saldoVerFolgas, setSaldoVerFolgas] = useState<FolgaAgendada[]>([]);
 
   async function loadRanking() {
     const data = await fetch("/api/plantoes").then((r) => r.json());
@@ -245,6 +247,18 @@ export default function PlantoesPage() {
     setSelected(null);
     loadHistorico();
     loadFolgasAgendadas();
+  }
+
+  async function openSaldoVerFolgas(s: Saldo) {
+    const data = await fetch(`/api/plantoes?view=folgas-agendadas&colaboradorId=${s.id}`).then(r => r.json()) as FolgaAgendada[];
+    setSaldoVerColab({ id: s.id, nome: s.nome });
+    setSaldoVerFolgas(data);
+  }
+
+  function navMes(delta: number) {
+    const [y, m] = mesFolga.split("-").map(Number);
+    const d = new Date(y, m - 1 + delta, 1);
+    setMesFolga(d.toISOString().slice(0, 7));
   }
 
   async function openSaldoFolga(s: Saldo) {
@@ -457,7 +471,11 @@ export default function PlantoesPage() {
                   </td>
                   <td className="px-4 py-3 text-center text-gray-300">{s.totalPlantoes}</td>
                   <td className="px-4 py-3 text-center text-gray-300">{s.creditos}</td>
-                  <td className="px-4 py-3 text-center text-green-400">{s.agendadas}</td>
+                  <td className="px-4 py-3 text-center">
+                    {s.agendadas > 0
+                      ? <button onClick={() => openSaldoVerFolgas(s)} className="font-medium text-green-400 hover:text-green-300 underline underline-offset-2 transition">{s.agendadas}</button>
+                      : <span className="text-gray-600">0</span>}
+                  </td>
                   <td className="px-4 py-3 text-center">
                     {s.pendentes > 0
                       ? <span className="font-bold text-yellow-400">{s.pendentes}</span>
@@ -482,9 +500,11 @@ export default function PlantoesPage() {
       {/* FOLGAS */}
       {tab === "folgas" && (
         <>
-          <div className="flex gap-3 mb-4">
+          <div className="flex gap-3 mb-4 items-center">
+            <button onClick={() => navMes(-1)} className="bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg px-3 py-2 text-sm transition">‹</button>
             <input type="month" value={mesFolga} onChange={e => setMesFolga(e.target.value)}
               className="bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <button onClick={() => navMes(1)} className="bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg px-3 py-2 text-sm transition">›</button>
             <select value={colaboradorFolga} onChange={e => setColaboradorFolga(e.target.value)}
               className="bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
               <option value="">Todos os colaboradores</option>
@@ -728,6 +748,37 @@ export default function PlantoesPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL — Ver folgas agendadas de um colaborador (via Saldo) */}
+      {saldoVerColab && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4">
+          <div className="bg-gray-900 border border-gray-800 rounded-xl w-full max-w-md p-6">
+            <h3 className="text-base font-semibold text-white mb-1">Folgas agendadas</h3>
+            <p className="text-xs text-gray-400 mb-4">{saldoVerColab.nome}</p>
+            {saldoVerFolgas.length === 0 ? (
+              <p className="text-sm text-gray-500 py-4 text-center">Nenhuma folga agendada.</p>
+            ) : (
+              <div className="divide-y divide-gray-800 max-h-80 overflow-y-auto">
+                {saldoVerFolgas.map(f => (
+                  <div key={f.id} className="flex items-center justify-between py-2.5">
+                    <div>
+                      <p className="text-green-400 font-medium text-sm">{fmt(f.data)}</p>
+                      <p className="text-xs text-gray-500">Plantão: {fmt(f.dataPlantao)}</p>
+                    </div>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${tipoBadgeFolga[f.tipoPlantao] ?? "bg-gray-700 text-gray-300"}`}>
+                      {tipoLabel[f.tipoPlantao] ?? f.tipoPlantao}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <button onClick={() => setSaldoVerColab(null)}
+              className="mt-4 w-full bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-lg py-2 transition">
+              Fechar
+            </button>
           </div>
         </div>
       )}

@@ -10,17 +10,19 @@ type FolgaReg = { id: number; data: string; tipo: string; descricao: string | nu
 type FolgaAgendada = { id: string; data: string; dataPlantao: string; colaborador: { nome: string; equipe: { nome: string } }; tipoPlantao: string };
 type EscalaMensal = { id: number; data: string; tipo: string; colaborador: { id: number; nome: string; equipe: string } };
 
-const tipoLabel: Record<string, string> = { SABADO: "Sábado", DOMINGO: "Domingo", FERIADO: "Feriado" };
+const tipoLabel: Record<string, string> = { SABADO: "Sábado", DOMINGO: "Domingo", FERIADO: "Feriado", PONTO_FACULTATIVO: "Pto. Facultativo" };
 const tipoBadgeFolga: Record<string, string> = {
-  SABADO:  "bg-purple-500/10 text-purple-400",
-  DOMINGO: "bg-orange-500/10 text-orange-400",
-  FERIADO: "bg-blue-500/10 text-blue-400",
+  SABADO:             "bg-purple-500/10 text-purple-400",
+  DOMINGO:            "bg-orange-500/10 text-orange-400",
+  FERIADO:            "bg-blue-500/10 text-blue-400",
+  PONTO_FACULTATIVO:  "bg-teal-500/10 text-teal-400",
 };
 
 const TIPOS = [
-  { value: "SABADO",  label: "Sábado",  pts: 1, folgas: 1 },
-  { value: "DOMINGO", label: "Domingo", pts: 2, folgas: 2 },
-  { value: "FERIADO", label: "Feriado", pts: 2, folgas: 2 },
+  { value: "SABADO",             label: "Sábado",           pts: 1, folgas: 1 },
+  { value: "PONTO_FACULTATIVO",  label: "Ponto Facultativo", pts: 1, folgas: 1 },
+  { value: "DOMINGO",            label: "Domingo",           pts: 2, folgas: 2 },
+  { value: "FERIADO",            label: "Feriado",           pts: 2, folgas: 2 },
 ];
 
 const emptyForm = { colaboradorId: "", data: "", tipo: "SABADO", folga1: "", folga2: "", descricao: "" };
@@ -32,8 +34,9 @@ function fmt(iso: string | null) {
 }
 
 function tipoBadge(tipo: string) {
-  if (tipo === "SABADO")  return <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">Sábado</span>;
-  if (tipo === "DOMINGO") return <span className="text-xs px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">Domingo</span>;
+  if (tipo === "SABADO")            return <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">Sábado</span>;
+  if (tipo === "DOMINGO")           return <span className="text-xs px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">Domingo</span>;
+  if (tipo === "PONTO_FACULTATIVO") return <span className="text-xs px-2 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30">Pto. Facultativo</span>;
   return <span className="text-xs px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-300 border border-orange-500/30">Feriado</span>;
 }
 
@@ -257,7 +260,7 @@ export default function PlantoesPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-xl font-semibold text-white">Plantões & Folgas</h2>
-          <p className="text-sm text-gray-400 mt-0.5">Sábado = 1 pt · Domingo / Feriado = 2 pts</p>
+          <p className="text-sm text-gray-400 mt-0.5">Sábado / Pto. Facultativo = 1 pt (folga simples) · Domingo / Feriado = 2 pts (folga dupla)</p>
         </div>
         <div className="flex gap-2">
           {(tab === "ranking" || tab === "historico" || tab === "saldo") && (
@@ -284,8 +287,8 @@ export default function PlantoesPage() {
             className={`px-4 py-1.5 rounded-md text-sm font-medium transition ${tab === t ? "bg-blue-600 text-white" : "text-gray-400 hover:text-white"}`}
           >
             {t === "ranking"   ? "Sequência"
-              : t === "historico" ? `Histórico${totalFolgasPendentes > 0 ? ` · faltam agendar ${totalFolgasPendentes}` : ""}`
-              : t === "saldo"     ? "Saldo"
+              : t === "historico" ? "Histórico"
+              : t === "saldo"     ? `Saldo${totalFolgasPendentes > 0 ? ` · ${totalFolgasPendentes} pendentes` : ""}`
               : t === "folgas"    ? "Folgas"
               : "Escala do Mês"}
           </button>
@@ -359,8 +362,8 @@ export default function PlantoesPage() {
                 <th className="text-left px-4 py-3">Equipe</th>
                 <th className="text-center px-4 py-3">Data Plantão</th>
                 <th className="text-center px-4 py-3">Tipo</th>
-                <th className="text-center px-4 py-3">Folga 1</th>
-                <th className="text-center px-4 py-3">Folga 2</th>
+                <th className="text-center px-4 py-3">Folga simples</th>
+                <th className="text-center px-4 py-3">Folga dupla</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -369,7 +372,7 @@ export default function PlantoesPage() {
                 <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-500">Nenhum plantão registrado</td></tr>
               )}
               {historico.map((h) => {
-                const needsFolga2 = h.tipo !== "SABADO";
+                const needsFolga2 = h.tipo === "DOMINGO" || h.tipo === "FERIADO";
                 const pendente = !h.folga1 || (needsFolga2 && !h.folga2);
                 return (
                   <tr key={h.id} className={`border-b border-gray-800 last:border-0 transition hover:bg-gray-800/50 ${pendente ? "bg-yellow-900/5" : ""}`}>
@@ -399,6 +402,12 @@ export default function PlantoesPage() {
 
       {/* SALDO */}
       {tab === "saldo" && (
+        <>
+        {totalFolgasPendentes > 0 && (
+          <div className="mb-3 px-4 py-2.5 rounded-lg bg-yellow-900/20 border border-yellow-700/30 text-sm text-yellow-400">
+            Total a agendar: <strong>{totalFolgasPendentes}</strong> folga{totalFolgasPendentes !== 1 ? "s" : ""} pendente{totalFolgasPendentes !== 1 ? "s" : ""}
+          </div>
+        )}
         <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
           <table className="w-full text-sm">
             <thead>
@@ -434,6 +443,7 @@ export default function PlantoesPage() {
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       {/* FOLGAS */}
@@ -660,13 +670,13 @@ export default function PlantoesPage() {
               </div>
               <div className={`grid gap-3 ${tipoSelecionado.folgas === 2 ? "grid-cols-2" : "grid-cols-1"}`}>
                 <div>
-                  <label className="block text-xs text-gray-400 mb-1">Folga 1 <span className="text-gray-600">(opcional)</span></label>
+                  <label className="block text-xs text-gray-400 mb-1">Folga simples <span className="text-gray-600">(opcional)</span></label>
                   <input type="date" value={form.folga1} onChange={(e) => setForm((f) => ({ ...f, folga1: e.target.value }))}
                     className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                 </div>
                 {tipoSelecionado.folgas === 2 && (
                   <div>
-                    <label className="block text-xs text-gray-400 mb-1">Folga 2 <span className="text-gray-600">(opcional)</span></label>
+                    <label className="block text-xs text-gray-400 mb-1">Folga dupla <span className="text-gray-600">(opcional)</span></label>
                     <input type="date" value={form.folga2} onChange={(e) => setForm((f) => ({ ...f, folga2: e.target.value }))}
                       className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                   </div>
@@ -697,13 +707,13 @@ export default function PlantoesPage() {
             <p className="text-xs text-gray-400 mb-4">{selected.colaborador.nome} · plantão {fmt(selected.data)} · {tipoLabel[selected.tipo]}</p>
             <form onSubmit={handleFolga} className="space-y-3">
               <div>
-                <label className="block text-xs text-gray-400 mb-1">Folga 1</label>
+                <label className="block text-xs text-gray-400 mb-1">Folga simples</label>
                 <input type="date" value={folgaForm.folga1} onChange={(e) => setFolgaForm((f) => ({ ...f, folga1: e.target.value }))}
                   className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
-              {selected.tipo !== "SABADO" && (
+              {(selected.tipo === "DOMINGO" || selected.tipo === "FERIADO") && (
                 <div>
-                  <label className="block text-xs text-gray-400 mb-1">Folga 2</label>
+                  <label className="block text-xs text-gray-400 mb-1">Folga dupla</label>
                   <input type="date" value={folgaForm.folga2} onChange={(e) => setFolgaForm((f) => ({ ...f, folga2: e.target.value }))}
                     className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                 </div>

@@ -42,7 +42,7 @@ export default async function DashboardPage() {
     else if (sinal === "AMARELO") amarelos++;
 
     const ps = c.plantoes ?? [];
-    const creditos = ps.reduce((acc, p) => acc + (p.tipo === "SABADO" ? 1 : 2), 0);
+    const creditos = ps.reduce((acc, p) => acc + (p.tipo === "SABADO" || p.tipo === "PONTO_FACULTATIVO" ? 1 : 2), 0);
     const agendadas = ps.reduce((acc, p) => acc + (p.folga1 ? 1 : 0) + (p.folga2 ? 1 : 0), 0);
     folgasPendentes += Math.max(0, creditos - agendadas);
   }

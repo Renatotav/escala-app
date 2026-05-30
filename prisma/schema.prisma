@@ -81,6 +81,7 @@ enum TipoFolga {
   SABADO
   DOMINGO
   FERIADO
+  PONTO_FACULTATIVO
 }
 
 model Plantao {

@@ -9,7 +9,7 @@ async function getRanking() {
   });
 
   const ranking = colaboradores.map((c) => {
-    const sabados = c.plantoes.filter((p) => p.tipo === "SABADO").length;
+    const sabados = c.plantoes.filter((p) => p.tipo === "SABADO" || p.tipo === "PONTO_FACULTATIVO").length;
     const domFer = c.plantoes.filter((p) => p.tipo === "DOMINGO" || p.tipo === "FERIADO").length;
     const score = sabados + domFer * 2;
     return { id: c.id, nome: c.nome, equipe: c.equipe.nome, sabados, domFer, total: sabados + domFer, score };
@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
     const saldo = colabs.map((c: any) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const ps: any[] = c.plantoes ?? [];
-      const creditos = ps.reduce((acc: number, p: any) => acc + (p.tipo === "SABADO" ? 1 : 2), 0);
+      const creditos = ps.reduce((acc: number, p: any) => acc + (p.tipo === "SABADO" || p.tipo === "PONTO_FACULTATIVO" ? 1 : 2), 0);
       const agendadas = ps.reduce((acc: number, p: any) => acc + (p.folga1 ? 1 : 0) + (p.folga2 ? 1 : 0), 0);
       return {
         id: c.id,

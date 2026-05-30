@@ -3,52 +3,130 @@ export const dynamic = "force-dynamic";
 import { prisma } from "@/lib/prisma";
 import { calcularSinal } from "@/lib/eligibility";
 
+function fmt(iso: string) {
+  return iso.split("-").reverse().join("/");
+}
+
 export default async function DashboardPage() {
-  const [totalColaboradores, totalFolgas, colaboradores] = await Promise.all([
-    prisma.colaborador.count({ where: { ativo: true } }),
-    prisma.folga.count({
-      where: {
-        data: {
-          gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-          lte: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0),
-        },
-      },
-    }),
+  const hoje = new Date();
+  const em14dias = new Date(hoje.getTime() + 14 * 24 * 60 * 60 * 1000);
+
+  const [colaboradores, plantoesPendentes, plantoesRecentes] = await Promise.all([
     prisma.colaborador.findMany({
       where: { ativo: true },
-      include: { equipe: true, escalas: { orderBy: { semana: "desc" }, take: 10 } },
+      include: { equipe: true, escalas: { orderBy: { semana: "desc" }, take: 10 }, plantoes: true },
+    }),
+    prisma.plantao.findMany({
+      where: { OR: [{ folga1: { gte: hoje, lte: em14dias } }, { folga2: { gte: hoje, lte: em14dias } }] },
+      include: { colaborador: { select: { nome: true, equipe: { select: { nome: true } } } } },
+    }),
+    prisma.plantao.findMany({
+      orderBy: { data: "desc" },
+      take: 8,
+      include: { colaborador: { select: { nome: true, equipe: { select: { nome: true } } } } },
     }),
   ]);
 
-  let verdes = 0, amarelos = 0;
+  let verdes = 0, amarelos = 0, folgasPendentes = 0;
   for (const c of colaboradores) {
     let semanasPresencial = 0;
     for (const e of c.escalas) {
       if (e.tipo === "REMOTO") break;
       semanasPresencial++;
     }
-    const sinal = calcularSinal(semanasPresencial, c.equipe.thresholdAmarelo, c.equipe.thresholdVerde);
+    const ultimaFoiRemoto = c.escalas[0]?.tipo === "REMOTO";
+    const sinal = ultimaFoiRemoto
+      ? ("VERDE" as const)
+      : calcularSinal(semanasPresencial, c.equipe.thresholdAmarelo, c.equipe.thresholdVerde);
     if (sinal === "VERDE") verdes++;
     else if (sinal === "AMARELO") amarelos++;
+
+    const ps = c.plantoes ?? [];
+    const creditos = ps.reduce((acc, p) => acc + (p.tipo === "SABADO" ? 1 : 2), 0);
+    const agendadas = ps.reduce((acc, p) => acc + (p.folga1 ? 1 : 0) + (p.folga2 ? 1 : 0), 0);
+    folgasPendentes += Math.max(0, creditos - agendadas);
   }
 
+  const proximasEntries: { data: string; nome: string; equipe: string; tipo: string }[] = [];
+  for (const p of plantoesPendentes) {
+    const d1 = p.folga1 ? p.folga1.toISOString().slice(0, 10) : null;
+    const d2 = p.folga2 ? p.folga2.toISOString().slice(0, 10) : null;
+    if (d1) proximasEntries.push({ data: d1, nome: p.colaborador.nome, equipe: p.colaborador.equipe.nome, tipo: p.tipo });
+    if (d2) proximasEntries.push({ data: d2, nome: p.colaborador.nome, equipe: p.colaborador.equipe.nome, tipo: p.tipo });
+  }
+  proximasEntries.sort((a, b) => a.data.localeCompare(b.data));
+
+  const tipoLabel: Record<string, string> = { SABADO: "Sábado", DOMINGO: "Domingo", FERIADO: "Feriado" };
+
   const cards = [
-    { label: "Colaboradores ativos", value: totalColaboradores, color: "text-white" },
-    { label: "Elegíveis para remoto", value: verdes, color: "text-green-400" },
-    { label: "Quase elegíveis", value: amarelos, color: "text-yellow-400" },
-    { label: "Folgas este mês", value: totalFolgas, color: "text-blue-400" },
+    { label: "Colaboradores ativos", value: colaboradores.length, color: "text-white", icon: "👥" },
+    { label: "Elegíveis para remoto", value: verdes, color: "text-green-400", icon: "🟢" },
+    { label: "Quase elegíveis", value: amarelos, color: "text-yellow-400", icon: "🟡" },
+    { label: "Folgas a agendar", value: folgasPendentes, color: folgasPendentes > 0 ? "text-orange-400" : "text-gray-500", icon: "⏳" },
   ];
 
   return (
-    <div>
-      <h2 className="text-xl font-semibold text-white mb-6">Dashboard</h2>
+    <div className="space-y-6">
+      <h2 className="text-xl font-semibold text-white">Dashboard</h2>
+
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {cards.map(card => (
-          <div key={card.label} className="bg-gray-900 rounded-xl border border-gray-800 p-4">
-            <p className="text-xs text-gray-500 mb-1">{card.label}</p>
-            <p className={`text-3xl font-bold ${card.color}`}>{card.value}</p>
+          <div key={card.label} className="bg-gray-900 rounded-xl border border-gray-800 p-5 flex flex-col gap-2">
+            <p className="text-xs text-gray-500">{card.label}</p>
+            <p className={`text-4xl font-bold ${card.color}`}>{card.value}</p>
           </div>
         ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Plantões recentes */}
+        <div className="bg-gray-900 rounded-xl border border-gray-800 p-5">
+          <h3 className="text-sm font-medium text-gray-300 mb-4">Plantões recentes</h3>
+          {plantoesRecentes.length === 0 ? (
+            <p className="text-gray-600 text-sm">Nenhum plantão registrado.</p>
+          ) : (
+            <div className="divide-y divide-gray-800">
+              {plantoesRecentes.map(p => (
+                <div key={p.id} className="flex items-center justify-between py-2.5">
+                  <div>
+                    <p className="text-white text-sm font-medium">{p.colaborador.nome}</p>
+                    <p className="text-xs text-gray-500">{p.colaborador.equipe.nome}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-300">{fmt(p.data.toISOString().slice(0, 10))}</p>
+                    <p className="text-xs text-gray-500">{tipoLabel[p.tipo] ?? p.tipo}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Próximas folgas */}
+        <div className="bg-gray-900 rounded-xl border border-gray-800 p-5">
+          <h3 className="text-sm font-medium text-gray-300 mb-4">
+            Próximas folgas
+            <span className="ml-2 text-xs text-gray-500 font-normal">próximos 14 dias</span>
+          </h3>
+          {proximasEntries.length === 0 ? (
+            <p className="text-gray-600 text-sm">Nenhuma folga agendada nos próximos 14 dias.</p>
+          ) : (
+            <div className="divide-y divide-gray-800">
+              {proximasEntries.map((f, i) => (
+                <div key={i} className="flex items-center justify-between py-2.5">
+                  <div>
+                    <p className="text-white text-sm font-medium">{f.nome}</p>
+                    <p className="text-xs text-gray-500">{f.equipe}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-green-400 font-medium">{fmt(f.data)}</p>
+                    <p className="text-xs text-gray-500">{tipoLabel[f.tipo] ?? f.tipo}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

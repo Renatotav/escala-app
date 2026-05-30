@@ -847,7 +847,7 @@ export default function PlantoesPage() {
               <div className="divide-y divide-gray-800 max-h-72 overflow-y-auto">
                 {saldoPendingPlantoes.map(h => {
                   const duplo = h.tipo === "DOMINGO" || h.tipo === "FERIADO";
-                  const falta = !h.folga1 ? (duplo ? "2 folgas" : "1 folga") : "Folga dupla";
+                  const falta = !h.folga1 ? (duplo ? "faltam 1ª e 2ª folga" : "falta 1ª folga") : "falta 2ª folga";
                   return (
                     <button key={h.id} onClick={() => { setSaldoPendingColab(null); openFolga(h); }}
                       className="w-full flex items-center justify-between px-2 py-3 hover:bg-gray-800 rounded transition text-left">
@@ -877,13 +877,21 @@ export default function PlantoesPage() {
             <p className="text-xs text-gray-400 mb-4">{selected.colaborador.nome} · plantão {fmt(selected.data)} · {tipoLabel[selected.tipo]}</p>
             <form onSubmit={handleFolga} className="space-y-3">
               <div>
-                <label className="block text-xs text-gray-400 mb-1">Folga simples</label>
+                <label className="block text-xs text-gray-400 mb-1">
+                  1ª folga
+                  {folgaForm.folga1 && selected.tipo !== "SABADO" && selected.tipo !== "PONTO_FACULTATIVO" && (
+                    <span className="ml-1 text-green-500">· já agendada</span>
+                  )}
+                </label>
                 <input type="date" value={folgaForm.folga1} onChange={(e) => setFolgaForm((f) => ({ ...f, folga1: e.target.value }))}
                   className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
               {(selected.tipo === "DOMINGO" || selected.tipo === "FERIADO") && (
                 <div>
-                  <label className="block text-xs text-gray-400 mb-1">Folga dupla</label>
+                  <label className="block text-xs text-gray-400 mb-1">
+                    2ª folga
+                    <span className="ml-1 text-gray-600">· pode agendar depois</span>
+                  </label>
                   <input type="date" value={folgaForm.folga2} onChange={(e) => setFolgaForm((f) => ({ ...f, folga2: e.target.value }))}
                     className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                 </div>

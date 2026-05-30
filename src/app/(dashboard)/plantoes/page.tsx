@@ -761,7 +761,12 @@ export default function PlantoesPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs text-gray-400 mb-1">Data do plantão</label>
-                  <input type="date" value={form.data} onChange={(e) => setForm((f) => ({ ...f, data: e.target.value }))} required
+                  <input type="date" value={form.data} onChange={(e) => {
+                    const data = e.target.value;
+                    const day = data ? new Date(data + "T12:00:00").getDay() : -1;
+                    const tipo = day === 6 ? "SABADO" : day === 0 ? "DOMINGO" : form.tipo;
+                    setForm(f => ({ ...f, data, tipo, folga2: tipo !== "DOMINGO" && tipo !== "FERIADO" ? "" : f.folga2 }));
+                  }} required
                     className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                 </div>
                 <div>

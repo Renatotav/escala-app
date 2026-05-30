@@ -66,6 +66,7 @@ export default function PlantoesPage() {
   const [escalaColabId, setEscalaColabId] = useState("");
   const [savingEscala, setSavingEscala] = useState(false);
   const [mesHistorico, setMesHistorico] = useState(new Date().toISOString().slice(0, 7));
+  const [colaboradorHistorico, setColaboradorHistorico] = useState("");
   const [mesFolga, setMesFolga] = useState(new Date().toISOString().slice(0, 7));
   const [colaboradorFolga, setColaboradorFolga] = useState("");
   const [modalFolga, setModalFolga] = useState(false);
@@ -99,9 +100,12 @@ export default function PlantoesPage() {
     setRanking(data);
   }
 
-  async function loadHistorico(mes?: string) {
+  async function loadHistorico(mes?: string, colabId?: string) {
     const m = mes ?? mesHistorico;
-    const data = await fetch(`/api/plantoes?view=historico&mes=${m}`).then((r) => r.json());
+    const c = colabId ?? colaboradorHistorico;
+    const params = new URLSearchParams({ view: "historico", mes: m });
+    if (c) params.set("colaboradorId", c);
+    const data = await fetch(`/api/plantoes?${params}`).then((r) => r.json());
     setHistorico(data);
   }
 
@@ -147,8 +151,8 @@ export default function PlantoesPage() {
   }, [mesFolga, colaboradorFolga]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (tab === "historico") loadHistorico(mesHistorico);
-  }, [mesHistorico]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (tab === "historico") loadHistorico(mesHistorico, colaboradorHistorico);
+  }, [mesHistorico, colaboradorHistorico]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (tab === "escala") loadEscalaMensal();
@@ -437,6 +441,11 @@ export default function PlantoesPage() {
           <input type="month" value={mesHistorico} onChange={e => setMesHistorico(e.target.value)}
             className="bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
           <button onClick={() => navMesHistorico(1)} className="bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg px-3 py-2 text-sm transition">›</button>
+          <select value={colaboradorHistorico} onChange={e => setColaboradorHistorico(e.target.value)}
+            className="bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">Todos os colaboradores</option>
+            {ranking.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
+          </select>
         </div>
         <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
           <table className="w-full text-sm">

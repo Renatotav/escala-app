@@ -3,11 +3,11 @@
 import { useEffect, useState } from "react";
 
 type Entry = { id: number; nome: string; equipe: string; sabados: number; domFer: number; total: number; score: number; proximoDeve: "DUPLO" | "SIMPLES" | null };
-type Historico = { id: number; data: string; tipo: string; folga1: string | null; folga2: string | null; descricao: string | null; colaborador: { nome: string; equipe: { nome: string } } };
+type Historico = { id: number; colaboradorId: number; data: string; tipo: string; folga1: string | null; folga2: string | null; descricao: string | null; colaborador: { nome: string; equipe: { nome: string } } };
 type Saldo = { id: number; nome: string; equipe: string; totalPlantoes: number; creditos: number; agendadas: number; pendentes: number };
 type Equipe = { id: number; nome: string };
 type FolgaReg = { id: number; data: string; tipo: string; descricao: string | null; colaborador: { nome: string; equipe: { nome: string } } };
-type FolgaAgendada = { id: string; data: string; dataPlantao: string; colaborador: { nome: string; equipe: { nome: string } }; tipoPlantao: string };
+type FolgaAgendada = { id: string; colaboradorId: number; data: string; dataPlantao: string; colaborador: { nome: string; equipe: { nome: string } }; tipoPlantao: string };
 type EscalaMensal = { id: number; data: string; tipo: string; colaborador: { id: number; nome: string; equipe: string } };
 
 const tipoLabel: Record<string, string> = { SABADO: "Sábado", DOMINGO: "Domingo", FERIADO: "Feriado", PONTO_FACULTATIVO: "Pto. Facultativo" };
@@ -278,9 +278,9 @@ export default function PlantoesPage() {
     loadSaldo();
   }
 
-  async function openObs(entry: Entry) {
-    const data = await fetch(`/api/plantoes?view=historico&colaboradorId=${entry.id}`).then(r => r.json()) as Historico[];
-    setObsColab({ id: entry.id, nome: entry.nome });
+  async function openObs(colab: { id: number; nome: string }) {
+    const data = await fetch(`/api/plantoes?view=historico&colaboradorId=${colab.id}`).then(r => r.json()) as Historico[];
+    setObsColab(colab);
     setObsPlantoes(data);
   }
 
@@ -469,7 +469,9 @@ export default function PlantoesPage() {
                 const pendente = !h.folga1 || (needsFolga2 && !h.folga2);
                 return (
                   <tr key={h.id} className={`border-b border-gray-800 last:border-0 transition hover:bg-gray-800/50 ${pendente ? "bg-yellow-900/5" : ""}`}>
-                    <td className="px-4 py-3 text-white font-medium">{h.colaborador.nome}</td>
+                    <td className="px-4 py-3">
+                      <button onClick={() => openObs({ id: h.colaboradorId, nome: h.colaborador.nome })} className="text-white font-medium hover:text-blue-400 transition text-left">{h.colaborador.nome}</button>
+                    </td>
                     <td className="px-4 py-3">
                       <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-700 text-gray-300">{h.colaborador.equipe.nome}</span>
                     </td>
@@ -521,7 +523,9 @@ export default function PlantoesPage() {
               )}
               {saldo.map((s) => (
                 <tr key={s.id} className={`border-b border-gray-800 last:border-0 transition hover:bg-gray-800/50 ${s.pendentes > 0 ? "bg-yellow-900/5" : ""}`}>
-                  <td className="px-4 py-3 text-white font-medium">{s.nome}</td>
+                  <td className="px-4 py-3">
+                    <button onClick={() => openObs({ id: s.id, nome: s.nome })} className="text-white font-medium hover:text-blue-400 transition text-left">{s.nome}</button>
+                  </td>
                   <td className="px-4 py-3">
                     <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-700 text-gray-300">{s.equipe}</span>
                   </td>
@@ -585,7 +589,9 @@ export default function PlantoesPage() {
                 {folgasAgendadas.map(f => (
                   <tr key={f.id} className="border-b border-gray-800 last:border-0 hover:bg-gray-800/50 transition">
                     <td className="px-4 py-3 text-green-400 font-mono font-medium">{fmt(f.data)}</td>
-                    <td className="px-4 py-3 text-white font-medium">{f.colaborador.nome}</td>
+                    <td className="px-4 py-3">
+                      <button onClick={() => openObs({ id: f.colaboradorId, nome: f.colaborador.nome })} className="text-white font-medium hover:text-blue-400 transition text-left">{f.colaborador.nome}</button>
+                    </td>
                     <td className="px-4 py-3">
                       <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-700 text-gray-300">{f.colaborador.equipe.nome}</span>
                     </td>

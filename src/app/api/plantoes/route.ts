@@ -33,8 +33,15 @@ export async function GET(request: NextRequest) {
 
   if (view === "historico") {
     const colaboradorId = new URL(request.url).searchParams.get("colaboradorId");
+    const mes = new URL(request.url).searchParams.get("mes");
+    const where: Record<string, unknown> = {};
+    if (colaboradorId) where.colaboradorId = Number(colaboradorId);
+    if (mes) {
+      const [year, month] = mes.split("-").map(Number);
+      where.data = { gte: new Date(year, month - 1, 1), lte: new Date(year, month, 0) };
+    }
     const plantoes = await prisma.plantao.findMany({
-      where: { ...(colaboradorId && { colaboradorId: Number(colaboradorId) }) },
+      where,
       include: { colaborador: { select: { nome: true, equipe: { select: { nome: true } } } } },
       orderBy: { data: "desc" },
     });

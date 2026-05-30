@@ -65,6 +65,7 @@ export default function PlantoesPage() {
   const [modalEscala, setModalEscala] = useState<{ data: string; tipo: string } | null>(null);
   const [escalaColabId, setEscalaColabId] = useState("");
   const [savingEscala, setSavingEscala] = useState(false);
+  const [mesHistorico, setMesHistorico] = useState(new Date().toISOString().slice(0, 7));
   const [mesFolga, setMesFolga] = useState(new Date().toISOString().slice(0, 7));
   const [colaboradorFolga, setColaboradorFolga] = useState("");
   const [modalFolga, setModalFolga] = useState(false);
@@ -89,8 +90,9 @@ export default function PlantoesPage() {
     setRanking(data);
   }
 
-  async function loadHistorico() {
-    const data = await fetch("/api/plantoes?view=historico").then((r) => r.json());
+  async function loadHistorico(mes?: string) {
+    const m = mes ?? mesHistorico;
+    const data = await fetch(`/api/plantoes?view=historico&mes=${m}`).then((r) => r.json());
     setHistorico(data);
   }
 
@@ -134,6 +136,10 @@ export default function PlantoesPage() {
   useEffect(() => {
     if (tab === "folgas") loadFolgasAgendadas();
   }, [mesFolga, colaboradorFolga]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (tab === "historico") loadHistorico(mesHistorico);
+  }, [mesHistorico]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (tab === "escala") loadEscalaMensal();
@@ -259,6 +265,12 @@ export default function PlantoesPage() {
     const [y, m] = mesFolga.split("-").map(Number);
     const d = new Date(y, m - 1 + delta, 1);
     setMesFolga(d.toISOString().slice(0, 7));
+  }
+
+  function navMesHistorico(delta: number) {
+    const [y, m] = mesHistorico.split("-").map(Number);
+    const d = new Date(y, m - 1 + delta, 1);
+    setMesHistorico(d.toISOString().slice(0, 7));
   }
 
   async function openSaldoFolga(s: Saldo) {
@@ -392,6 +404,13 @@ export default function PlantoesPage() {
 
       {/* HISTÓRICO */}
       {tab === "historico" && (
+        <>
+        <div className="flex gap-3 mb-4 items-center">
+          <button onClick={() => navMesHistorico(-1)} className="bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg px-3 py-2 text-sm transition">‹</button>
+          <input type="month" value={mesHistorico} onChange={e => setMesHistorico(e.target.value)}
+            className="bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          <button onClick={() => navMesHistorico(1)} className="bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg px-3 py-2 text-sm transition">›</button>
+        </div>
         <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
           <table className="w-full text-sm">
             <thead>
@@ -436,6 +455,7 @@ export default function PlantoesPage() {
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       {/* SALDO */}

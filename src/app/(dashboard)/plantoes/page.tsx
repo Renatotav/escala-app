@@ -807,7 +807,22 @@ export default function PlantoesPage() {
       {saldoPendingColab && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4">
           <div className="bg-gray-900 border border-gray-800 rounded-xl w-full max-w-md p-6">
-            <h3 className="text-base font-semibold text-white mb-1">Agendar folga</h3>
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="text-base font-semibold text-white">Agendar folga</h3>
+              {(() => {
+                const total = saldoPendingPlantoes.reduce((acc, h) => {
+                  const duplo = h.tipo === "DOMINGO" || h.tipo === "FERIADO";
+                  if (!h.folga1) return acc + (duplo ? 2 : 1);
+                  if (duplo && !h.folga2) return acc + 1;
+                  return acc;
+                }, 0);
+                return total > 0 ? (
+                  <span className="text-sm font-bold text-yellow-400 bg-yellow-900/20 border border-yellow-700/30 px-2.5 py-1 rounded-lg">
+                    {total} folga{total !== 1 ? "s" : ""} pendente{total !== 1 ? "s" : ""}
+                  </span>
+                ) : null;
+              })()}
+            </div>
             <p className="text-xs text-gray-400 mb-4">{saldoPendingColab.nome} · selecione o plantão</p>
             {saldoPendingPlantoes.length === 0 ? (
               <p className="text-sm text-gray-500 py-4 text-center">Nenhum plantão pendente encontrado.</p>

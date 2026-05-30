@@ -14,6 +14,15 @@ export async function GET(request: NextRequest) {
     ...(equipeId && { equipeId: Number(equipeId) }),
   };
 
+  if (searchParams.get("all") === "true") {
+    const colaboradores = await prisma.colaborador.findMany({
+      where,
+      include: { equipe: true },
+      orderBy: { nome: "asc" },
+    });
+    return NextResponse.json({ colaboradores, total: colaboradores.length, page: 1, pages: 1 });
+  }
+
   const [total, colaboradores] = await Promise.all([
     prisma.colaborador.count({ where }),
     prisma.colaborador.findMany({

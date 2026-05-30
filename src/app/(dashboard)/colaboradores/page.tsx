@@ -59,6 +59,25 @@ export default function ColaboradoresPage() {
     }
   }
 
+  async function exportCSV() {
+    const params = new URLSearchParams({ all: "true" });
+    if (q) params.set("q", q);
+    if (equipeId) params.set("equipeId", equipeId);
+    const data = await fetch(`/api/colaboradores?${params}`).then(r => r.json());
+    const rows = [["Nome", "Matrícula", "Cargo", "Equipe"]];
+    for (const c of data.colaboradores as Colaborador[]) {
+      rows.push([c.nome, c.matricula ?? "", c.cargo ?? "", c.equipe.nome]);
+    }
+    const csv = rows.map(r => r.map(v => `"${v.replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "colaboradores.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   async function handleDelete(id: number) {
     if (!confirm("Excluir este colaborador? Ele não aparecerá mais no sistema.")) return;
     await fetch(`/api/colaboradores/${id}`, { method: "DELETE" });
@@ -72,9 +91,14 @@ export default function ColaboradoresPage() {
           <h2 className="text-xl font-semibold text-white">Colaboradores</h2>
           <p className="text-sm text-gray-400 mt-0.5">{total} registros</p>
         </div>
-        <button onClick={openNew} className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
-          + Novo colaborador
-        </button>
+        <div className="flex gap-2">
+          <button onClick={exportCSV} className="bg-green-700 hover:bg-green-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
+            Exportar CSV
+          </button>
+          <button onClick={openNew} className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
+            + Novo colaborador
+          </button>
+        </div>
       </div>
 
       <div className="flex gap-3 mb-4">

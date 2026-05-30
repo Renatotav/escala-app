@@ -10,11 +10,18 @@ type BancoItem = {
   historico: Historico[];
 };
 
-const emptyForm = { colaboradorId: "", data: new Date().toISOString().slice(0, 10), horas: "", descricao: "" };
-type EditingLancamento = { id: number; data: string; horas: string; descricao: string };
+const emptyForm = { colaboradorId: "", data: new Date().toISOString().slice(0, 10), sinal: "+" as "+" | "-", horas: "0", minutos: "0", descricao: "" };
+type EditingLancamento = { id: number; data: string; horas: number; descricao: string };
 
 function fmt(iso: string) {
   return new Date(iso).toLocaleDateString("pt-BR", { timeZone: "UTC" });
+}
+
+function horasFmt(h: number) {
+  const mins = Math.round(Math.abs(h) * 60);
+  const hh = Math.floor(mins / 60);
+  const mm = mins % 60;
+  return `${h >= 0 ? "+" : "-"}${hh}h${String(mm).padStart(2, "0")}m`;
 }
 
 export default function BancoHorasPage() {
@@ -39,25 +46,21 @@ export default function BancoHorasPage() {
 
   async function handleSubmit(e: { preventDefault(): void }) {
     e.preventDefault();
-    if (!form.horas || Number(form.horas) === 0) return;
+    const horasFloat = (form.sinal === "+" ? 1 : -1) * (Number(form.horas) + Number(form.minutos) / 60);
+    if (horasFloat === 0) return;
     setSaving(true);
     if (editingLancamento) {
       await fetch("/api/banco-horas", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: editingLancamento.id,
-          data: form.data,
-          horas: Number(form.horas),
-          descricao: form.descricao,
-        }),
+        body: JSON.stringify({ id: editingLancamento.id, data: form.data, horas: horasFloat, descricao: form.descricao }),
       });
       setEditingLancamento(null);
     } else {
       await fetch("/api/banco-horas", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, horas: Number(form.horas) }),
+        body: JSON.stringify({ colaboradorId: form.colaboradorId, data: form.data, horas: horasFloat, descricao: form.descricao }),
       });
     }
     setSaving(false);
@@ -67,8 +70,16 @@ export default function BancoHorasPage() {
   }
 
   function openEdit(h: EditingLancamento) {
+    const mins = Math.round(Math.abs(h.horas) * 60);
     setEditingLancamento(h);
-    setForm(f => ({ ...f, data: h.data, horas: h.horas, descricao: h.descricao }));
+    setForm(f => ({
+      ...f,
+      data: h.data,
+      sinal: h.horas >= 0 ? "+" : "-",
+      horas: String(Math.floor(mins / 60)),
+      minutos: String(mins % 60),
+      descricao: h.descricao,
+    }));
     setModal(true);
   }
 
@@ -205,14 +216,14 @@ export default function BancoHorasPage() {
                               <td className="py-1.5 text-gray-400 font-mono">{fmt(h.data)}</td>
                               <td className="py-1.5">
                                 <span className={`font-mono font-medium ${h.horas >= 0 ? "text-green-400" : "text-red-400"}`}>
-                                  {h.horas >= 0 ? "+" : ""}{h.horas}h
+                                  {horasFmt(h.horas)}
                                 </span>
                               </td>
                               <td className="py-1.5 text-gray-400">{h.descricao ?? "—"}</td>
                               <td className="py-1.5 text-right">
                                 <div className="flex gap-2 justify-end">
                                   <button
-                                    onClick={() => openEdit({ id: h.id, data: h.data, horas: String(h.horas), descricao: h.descricao ?? "" })}
+                                    onClick={() => openEdit({ id: h.id, data: h.data, horas: h.horas, descricao: h.descricao ?? "" })}
                                     className="text-blue-500/60 hover:text-blue-400 transition text-xs px-1">
                                     ✎
                                   </button>
@@ -259,15 +270,31 @@ export default function BancoHorasPage() {
                   className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
               <div>
-                <label className="block text-xs text-gray-400 mb-1">
-                  Horas <span className="text-gray-500">(use negativo para débito, ex: -2 ou +3)</span>
-                </label>
-                <input
-                  type="number" step="0.5" value={form.horas}
-                  onChange={e => setForm(f => ({ ...f, horas: e.target.value }))}
-                  placeholder="Ex: -2 ou 3"
-                  required
-                  className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                <label className="block text-xs text-gray-400 mb-2">Tempo</label>
+                <div className="flex items-center gap-2">
+                  <div className="flex rounded-lg overflow-hidden border border-gray-700 shrink-0">
+                    <button type="button" onClick={() => setForm(f => ({ ...f, sinal: "+" }))}
+                      className={`px-3 py-2 text-sm font-bold transition ${form.sinal === "+" ? "bg-green-600 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700"}`}>
+                      +
+                    </button>
+                    <button type="button" onClick={() => setForm(f => ({ ...f, sinal: "-" }))}
+                      className={`px-3 py-2 text-sm font-bold transition ${form.sinal === "-" ? "bg-red-600 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700"}`}>
+                      −
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-1 flex-1">
+                    <input type="number" min="0" max="999" value={form.horas}
+                      onChange={e => setForm(f => ({ ...f, horas: e.target.value }))}
+                      className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    <span className="text-gray-400 text-sm font-medium">h</span>
+                  </div>
+                  <div className="flex items-center gap-1 flex-1">
+                    <input type="number" min="0" max="59" value={form.minutos}
+                      onChange={e => setForm(f => ({ ...f, minutos: e.target.value }))}
+                      className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    <span className="text-gray-400 text-sm font-medium">m</span>
+                  </div>
+                </div>
               </div>
               <div>
                 <label className="block text-xs text-gray-400 mb-1">Descrição <span className="text-gray-600">(opcional)</span></label>

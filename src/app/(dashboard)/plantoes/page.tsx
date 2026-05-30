@@ -891,7 +891,7 @@ export default function PlantoesPage() {
               <div className="divide-y divide-gray-800 max-h-72 overflow-y-auto">
                 {saldoPendingPlantoes.map(h => {
                   const duplo = h.tipo === "DOMINGO" || h.tipo === "FERIADO";
-                  const falta = !h.folga1 ? (duplo ? "faltam 1ª e 2ª folga" : "falta 1ª folga") : "falta 2ª folga";
+                  const falta = !h.folga1 ? (duplo ? "Faltam 2 folgas" : "Falta 1ª folga") : "Falta 2ª folga";
                   return (
                     <button key={h.id} onClick={() => { setSaldoPendingColab(null); openFolga(h); }}
                       className="w-full flex items-center justify-between px-2 py-3 hover:bg-gray-800 rounded transition text-left">
@@ -899,7 +899,7 @@ export default function PlantoesPage() {
                         <p className="text-white text-sm font-medium">{fmt(h.data)}</p>
                         <p className="text-xs text-gray-500">{tipoLabel[h.tipo]}</p>
                       </div>
-                      <span className="text-xs text-yellow-400">falta {falta}</span>
+                      <span className="text-xs text-yellow-400">{falta}</span>
                     </button>
                   );
                 })}

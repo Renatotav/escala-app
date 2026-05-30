@@ -70,10 +70,8 @@ export default function PlantoesPage() {
   const [deletingFolgaId, setDeletingFolgaId] = useState<number | null>(null);
   const [equipes, setEquipes] = useState<Equipe[]>([]);
   const [filtroEquipe, setFiltroEquipe] = useState("");
-  const [modal, setModal] = useState<"novo" | "folga" | null>(null);
-  const [selected, setSelected] = useState<Historico | null>(null);
+  const [modal, setModal] = useState<"novo" | null>(null);
   const [form, setForm] = useState(emptyForm);
-  const [folgaForm, setFolgaForm] = useState({ folga1: "", folga2: "" });
   const [saving, setSaving] = useState(false);
 
   async function loadRanking() {
@@ -105,6 +103,7 @@ export default function PlantoesPage() {
 
   useEffect(() => {
     loadRanking();
+    loadSaldo();
     fetch("/api/equipes").then((r) => r.json()).then(setEquipes);
   }, []);
 
@@ -230,31 +229,7 @@ export default function PlantoesPage() {
     if (tab === "historico") loadHistorico();
   }
 
-  async function handleFolga(e: { preventDefault(): void }) {
-    e.preventDefault();
-    if (!selected) return;
-    setSaving(true);
-    await fetch(`/api/plantoes/${selected.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(folgaForm),
-    });
-    setSaving(false);
-    setModal(null);
-    setSelected(null);
-    loadHistorico();
-  }
-
-  function openFolga(h: Historico) {
-    setSelected(h);
-    setFolgaForm({ folga1: h.folga1 ? h.folga1.slice(0, 10) : "", folga2: h.folga2 ? h.folga2.slice(0, 10) : "" });
-    setModal("folga");
-  }
-
-  const pendentes = historico.filter((h) => {
-    if (h.tipo === "SABADO") return !h.folga1;
-    return !h.folga1 || !h.folga2;
-  });
+  const totalFolgasPendentes = saldo.reduce((acc, s) => acc + s.pendentes, 0);
 
   const diasMes = getDiasFinaisMes(mesEscala);
 
@@ -290,7 +265,7 @@ export default function PlantoesPage() {
             className={`px-4 py-1.5 rounded-md text-sm font-medium transition ${tab === t ? "bg-blue-600 text-white" : "text-gray-400 hover:text-white"}`}
           >
             {t === "ranking"   ? "Sequência"
-              : t === "historico" ? `Histórico${pendentes.length ? ` (${pendentes.length} pendente${pendentes.length > 1 ? "s" : ""})` : ""}`
+              : t === "historico" ? `Histórico${totalFolgasPendentes > 0 ? ` · faltam agendar ${totalFolgasPendentes}` : ""}`
               : t === "saldo"     ? "Saldo"
               : t === "folgas"    ? "Folgas"
               : "Escala do Mês"}
@@ -374,30 +349,20 @@ export default function PlantoesPage() {
               {historico.length === 0 && (
                 <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-500">Nenhum plantão registrado</td></tr>
               )}
-              {historico.map((h) => {
-                const needsFolga2 = h.tipo !== "SABADO";
-                const pendente = !h.folga1 || (needsFolga2 && !h.folga2);
-                return (
-                  <tr key={h.id} className={`border-b border-gray-800 last:border-0 transition hover:bg-gray-800/50 ${pendente ? "bg-yellow-900/5" : ""}`}>
-                    <td className="px-4 py-3 text-white font-medium">{h.colaborador.nome}</td>
-                    <td className="px-4 py-3">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-700 text-gray-300">{h.colaborador.equipe.nome}</span>
-                    </td>
-                    <td className="px-4 py-3 text-center text-gray-300">{fmt(h.data)}</td>
-                    <td className="px-4 py-3 text-center">{tipoBadge(h.tipo)}</td>
-                    <td className="px-4 py-3 text-center text-gray-300">{fmt(h.folga1)}</td>
-                    <td className="px-4 py-3 text-center text-gray-400 text-xs">
-                      {needsFolga2 ? fmt(h.folga2) : <span className="text-gray-700">—</span>}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      {pendente
-                        ? <button onClick={() => openFolga(h)} className="text-xs text-yellow-400 hover:text-yellow-300 transition font-medium">Agendar folga</button>
-                        : <span className="text-xs text-green-500">✓</span>
-                      }
-                    </td>
-                  </tr>
-                );
-              })}
+              {historico.map((h) => (
+                <tr key={h.id} className="border-b border-gray-800 last:border-0 transition hover:bg-gray-800/50">
+                  <td className="px-4 py-3 text-white font-medium">{h.colaborador.nome}</td>
+                  <td className="px-4 py-3">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-700 text-gray-300">{h.colaborador.equipe.nome}</span>
+                  </td>
+                  <td className="px-4 py-3 text-center text-gray-300">{fmt(h.data)}</td>
+                  <td className="px-4 py-3 text-center">{tipoBadge(h.tipo)}</td>
+                  <td className="px-4 py-3 text-center text-gray-300">{fmt(h.folga1)}</td>
+                  <td className="px-4 py-3 text-center text-gray-400 text-xs">
+                    {h.tipo !== "SABADO" ? fmt(h.folga2) : <span className="text-gray-700">—</span>}
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
@@ -706,34 +671,6 @@ export default function PlantoesPage() {
       )}
 
       {/* MODAL — Agendar folga */}
-      {modal === "folga" && selected && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4">
-          <div className="bg-gray-900 border border-gray-800 rounded-xl w-full max-w-sm p-6">
-            <h3 className="text-base font-semibold text-white mb-1">Agendar folga</h3>
-            <p className="text-xs text-gray-400 mb-4">{selected.colaborador.nome} · plantão {fmt(selected.data)}</p>
-            <form onSubmit={handleFolga} className="space-y-3">
-              <div>
-                <label className="block text-xs text-gray-400 mb-1">Folga 1</label>
-                <input type="date" value={folgaForm.folga1} onChange={(e) => setFolgaForm((f) => ({ ...f, folga1: e.target.value }))}
-                  className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              </div>
-              {selected.tipo !== "SABADO" && (
-                <div>
-                  <label className="block text-xs text-gray-400 mb-1">Folga 2</label>
-                  <input type="date" value={folgaForm.folga2} onChange={(e) => setFolgaForm((f) => ({ ...f, folga2: e.target.value }))}
-                    className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                </div>
-              )}
-              <div className="flex gap-2 pt-2">
-                <button type="button" onClick={() => setModal(null)} className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-lg py-2 transition">Cancelar</button>
-                <button type="submit" disabled={saving} className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg py-2 transition">
-                  {saving ? "Salvando..." : "Salvar"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

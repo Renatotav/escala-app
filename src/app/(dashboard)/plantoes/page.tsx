@@ -7,7 +7,7 @@ type Historico = { id: number; data: string; tipo: string; folga1: string | null
 type Saldo = { id: number; nome: string; equipe: string; totalPlantoes: number; creditos: number; agendadas: number; pendentes: number };
 type Equipe = { id: number; nome: string };
 type FolgaReg = { id: number; data: string; tipo: string; descricao: string | null; colaborador: { nome: string; equipe: { nome: string } } };
-type FolgaAgendada = { id: string; data: string; colaborador: { nome: string; equipe: { nome: string } }; tipoPlantao: string };
+type FolgaAgendada = { id: string; data: string; dataPlantao: string; colaborador: { nome: string; equipe: { nome: string } }; tipoPlantao: string };
 type EscalaMensal = { id: number; data: string; tipo: string; colaborador: { id: number; nome: string; equipe: string } };
 
 const tipoLabel: Record<string, string> = { SABADO: "Sábado", DOMINGO: "Domingo", FERIADO: "Feriado" };
@@ -455,7 +455,8 @@ export default function PlantoesPage() {
                   <th className="text-left px-4 py-3">Data da Folga</th>
                   <th className="text-left px-4 py-3">Colaborador</th>
                   <th className="text-left px-4 py-3">Equipe</th>
-                  <th className="text-left px-4 py-3">Plantão de origem</th>
+                  <th className="text-left px-4 py-3">Data do Plantão</th>
+                  <th className="text-left px-4 py-3">Tipo</th>
                 </tr>
               </thead>
               <tbody>
@@ -469,6 +470,7 @@ export default function PlantoesPage() {
                     <td className="px-4 py-3">
                       <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-700 text-gray-300">{f.colaborador.equipe.nome}</span>
                     </td>
+                    <td className="px-4 py-3 text-gray-300 font-mono">{fmt(f.dataPlantao)}</td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs ${tipoBadgeFolga[f.tipoPlantao] ?? "bg-gray-700 text-gray-300"}`}>
                         {tipoLabel[f.tipoPlantao] ?? f.tipoPlantao}

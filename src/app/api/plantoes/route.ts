@@ -43,10 +43,11 @@ export async function GET(request: NextRequest) {
       orderBy: { folga1: "asc" },
     });
 
-    const entries: { id: string; data: string; colaborador: { nome: string; equipe: { nome: string } }; tipoPlantao: string }[] = [];
+    const entries: { id: string; data: string; dataPlantao: string; colaborador: { nome: string; equipe: { nome: string } }; tipoPlantao: string }[] = [];
     for (const p of plantoes) {
-      if (p.folga1) entries.push({ id: `${p.id}-1`, data: p.folga1.toISOString().slice(0, 10), colaborador: p.colaborador, tipoPlantao: p.tipo });
-      if (p.folga2) entries.push({ id: `${p.id}-2`, data: p.folga2.toISOString().slice(0, 10), colaborador: p.colaborador, tipoPlantao: p.tipo });
+      const dataPlantao = p.data.toISOString().slice(0, 10);
+      if (p.folga1) entries.push({ id: `${p.id}-1`, data: p.folga1.toISOString().slice(0, 10), dataPlantao, colaborador: p.colaborador, tipoPlantao: p.tipo });
+      if (p.folga2) entries.push({ id: `${p.id}-2`, data: p.folga2.toISOString().slice(0, 10), dataPlantao, colaborador: p.colaborador, tipoPlantao: p.tipo });
     }
 
     const filtered = mes

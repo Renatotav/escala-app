@@ -9,9 +9,11 @@ type ColaboradorEscala = {
   equipe: Equipe; semanasPresencial: number; sinal: Sinal; escalaSemana: string | null;
 };
 
-function getMondayISO(offset = 0) {
+function getMondayISO() {
   const d = new Date();
-  const day = d.getDay();
+  const day = d.getDay(); // 0=dom, 6=sab
+  // No fim de semana já abre na próxima semana
+  const offset = day === 0 || day === 6 ? 1 : 0;
   const diff = (day === 0 ? -6 : 1 - day) + offset * 7;
   d.setDate(d.getDate() + diff);
   return d.toISOString().slice(0, 10);

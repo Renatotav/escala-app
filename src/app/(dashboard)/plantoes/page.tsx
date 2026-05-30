@@ -7,6 +7,7 @@ type Historico = { id: number; data: string; tipo: string; folga1: string | null
 type Saldo = { id: number; nome: string; equipe: string; totalPlantoes: number; creditos: number; agendadas: number; pendentes: number };
 type Equipe = { id: number; nome: string };
 type FolgaReg = { id: number; data: string; tipo: string; descricao: string | null; colaborador: { nome: string; equipe: { nome: string } } };
+type FolgaAgendada = { id: string; data: string; colaborador: { nome: string; equipe: { nome: string } }; tipoPlantao: string };
 type EscalaMensal = { id: number; data: string; tipo: string; colaborador: { id: number; nome: string; equipe: string } };
 
 const tipoLabel: Record<string, string> = { SABADO: "Sábado", DOMINGO: "Domingo", FERIADO: "Feriado" };
@@ -55,7 +56,7 @@ export default function PlantoesPage() {
   const [ranking, setRanking] = useState<Entry[]>([]);
   const [historico, setHistorico] = useState<Historico[]>([]);
   const [saldo, setSaldo] = useState<Saldo[]>([]);
-  const [folgas, setFolgas] = useState<FolgaReg[]>([]);
+  const [folgas, setFolgas] = useState<FolgaReg[]>([]); // kept for Registrar Folga modal compatibility
   const [escalaMensal, setEscalaMensal] = useState<EscalaMensal[]>([]);
   const [mesEscala, setMesEscala] = useState(new Date().toISOString().slice(0, 7));
   const [modalEscala, setModalEscala] = useState<{ data: string; tipo: string } | null>(null);
@@ -67,11 +68,13 @@ export default function PlantoesPage() {
   const [formFolga, setFormFolga] = useState({ colaboradorId: "", data: "", tipo: "SABADO", descricao: "" });
   const [savingFolga, setSavingFolga] = useState(false);
   const [editingFolga, setEditingFolga] = useState<FolgaReg | null>(null);
-  const [deletingFolgaId, setDeletingFolgaId] = useState<number | null>(null);
   const [equipes, setEquipes] = useState<Equipe[]>([]);
   const [filtroEquipe, setFiltroEquipe] = useState("");
-  const [modal, setModal] = useState<"novo" | null>(null);
+  const [modal, setModal] = useState<"novo" | "folga" | null>(null);
+  const [selected, setSelected] = useState<Historico | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const [folgaForm, setFolgaForm] = useState({ folga1: "", folga2: "" });
+  const [folgasAgendadas, setFolgasAgendadas] = useState<FolgaAgendada[]>([]);
   const [saving, setSaving] = useState(false);
 
   async function loadRanking() {
@@ -96,6 +99,13 @@ export default function PlantoesPage() {
     setFolgas(data);
   }
 
+  async function loadFolgasAgendadas() {
+    const params = new URLSearchParams({ view: "folgas-agendadas", mes: mesFolga });
+    if (colaboradorFolga) params.set("colaboradorId", colaboradorFolga);
+    const data = await fetch(`/api/plantoes?${params}`).then((r) => r.json());
+    setFolgasAgendadas(data);
+  }
+
   async function loadEscalaMensal() {
     const data = await fetch(`/api/escala-plantao?mes=${mesEscala}`).then((r) => r.json());
     setEscalaMensal(data);
@@ -110,12 +120,12 @@ export default function PlantoesPage() {
   useEffect(() => {
     if (tab === "historico") loadHistorico();
     if (tab === "saldo") loadSaldo();
-    if (tab === "folgas") loadFolgas();
+    if (tab === "folgas") loadFolgasAgendadas();
     if (tab === "escala") loadEscalaMensal();
   }, [tab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (tab === "folgas") loadFolgas();
+    if (tab === "folgas") loadFolgasAgendadas();
   }, [mesFolga, colaboradorFolga]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -166,19 +176,6 @@ export default function PlantoesPage() {
     loadSaldo();
   }
 
-  async function handleDeleteFolga(id: number) {
-    setDeletingFolgaId(id);
-    await fetch(`/api/folgas?id=${id}`, { method: "DELETE" });
-    setDeletingFolgaId(null);
-    loadFolgas();
-    loadSaldo();
-  }
-
-  function openEditFolga(f: FolgaReg) {
-    setEditingFolga(f);
-    setFormFolga({ colaboradorId: "", data: f.data, tipo: f.tipo, descricao: f.descricao ?? "" });
-    setModalFolga(true);
-  }
 
   async function handleAddEscala(e: { preventDefault(): void }) {
     e.preventDefault();
@@ -227,6 +224,28 @@ export default function PlantoesPage() {
     setForm(emptyForm);
     loadRanking();
     if (tab === "historico") loadHistorico();
+  }
+
+  async function handleFolga(e: { preventDefault(): void }) {
+    e.preventDefault();
+    if (!selected) return;
+    setSaving(true);
+    await fetch(`/api/plantoes/${selected.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(folgaForm),
+    });
+    setSaving(false);
+    setModal(null);
+    setSelected(null);
+    loadHistorico();
+    loadFolgasAgendadas();
+  }
+
+  function openFolga(h: Historico) {
+    setSelected(h);
+    setFolgaForm({ folga1: h.folga1 ? h.folga1.slice(0, 10) : "", folga2: h.folga2 ? h.folga2.slice(0, 10) : "" });
+    setModal("folga");
   }
 
   const totalFolgasPendentes = saldo.reduce((acc, s) => acc + s.pendentes, 0);
@@ -349,20 +368,30 @@ export default function PlantoesPage() {
               {historico.length === 0 && (
                 <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-500">Nenhum plantão registrado</td></tr>
               )}
-              {historico.map((h) => (
-                <tr key={h.id} className="border-b border-gray-800 last:border-0 transition hover:bg-gray-800/50">
-                  <td className="px-4 py-3 text-white font-medium">{h.colaborador.nome}</td>
-                  <td className="px-4 py-3">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-700 text-gray-300">{h.colaborador.equipe.nome}</span>
-                  </td>
-                  <td className="px-4 py-3 text-center text-gray-300">{fmt(h.data)}</td>
-                  <td className="px-4 py-3 text-center">{tipoBadge(h.tipo)}</td>
-                  <td className="px-4 py-3 text-center text-gray-300">{fmt(h.folga1)}</td>
-                  <td className="px-4 py-3 text-center text-gray-400 text-xs">
-                    {h.tipo !== "SABADO" ? fmt(h.folga2) : <span className="text-gray-700">—</span>}
-                  </td>
-                </tr>
-              ))}
+              {historico.map((h) => {
+                const needsFolga2 = h.tipo !== "SABADO";
+                const pendente = !h.folga1 || (needsFolga2 && !h.folga2);
+                return (
+                  <tr key={h.id} className={`border-b border-gray-800 last:border-0 transition hover:bg-gray-800/50 ${pendente ? "bg-yellow-900/5" : ""}`}>
+                    <td className="px-4 py-3 text-white font-medium">{h.colaborador.nome}</td>
+                    <td className="px-4 py-3">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-700 text-gray-300">{h.colaborador.equipe.nome}</span>
+                    </td>
+                    <td className="px-4 py-3 text-center text-gray-300">{fmt(h.data)}</td>
+                    <td className="px-4 py-3 text-center">{tipoBadge(h.tipo)}</td>
+                    <td className="px-4 py-3 text-center text-gray-300">{fmt(h.folga1)}</td>
+                    <td className="px-4 py-3 text-center text-gray-400 text-xs">
+                      {needsFolga2 ? fmt(h.folga2) : <span className="text-gray-700">—</span>}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <button onClick={() => openFolga(h)}
+                        className={`text-xs font-medium transition ${pendente ? "text-yellow-400 hover:text-yellow-300" : "text-gray-500 hover:text-gray-300"}`}>
+                        {pendente ? "Agendar folga" : "✎ Editar"}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -423,39 +452,27 @@ export default function PlantoesPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wide">
-                  <th className="text-left px-4 py-3">Data</th>
+                  <th className="text-left px-4 py-3">Data da Folga</th>
                   <th className="text-left px-4 py-3">Colaborador</th>
                   <th className="text-left px-4 py-3">Equipe</th>
-                  <th className="text-left px-4 py-3">Tipo</th>
-                  <th className="text-left px-4 py-3">Observação</th>
-                  <th className="px-4 py-3 w-20" />
+                  <th className="text-left px-4 py-3">Plantão de origem</th>
                 </tr>
               </thead>
               <tbody>
-                {folgas.length === 0 && (
-                  <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-500">Nenhuma folga registrada neste mês</td></tr>
+                {folgasAgendadas.length === 0 && (
+                  <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-500">Nenhuma folga agendada neste mês</td></tr>
                 )}
-                {folgas.map(f => (
+                {folgasAgendadas.map(f => (
                   <tr key={f.id} className="border-b border-gray-800 last:border-0 hover:bg-gray-800/50 transition">
-                    <td className="px-4 py-3 text-gray-300 font-mono">{fmt(f.data)}</td>
+                    <td className="px-4 py-3 text-green-400 font-mono font-medium">{fmt(f.data)}</td>
                     <td className="px-4 py-3 text-white font-medium">{f.colaborador.nome}</td>
                     <td className="px-4 py-3">
                       <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-700 text-gray-300">{f.colaborador.equipe.nome}</span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs ${tipoBadgeFolga[f.tipo] ?? "bg-gray-700 text-gray-300"}`}>
-                        {tipoLabel[f.tipo] ?? f.tipo}
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs ${tipoBadgeFolga[f.tipoPlantao] ?? "bg-gray-700 text-gray-300"}`}>
+                        {tipoLabel[f.tipoPlantao] ?? f.tipoPlantao}
                       </span>
-                    </td>
-                    <td className="px-4 py-3 text-gray-400">{f.descricao ?? "—"}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-2 justify-end">
-                        <button onClick={() => openEditFolga(f)}
-                          className="text-blue-500/60 hover:text-blue-400 transition text-xs px-1">✎</button>
-                        <button onClick={() => handleDeleteFolga(f.id)}
-                          disabled={deletingFolgaId === f.id}
-                          className="text-red-500/60 hover:text-red-400 transition disabled:opacity-40">✕</button>
-                      </div>
                     </td>
                   </tr>
                 ))}
@@ -671,6 +688,36 @@ export default function PlantoesPage() {
       )}
 
       {/* MODAL — Agendar folga */}
+      {modal === "folga" && selected && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4">
+          <div className="bg-gray-900 border border-gray-800 rounded-xl w-full max-w-sm p-6">
+            <h3 className="text-base font-semibold text-white mb-1">Agendar folga</h3>
+            <p className="text-xs text-gray-400 mb-4">{selected.colaborador.nome} · plantão {fmt(selected.data)} · {tipoLabel[selected.tipo]}</p>
+            <form onSubmit={handleFolga} className="space-y-3">
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Folga 1</label>
+                <input type="date" value={folgaForm.folga1} onChange={(e) => setFolgaForm((f) => ({ ...f, folga1: e.target.value }))}
+                  className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              {selected.tipo !== "SABADO" && (
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Folga 2</label>
+                  <input type="date" value={folgaForm.folga2} onChange={(e) => setFolgaForm((f) => ({ ...f, folga2: e.target.value }))}
+                    className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+              )}
+              <div className="flex gap-2 pt-2">
+                <button type="button" onClick={() => { setModal(null); setSelected(null); }}
+                  className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-lg py-2 transition">Cancelar</button>
+                <button type="submit" disabled={saving}
+                  className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg py-2 transition">
+                  {saving ? "Salvando..." : "Salvar"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

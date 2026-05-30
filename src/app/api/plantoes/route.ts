@@ -30,6 +30,33 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(plantoes);
   }
 
+  if (view === "folgas-agendadas") {
+    const mes = new URL(request.url).searchParams.get("mes");
+    const colaboradorId = new URL(request.url).searchParams.get("colaboradorId");
+
+    const plantoes = await prisma.plantao.findMany({
+      where: {
+        ...(colaboradorId && { colaboradorId: Number(colaboradorId) }),
+        OR: [{ folga1: { not: null } }, { folga2: { not: null } }],
+      },
+      include: { colaborador: { select: { nome: true, equipe: { select: { nome: true } } } } },
+      orderBy: { folga1: "asc" },
+    });
+
+    const entries: { id: string; data: string; colaborador: { nome: string; equipe: { nome: string } }; tipoPlantao: string }[] = [];
+    for (const p of plantoes) {
+      if (p.folga1) entries.push({ id: `${p.id}-1`, data: p.folga1.toISOString().slice(0, 10), colaborador: p.colaborador, tipoPlantao: p.tipo });
+      if (p.folga2) entries.push({ id: `${p.id}-2`, data: p.folga2.toISOString().slice(0, 10), colaborador: p.colaborador, tipoPlantao: p.tipo });
+    }
+
+    const filtered = mes
+      ? entries.filter(e => e.data.slice(0, 7) === mes)
+      : entries;
+
+    filtered.sort((a, b) => a.data.localeCompare(b.data));
+    return NextResponse.json(filtered);
+  }
+
   if (view === "saldo") {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const colabs: any[] = await (prisma as any).colaborador.findMany({

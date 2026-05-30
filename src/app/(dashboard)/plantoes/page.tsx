@@ -955,8 +955,8 @@ export default function PlantoesPage() {
                       )}
                     </div>
                     <div className="text-right text-xs text-gray-600 shrink-0">
-                      {h.folga1 && <p>F1: {fmt(h.folga1)}</p>}
-                      {h.folga2 && <p>F2: {fmt(h.folga2)}</p>}
+                      {h.folga1 && <p>Folga: {fmt(h.folga1)}</p>}
+                      {h.folga2 && <p>2ª folga: {fmt(h.folga2)}</p>}
                     </div>
                   </div>
                 ))}

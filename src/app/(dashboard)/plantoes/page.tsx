@@ -7,6 +7,7 @@ type Historico = { id: number; data: string; tipo: string; folga1: string | null
 type Saldo = { id: number; nome: string; equipe: string; totalPlantoes: number; creditos: number; agendadas: number; pendentes: number };
 type Equipe = { id: number; nome: string };
 type FolgaReg = { id: number; data: string; tipo: string; descricao: string | null; colaborador: { nome: string; equipe: { nome: string } } };
+type EscalaMensal = { id: number; data: string; tipo: string; colaborador: { id: number; nome: string; equipe: string } };
 
 const tipoLabel: Record<string, string> = { SABADO: "Sábado", DOMINGO: "Domingo", FERIADO: "Feriado" };
 const tipoBadgeFolga: Record<string, string> = {
@@ -35,12 +36,31 @@ function tipoBadge(tipo: string) {
   return <span className="text-xs px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-300 border border-orange-500/30">Feriado</span>;
 }
 
+// Gera todos os sábados e domingos de um mês
+function getDiasFinaisMes(mes: string): { data: string; tipo: "SABADO" | "DOMINGO" }[] {
+  const [y, m] = mes.split("-").map(Number);
+  const dias: { data: string; tipo: "SABADO" | "DOMINGO" }[] = [];
+  const total = new Date(y, m, 0).getDate();
+  for (let d = 1; d <= total; d++) {
+    const dt = new Date(y, m - 1, d);
+    const dow = dt.getDay();
+    if (dow === 6) dias.push({ data: dt.toISOString().slice(0, 10), tipo: "SABADO" });
+    if (dow === 0) dias.push({ data: dt.toISOString().slice(0, 10), tipo: "DOMINGO" });
+  }
+  return dias;
+}
+
 export default function PlantoesPage() {
-  const [tab, setTab] = useState<"ranking" | "historico" | "saldo" | "folgas">("ranking");
+  const [tab, setTab] = useState<"ranking" | "historico" | "saldo" | "folgas" | "escala">("ranking");
   const [ranking, setRanking] = useState<Entry[]>([]);
   const [historico, setHistorico] = useState<Historico[]>([]);
   const [saldo, setSaldo] = useState<Saldo[]>([]);
   const [folgas, setFolgas] = useState<FolgaReg[]>([]);
+  const [escalaMensal, setEscalaMensal] = useState<EscalaMensal[]>([]);
+  const [mesEscala, setMesEscala] = useState(new Date().toISOString().slice(0, 7));
+  const [modalEscala, setModalEscala] = useState<{ data: string; tipo: string } | null>(null);
+  const [escalaColabId, setEscalaColabId] = useState("");
+  const [savingEscala, setSavingEscala] = useState(false);
   const [mesFolga, setMesFolga] = useState(new Date().toISOString().slice(0, 7));
   const [colaboradorFolga, setColaboradorFolga] = useState("");
   const [modalFolga, setModalFolga] = useState(false);
@@ -76,6 +96,11 @@ export default function PlantoesPage() {
     setFolgas(data);
   }
 
+  async function loadEscalaMensal() {
+    const data = await fetch(`/api/escala-plantao?mes=${mesEscala}`).then((r) => r.json());
+    setEscalaMensal(data);
+  }
+
   useEffect(() => {
     loadRanking();
     fetch("/api/equipes").then((r) => r.json()).then(setEquipes);
@@ -85,11 +110,36 @@ export default function PlantoesPage() {
     if (tab === "historico") loadHistorico();
     if (tab === "saldo") loadSaldo();
     if (tab === "folgas") loadFolgas();
+    if (tab === "escala") loadEscalaMensal();
   }, [tab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (tab === "folgas") loadFolgas();
   }, [mesFolga, colaboradorFolga]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (tab === "escala") loadEscalaMensal();
+  }, [mesEscala]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function exportCSV() {
+    let csv = "";
+    let filename = "";
+    if (tab === "ranking") {
+      csv = ["Nome,Equipe,Sábados,Dom/Fer,Acumulado", ...lista.map(e => `"${e.nome}","${e.equipe}",${e.sabados},${e.domFer},${e.score}`)].join("\n");
+      filename = "sequencia-plantoes.csv";
+    } else if (tab === "historico") {
+      csv = ["Colaborador,Equipe,Data,Tipo,Folga1,Folga2", ...historico.map(h => `"${h.colaborador.nome}","${h.colaborador.equipe.nome}","${fmt(h.data)}","${tipoLabel[h.tipo]}","${fmt(h.folga1)}","${h.tipo !== "SABADO" ? fmt(h.folga2) : ""}"`  )].join("\n");
+      filename = "historico-plantoes.csv";
+    } else if (tab === "saldo") {
+      csv = ["Nome,Equipe,Plantões,Folgas Devidas,Agendadas,Pendentes", ...saldo.map(s => `"${s.nome}","${s.equipe}",${s.totalPlantoes},${s.creditos},${s.agendadas},${s.pendentes}`)].join("\n");
+      filename = "saldo-plantoes.csv";
+    } else return;
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = filename; a.click();
+    URL.revokeObjectURL(url);
+  }
 
   async function handleSubmitFolga(e: { preventDefault(): void }) {
     e.preventDefault();
@@ -104,6 +154,26 @@ export default function PlantoesPage() {
     setFormFolga({ colaboradorId: "", data: "", tipo: "SABADO", descricao: "" });
     loadFolgas();
     loadSaldo();
+  }
+
+  async function handleAddEscala(e: { preventDefault(): void }) {
+    e.preventDefault();
+    if (!modalEscala || !escalaColabId) return;
+    setSavingEscala(true);
+    await fetch("/api/escala-plantao", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ colaboradorId: Number(escalaColabId), data: modalEscala.data, tipo: modalEscala.tipo }),
+    });
+    setSavingEscala(false);
+    setModalEscala(null);
+    setEscalaColabId("");
+    loadEscalaMensal();
+  }
+
+  async function handleRemoveEscala(id: number) {
+    await fetch(`/api/escala-plantao?id=${id}`, { method: "DELETE" });
+    loadEscalaMensal();
   }
 
   const lista = filtroEquipe ? ranking.filter((e) => e.equipe === filtroEquipe) : ranking;
@@ -161,6 +231,8 @@ export default function PlantoesPage() {
     return !h.folga1 || !h.folga2;
   });
 
+  const diasMes = getDiasFinaisMes(mesEscala);
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -168,29 +240,40 @@ export default function PlantoesPage() {
           <h2 className="text-xl font-semibold text-white">Plantões & Folgas</h2>
           <p className="text-sm text-gray-400 mt-0.5">Sábado = 1 pt · Domingo / Feriado = 2 pts</p>
         </div>
-        {tab === "folgas"
-          ? <button onClick={() => setModalFolga(true)} className="bg-green-600 hover:bg-green-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition">+ Registrar folga</button>
-          : <button onClick={() => { setForm(emptyForm); setModal("novo"); }} className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition">+ Registrar plantão</button>
-        }
+        <div className="flex gap-2">
+          {(tab === "ranking" || tab === "historico" || tab === "saldo") && (
+            <button onClick={exportCSV}
+              className="bg-green-600 hover:bg-green-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
+              Exportar CSV
+            </button>
+          )}
+          {tab === "folgas"
+            ? <button onClick={() => setModalFolga(true)} className="bg-green-600 hover:bg-green-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition">+ Registrar folga</button>
+            : tab === "escala"
+            ? null
+            : <button onClick={() => { setForm(emptyForm); setModal("novo"); }} className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition">+ Registrar plantão</button>
+          }
+        </div>
       </div>
 
       {/* Tabs */}
       <div className="flex gap-1 mb-4 bg-gray-900 border border-gray-800 rounded-lg p-1 w-fit">
-        {(["ranking", "historico", "saldo", "folgas"] as const).map((t) => (
+        {(["ranking", "historico", "saldo", "folgas", "escala"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={`px-4 py-1.5 rounded-md text-sm font-medium transition ${tab === t ? "bg-blue-600 text-white" : "text-gray-400 hover:text-white"}`}
           >
-            {t === "ranking" ? "Ranking"
+            {t === "ranking"   ? "Sequência"
               : t === "historico" ? `Histórico${pendentes.length ? ` (${pendentes.length} pendente${pendentes.length > 1 ? "s" : ""})` : ""}`
-              : t === "saldo" ? "Saldo"
-              : "Folgas"}
+              : t === "saldo"     ? "Saldo"
+              : t === "folgas"    ? "Folgas"
+              : "Escala do Mês"}
           </button>
         ))}
       </div>
 
-      {/* RANKING */}
+      {/* SEQUÊNCIA (RANKING) */}
       {tab === "ranking" && (
         <>
           <div className="mb-4">
@@ -213,7 +296,7 @@ export default function PlantoesPage() {
                   <th className="text-left px-4 py-3">Equipe</th>
                   <th className="text-center px-4 py-3">Sáb</th>
                   <th className="text-center px-4 py-3">Dom/Fer</th>
-                  <th className="text-center px-4 py-3">Score</th>
+                  <th className="text-center px-4 py-3">Acumulado</th>
                   <th className="px-4 py-3" />
                 </tr>
               </thead>
@@ -382,6 +465,68 @@ export default function PlantoesPage() {
         </>
       )}
 
+      {/* ESCALA DO MÊS */}
+      {tab === "escala" && (
+        <>
+          <div className="flex items-center justify-between mb-4">
+            <input type="month" value={mesEscala} onChange={e => setMesEscala(e.target.value)}
+              className="bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <p className="text-xs text-gray-500">{diasMes.length} dias de fim de semana neste mês</p>
+          </div>
+
+          <div className="space-y-3">
+            {diasMes.map(({ data, tipo }) => {
+              const designados = escalaMensal.filter(e => e.data === data);
+              const isSab = tipo === "SABADO";
+              return (
+                <div key={data} className="bg-gray-900 rounded-xl border border-gray-800 p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div>
+                        <p className="text-white font-medium text-sm">
+                          {new Date(data + "T12:00:00").toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })}
+                        </p>
+                      </div>
+                      <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${
+                        isSab
+                          ? "bg-blue-500/10 text-blue-300 border-blue-500/30"
+                          : "bg-purple-500/10 text-purple-300 border-purple-500/30"
+                      }`}>
+                        {isSab ? "Sábado" : "Domingo"}
+                      </span>
+                      <span className="text-xs text-gray-500">{designados.length} designado{designados.length !== 1 ? "s" : ""}</span>
+                    </div>
+                    <button
+                      onClick={() => { setModalEscala({ data, tipo }); setEscalaColabId(""); }}
+                      className="text-xs px-3 py-1.5 rounded-lg bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 border border-blue-500/30 transition">
+                      + Adicionar
+                    </button>
+                  </div>
+
+                  {designados.length === 0 ? (
+                    <p className="text-xs text-gray-600 italic">Nenhum colaborador designado</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {designados.map(d => (
+                        <div key={d.id} className="flex items-center gap-1.5 bg-gray-800 rounded-lg px-3 py-1.5 text-sm">
+                          <span className="text-white">{d.colaborador.nome}</span>
+                          <span className="text-gray-500 text-xs">· {d.colaborador.equipe}</span>
+                          <button
+                            onClick={() => handleRemoveEscala(d.id)}
+                            className="ml-1 text-gray-600 hover:text-red-400 transition text-xs leading-none">
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+
       {/* MODAL — Registrar folga */}
       {modalFolga && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4">
@@ -421,6 +566,37 @@ export default function PlantoesPage() {
                 <button type="submit" disabled={savingFolga}
                   className="flex-1 bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg py-2 transition">
                   {savingFolga ? "Salvando..." : "Salvar"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL — Adicionar à Escala do Mês */}
+      {modalEscala && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4">
+          <div className="bg-gray-900 border border-gray-800 rounded-xl w-full max-w-sm p-6">
+            <h3 className="text-base font-semibold text-white mb-1">Designar para plantão</h3>
+            <p className="text-xs text-gray-400 mb-4">
+              {new Date(modalEscala.data + "T12:00:00").toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })}
+              {" · "}{tipoLabel[modalEscala.tipo]}
+            </p>
+            <form onSubmit={handleAddEscala} className="space-y-3">
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Colaborador</label>
+                <select value={escalaColabId} onChange={e => setEscalaColabId(e.target.value)} required
+                  className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <option value="">Selecione...</option>
+                  {ranking.map(e => <option key={e.id} value={e.id}>{e.nome} — {e.equipe}</option>)}
+                </select>
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button type="button" onClick={() => setModalEscala(null)}
+                  className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-lg py-2 transition">Cancelar</button>
+                <button type="submit" disabled={savingEscala}
+                  className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg py-2 transition">
+                  {savingEscala ? "Salvando..." : "Designar"}
                 </button>
               </div>
             </form>

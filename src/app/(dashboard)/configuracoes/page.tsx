@@ -12,7 +12,13 @@ export default function ConfiguracoesPage() {
   const [novoFeriado, setNovoFeriado] = useState({ data: "", descricao: "" });
   const [saving, setSaving] = useState(false);
 
-  function loadEquipes() { fetch("/api/equipes").then(r => r.json()).then(setEquipes); }
+  const EQUIPES_OCULTAS = ["Supervisão", "Coordenação"];
+
+  function loadEquipes() {
+    fetch("/api/equipes").then(r => r.json()).then((data: Equipe[]) =>
+      setEquipes(data.filter(eq => !EQUIPES_OCULTAS.includes(eq.nome)))
+    );
+  }
   function loadFeriados() { fetch("/api/feriados").then(r => r.json()).then(setFeriados); }
 
   useEffect(() => { loadEquipes(); loadFeriados(); }, []);

@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { prisma } from "@/lib/prisma";
 import { calcularSinal } from "@/lib/eligibility";
+import ColaboradorLink from "@/app/(dashboard)/components/ColaboradorLink";
 
 function fmt(iso: string) {
   return iso.split("-").reverse().join("/");
@@ -89,7 +90,7 @@ export default async function DashboardPage() {
               {plantoesRecentes.map(p => (
                 <div key={p.id} className="flex items-center justify-between py-2.5">
                   <div>
-                    <p className="text-white text-sm font-medium">{p.colaborador.nome}</p>
+                    <ColaboradorLink id={p.colaboradorId} nome={p.colaborador.nome} />
                     <p className="text-xs text-gray-500">{p.colaborador.equipe.nome}</p>
                   </div>
                   <div className="text-right">

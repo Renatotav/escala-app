@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-type Entry = { id: number; nome: string; equipe: string; sabados: number; domFer: number; total: number; score: number };
+type Entry = { id: number; nome: string; equipe: string; sabados: number; domFer: number; total: number; score: number; proximoDeve: "DUPLO" | "SIMPLES" | null };
 type Historico = { id: number; data: string; tipo: string; folga1: string | null; folga2: string | null; descricao: string | null; colaborador: { nome: string; equipe: { nome: string } } };
 type Saldo = { id: number; nome: string; equipe: string; totalPlantoes: number; creditos: number; agendadas: number; pendentes: number };
 type Equipe = { id: number; nome: string };
@@ -316,9 +316,10 @@ export default function PlantoesPage() {
                   <th className="text-center px-4 py-3 w-10">#</th>
                   <th className="text-left px-4 py-3">Colaborador</th>
                   <th className="text-left px-4 py-3">Equipe</th>
-                  <th className="text-center px-4 py-3">Sáb</th>
+                  <th className="text-center px-4 py-3">Sáb/Pto</th>
                   <th className="text-center px-4 py-3">Dom/Fer</th>
                   <th className="text-center px-4 py-3">Acumulado</th>
+                  <th className="text-center px-4 py-3">Próxima escala</th>
                   <th className="px-4 py-3" />
                 </tr>
               </thead>
@@ -339,6 +340,17 @@ export default function PlantoesPage() {
                       <td className="px-4 py-3 text-center text-gray-300">{entry.domFer}</td>
                       <td className="px-4 py-3 text-center">
                         <span className={`font-bold text-base ${scoreCls(entry.score)}`}>{entry.score}</span>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {entry.proximoDeve === "DUPLO" && (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-300 border border-orange-500/30 font-medium">Dom / Feriado</span>
+                        )}
+                        {entry.proximoDeve === "SIMPLES" && (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 font-medium">Sáb / Pto. Fac.</span>
+                        )}
+                        {entry.proximoDeve === null && (
+                          <span className="text-xs text-gray-600">Primeiro plantão</span>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-right">
                         {isNext && <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/40 font-medium">Próximo</span>}

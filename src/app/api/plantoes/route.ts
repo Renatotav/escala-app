@@ -12,7 +12,16 @@ async function getRanking() {
     const sabados = c.plantoes.filter((p) => p.tipo === "SABADO" || p.tipo === "PONTO_FACULTATIVO").length;
     const domFer = c.plantoes.filter((p) => p.tipo === "DOMINGO" || p.tipo === "FERIADO").length;
     const score = sabados + domFer * 2;
-    return { id: c.id, nome: c.nome, equipe: c.equipe.nome, sabados, domFer, total: sabados + domFer, score };
+
+    const ultimoPlantao = [...c.plantoes].sort(
+      (a, b) => new Date(b.data).getTime() - new Date(a.data).getTime()
+    )[0];
+    const ultimoTipo = ultimoPlantao?.tipo ?? null;
+    const proximoDeve: "DUPLO" | "SIMPLES" | null =
+      ultimoTipo === "SABADO" || ultimoTipo === "PONTO_FACULTATIVO" ? "DUPLO" :
+      ultimoTipo === "DOMINGO" || ultimoTipo === "FERIADO" ? "SIMPLES" : null;
+
+    return { id: c.id, nome: c.nome, equipe: c.equipe.nome, sabados, domFer, total: sabados + domFer, score, proximoDeve };
   });
 
   ranking.sort((a, b) => a.score - b.score || a.total - b.total || a.nome.localeCompare(b.nome));

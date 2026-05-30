@@ -224,6 +224,8 @@ export default function PlantoesPage() {
     loadEscalaMensal();
   }
 
+  const rankingAlfabetico = [...ranking].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+
   const lista = ranking.filter(e =>
     (!filtroEquipe || e.equipe === filtroEquipe) &&
     (!filtroColab || String(e.id) === filtroColab)
@@ -378,7 +380,7 @@ export default function PlantoesPage() {
             <select value={filtroColab} onChange={(e) => setFiltroColab(e.target.value)}
               className="bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
               <option value="">Todos os colaboradores</option>
-              {ranking.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
+              {rankingAlfabetico.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
             </select>
           </div>
 
@@ -450,7 +452,7 @@ export default function PlantoesPage() {
           <select value={colaboradorHistorico} onChange={e => setColaboradorHistorico(e.target.value)}
             className="bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option value="">Todos os colaboradores</option>
-            {ranking.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
+            {rankingAlfabetico.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
           </select>
         </div>
         <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
@@ -574,7 +576,7 @@ export default function PlantoesPage() {
             <select value={colaboradorFolga} onChange={e => setColaboradorFolga(e.target.value)}
               className="bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
               <option value="">Todos os colaboradores</option>
-              {ranking.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
+              {rankingAlfabetico.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
             </select>
           </div>
           <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
@@ -698,7 +700,7 @@ export default function PlantoesPage() {
                   <select value={formFolga.colaboradorId} onChange={e => setFormFolga(f => ({ ...f, colaboradorId: e.target.value }))} required
                     className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="">Selecione...</option>
-                    {ranking.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
+                    {rankingAlfabetico.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
                   </select>
                 </div>
               )}
@@ -749,7 +751,7 @@ export default function PlantoesPage() {
                 <select value={escalaColabId} onChange={e => setEscalaColabId(e.target.value)} required
                   className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                   <option value="">Selecione...</option>
-                  {ranking.map(e => <option key={e.id} value={e.id}>{e.nome} — {e.equipe}</option>)}
+                  {rankingAlfabetico.map(e => <option key={e.id} value={e.id}>{e.nome} — {e.equipe}</option>)}
                 </select>
               </div>
               <div className="flex gap-2 pt-2">

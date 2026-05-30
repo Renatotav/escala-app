@@ -66,6 +66,8 @@ export default function PlantoesPage() {
   const [modalFolga, setModalFolga] = useState(false);
   const [formFolga, setFormFolga] = useState({ colaboradorId: "", data: "", tipo: "SABADO", descricao: "" });
   const [savingFolga, setSavingFolga] = useState(false);
+  const [editingFolga, setEditingFolga] = useState<FolgaReg | null>(null);
+  const [deletingFolgaId, setDeletingFolgaId] = useState<number | null>(null);
   const [equipes, setEquipes] = useState<Equipe[]>([]);
   const [filtroEquipe, setFiltroEquipe] = useState("");
   const [modal, setModal] = useState<"novo" | "folga" | null>(null);
@@ -144,16 +146,39 @@ export default function PlantoesPage() {
   async function handleSubmitFolga(e: { preventDefault(): void }) {
     e.preventDefault();
     setSavingFolga(true);
-    await fetch("/api/folgas", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...formFolga, colaboradorId: Number(formFolga.colaboradorId) }),
-    });
+    if (editingFolga) {
+      await fetch("/api/folgas", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: editingFolga.id, data: formFolga.data, tipo: formFolga.tipo, descricao: formFolga.descricao }),
+      });
+      setEditingFolga(null);
+    } else {
+      await fetch("/api/folgas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...formFolga, colaboradorId: Number(formFolga.colaboradorId) }),
+      });
+    }
     setSavingFolga(false);
     setModalFolga(false);
     setFormFolga({ colaboradorId: "", data: "", tipo: "SABADO", descricao: "" });
     loadFolgas();
     loadSaldo();
+  }
+
+  async function handleDeleteFolga(id: number) {
+    setDeletingFolgaId(id);
+    await fetch(`/api/folgas?id=${id}`, { method: "DELETE" });
+    setDeletingFolgaId(null);
+    loadFolgas();
+    loadSaldo();
+  }
+
+  function openEditFolga(f: FolgaReg) {
+    setEditingFolga(f);
+    setFormFolga({ colaboradorId: "", data: f.data, tipo: f.tipo, descricao: f.descricao ?? "" });
+    setModalFolga(true);
   }
 
   async function handleAddEscala(e: { preventDefault(): void }) {
@@ -248,7 +273,7 @@ export default function PlantoesPage() {
             </button>
           )}
           {tab === "folgas"
-            ? <button onClick={() => setModalFolga(true)} className="bg-green-600 hover:bg-green-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition">+ Registrar folga</button>
+            ? <button onClick={() => { setEditingFolga(null); setFormFolga({ colaboradorId: "", data: "", tipo: "SABADO", descricao: "" }); setModalFolga(true); }} className="bg-green-600 hover:bg-green-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition">+ Registrar folga</button>
             : tab === "escala"
             ? null
             : <button onClick={() => { setForm(emptyForm); setModal("novo"); }} className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition">+ Registrar plantão</button>
@@ -438,11 +463,12 @@ export default function PlantoesPage() {
                   <th className="text-left px-4 py-3">Equipe</th>
                   <th className="text-left px-4 py-3">Tipo</th>
                   <th className="text-left px-4 py-3">Observação</th>
+                  <th className="px-4 py-3 w-20" />
                 </tr>
               </thead>
               <tbody>
                 {folgas.length === 0 && (
-                  <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-500">Nenhuma folga registrada neste mês</td></tr>
+                  <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-500">Nenhuma folga registrada neste mês</td></tr>
                 )}
                 {folgas.map(f => (
                   <tr key={f.id} className="border-b border-gray-800 last:border-0 hover:bg-gray-800/50 transition">
@@ -457,6 +483,15 @@ export default function PlantoesPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-gray-400">{f.descricao ?? "—"}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex gap-2 justify-end">
+                        <button onClick={() => openEditFolga(f)}
+                          className="text-blue-500/60 hover:text-blue-400 transition text-xs px-1">✎</button>
+                        <button onClick={() => handleDeleteFolga(f.id)}
+                          disabled={deletingFolgaId === f.id}
+                          className="text-red-500/60 hover:text-red-400 transition disabled:opacity-40">✕</button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -531,16 +566,23 @@ export default function PlantoesPage() {
       {modalFolga && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4">
           <div className="bg-gray-900 border border-gray-800 rounded-xl w-full max-w-sm p-6">
-            <h3 className="text-base font-semibold text-white mb-4">Registrar folga</h3>
+            <h3 className="text-base font-semibold text-white mb-4">
+              {editingFolga ? "Editar folga" : "Registrar folga"}
+            </h3>
+            {editingFolga && (
+              <p className="text-xs text-gray-400 mb-3">{editingFolga.colaborador.nome}</p>
+            )}
             <form onSubmit={handleSubmitFolga} className="space-y-3">
-              <div>
-                <label className="block text-xs text-gray-400 mb-1">Colaborador</label>
-                <select value={formFolga.colaboradorId} onChange={e => setFormFolga(f => ({ ...f, colaboradorId: e.target.value }))} required
-                  className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  <option value="">Selecione...</option>
-                  {ranking.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
-                </select>
-              </div>
+              {!editingFolga && (
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Colaborador</label>
+                  <select value={formFolga.colaboradorId} onChange={e => setFormFolga(f => ({ ...f, colaboradorId: e.target.value }))} required
+                    className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">Selecione...</option>
+                    {ranking.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
+                  </select>
+                </div>
+              )}
               <div>
                 <label className="block text-xs text-gray-400 mb-1">Data</label>
                 <input type="date" value={formFolga.data} onChange={e => setFormFolga(f => ({ ...f, data: e.target.value }))} required
@@ -561,7 +603,7 @@ export default function PlantoesPage() {
                   className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
               <div className="flex gap-2 pt-2">
-                <button type="button" onClick={() => setModalFolga(false)}
+                <button type="button" onClick={() => { setModalFolga(false); setEditingFolga(null); setFormFolga({ colaboradorId: "", data: "", tipo: "SABADO", descricao: "" }); }}
                   className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-lg py-2 transition">Cancelar</button>
                 <button type="submit" disabled={savingFolga}
                   className="flex-1 bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg py-2 transition">

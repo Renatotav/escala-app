@@ -35,3 +35,23 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json(folga, { status: 201 });
 }
+
+export async function PATCH(request: NextRequest) {
+  const { id, data, tipo, descricao } = await request.json();
+  if (!id) return NextResponse.json({ ok: false }, { status: 400 });
+
+  const folga = await prisma.folga.update({
+    where: { id: Number(id) },
+    data: { data: new Date(data), tipo, descricao: descricao || null },
+  });
+
+  return NextResponse.json(folga);
+}
+
+export async function DELETE(request: NextRequest) {
+  const id = Number(new URL(request.url).searchParams.get("id"));
+  if (!id) return NextResponse.json({ ok: false }, { status: 400 });
+
+  await prisma.folga.delete({ where: { id } });
+  return NextResponse.json({ ok: true });
+}

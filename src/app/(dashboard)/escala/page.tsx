@@ -50,6 +50,29 @@ export default function EscalaPage() {
     setColaboradores(data);
   }
 
+  function exportCSV() {
+    const rows = [["Colaborador", "Cargo", "Equipe", "Semanas Presencial", "Elegibilidade", "Esta Semana"]];
+    const membros = colaboradores.filter(c => !["Supervisão", "Coordenação"].includes(c.equipe.nome));
+    for (const c of membros) {
+      rows.push([
+        c.nome,
+        c.cargo ?? "",
+        c.equipe.nome,
+        String(c.semanasPresencial),
+        sinalConfig[c.sinal].label,
+        c.escalaSemana === "REMOTO" ? "Remoto" : c.escalaSemana === "PRESENCIAL" ? "Presencial" : "Não lançado",
+      ]);
+    }
+    const csv = rows.map(r => r.map(v => `"${v.replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `escala-${semana}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   async function handleLimpar(colaboradorId: number) {
     await fetch(`/api/escalas?colaboradorId=${colaboradorId}&semana=${semana}`, { method: "DELETE" });
     const params = new URLSearchParams({ semana });
@@ -81,6 +104,10 @@ export default function EscalaPage() {
             <option value="">Todas as equipes</option>
             {equipesEscala.map(eq => <option key={eq.id} value={eq.id}>{eq.nome}</option>)}
           </select>
+          <button onClick={exportCSV}
+            className="bg-green-700 hover:bg-green-600 text-white text-sm rounded-lg px-3 py-2 transition">
+            Exportar CSV
+          </button>
         </div>
       </div>
 

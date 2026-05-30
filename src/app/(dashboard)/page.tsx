@@ -120,7 +120,10 @@ export default async function DashboardPage() {
                   </div>
                   <div className="text-right">
                     <p className="text-sm text-green-400 font-medium">{fmt(f.data)}</p>
-                    <p className="text-xs text-gray-500">{tipoLabel[f.tipo] ?? f.tipo}</p>
+                    <p className="text-xs text-gray-500">
+                      {new Date(f.data + "T12:00:00").toLocaleDateString("pt-BR", { weekday: "long" })}
+                    </p>
+                    <p className="text-xs text-gray-600">Plantão: {tipoLabel[f.tipo] ?? f.tipo}</p>
                   </div>
                 </div>
               ))}

@@ -61,6 +61,22 @@ export async function POST(request: NextRequest) {
   return NextResponse.json(lancamento, { status: 201 });
 }
 
+export async function PATCH(request: NextRequest) {
+  const { id, data, horas, descricao } = await request.json();
+  if (!id) return NextResponse.json({ ok: false }, { status: 400 });
+
+  const lancamento = await prisma.lancamentoBancoHoras.update({
+    where: { id: Number(id) },
+    data: {
+      data: new Date(data),
+      horas: Number(horas),
+      descricao: descricao || null,
+    },
+  });
+
+  return NextResponse.json(lancamento);
+}
+
 export async function DELETE(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const id = Number(searchParams.get("id"));

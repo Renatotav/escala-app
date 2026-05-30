@@ -20,8 +20,8 @@ export default function ColaboradoresPage() {
   const [form, setForm] = useState(empty);
   const [saving, setSaving] = useState(false);
 
-  async function load() {
-    const params = new URLSearchParams({ page: String(page) });
+  async function load(pageOverride?: number) {
+    const params = new URLSearchParams({ page: String(pageOverride ?? page) });
     if (q) params.set("q", q);
     if (equipeId) params.set("equipeId", equipeId);
     const res = await fetch(`/api/colaboradores?${params}`);
@@ -47,12 +47,16 @@ export default function ColaboradoresPage() {
     const body = { ...form, equipeId: Number(form.equipeId) };
     if (editing) {
       await fetch(`/api/colaboradores/${editing.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      setSaving(false);
+      setModal(false);
+      load();
     } else {
       await fetch("/api/colaboradores", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      setSaving(false);
+      setModal(false);
+      setPage(1);
+      load(1);
     }
-    setSaving(false);
-    setModal(false);
-    load();
   }
 
   async function handleDelete(id: number) {

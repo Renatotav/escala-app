@@ -24,7 +24,11 @@ export async function GET(request: NextRequest) {
       semanasPresencial++;
     }
 
-    const sinal = calcularSinal(semanasPresencial, c.equipe.thresholdAmarelo, c.equipe.thresholdVerde);
+    // se a escala mais recente é REMOTO, já está elegível para remoto
+    const ultimaFoiRemoto = c.escalas[0]?.tipo === "REMOTO";
+    const sinal = ultimaFoiRemoto
+      ? ("VERDE" as const)
+      : calcularSinal(semanasPresencial, c.equipe.thresholdAmarelo, c.equipe.thresholdVerde);
     const escalaSemana = semana
       ? c.escalas.find((e) => new Date(e.semana).toISOString().slice(0, 10) === semana)?.tipo ?? null
       : null;

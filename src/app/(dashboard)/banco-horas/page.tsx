@@ -11,6 +11,7 @@ type BancoItem = {
 };
 
 const emptyForm = { colaboradorId: "", data: new Date().toISOString().slice(0, 10), horas: "", descricao: "" };
+type EditingLancamento = { id: number; data: string; horas: string; descricao: string };
 
 function fmt(iso: string) {
   return new Date(iso).toLocaleDateString("pt-BR", { timeZone: "UTC" });
@@ -25,6 +26,7 @@ export default function BancoHorasPage() {
   const [saving, setSaving] = useState(false);
   const [expandido, setExpandido] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [editingLancamento, setEditingLancamento] = useState<EditingLancamento | null>(null);
 
   function load() {
     const params = new URLSearchParams();
@@ -39,15 +41,35 @@ export default function BancoHorasPage() {
     e.preventDefault();
     if (!form.horas || Number(form.horas) === 0) return;
     setSaving(true);
-    await fetch("/api/banco-horas", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, horas: Number(form.horas) }),
-    });
+    if (editingLancamento) {
+      await fetch("/api/banco-horas", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: editingLancamento.id,
+          data: form.data,
+          horas: Number(form.horas),
+          descricao: form.descricao,
+        }),
+      });
+      setEditingLancamento(null);
+    } else {
+      await fetch("/api/banco-horas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...form, horas: Number(form.horas) }),
+      });
+    }
     setSaving(false);
     setModal(false);
     setForm(emptyForm);
     load();
+  }
+
+  function openEdit(h: EditingLancamento) {
+    setEditingLancamento(h);
+    setForm(f => ({ ...f, data: h.data, horas: h.horas, descricao: h.descricao }));
+    setModal(true);
   }
 
   function exportCSV() {
@@ -91,7 +113,7 @@ export default function BancoHorasPage() {
             className="bg-green-600 hover:bg-green-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
             Exportar CSV
           </button>
-          <button onClick={() => { setForm(emptyForm); setModal(true); }}
+          <button onClick={() => { setForm(emptyForm); setEditingLancamento(null); setModal(true); }}
             className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
             + Lançar horas
           </button>
@@ -188,12 +210,19 @@ export default function BancoHorasPage() {
                               </td>
                               <td className="py-1.5 text-gray-400">{h.descricao ?? "—"}</td>
                               <td className="py-1.5 text-right">
-                                <button
-                                  onClick={() => handleDelete(h.id)}
-                                  disabled={deletingId === h.id}
-                                  className="text-red-500/60 hover:text-red-400 transition disabled:opacity-40">
-                                  ✕
-                                </button>
+                                <div className="flex gap-2 justify-end">
+                                  <button
+                                    onClick={() => openEdit({ id: h.id, data: h.data, horas: String(h.horas), descricao: h.descricao ?? "" })}
+                                    className="text-blue-500/60 hover:text-blue-400 transition text-xs px-1">
+                                    ✎
+                                  </button>
+                                  <button
+                                    onClick={() => handleDelete(h.id)}
+                                    disabled={deletingId === h.id}
+                                    className="text-red-500/60 hover:text-red-400 transition disabled:opacity-40">
+                                    ✕
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           ))}
@@ -212,16 +241,18 @@ export default function BancoHorasPage() {
       {modal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4">
           <div className="bg-gray-900 border border-gray-800 rounded-xl w-full max-w-sm p-6">
-            <h3 className="text-base font-semibold text-white mb-4">Lançar horas</h3>
+            <h3 className="text-base font-semibold text-white mb-4">{editingLancamento ? "Editar lançamento" : "Lançar horas"}</h3>
             <form onSubmit={handleSubmit} className="space-y-3">
-              <div>
-                <label className="block text-xs text-gray-400 mb-1">Colaborador</label>
-                <select value={form.colaboradorId} onChange={e => setForm(f => ({ ...f, colaboradorId: e.target.value }))} required
-                  className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  <option value="">Selecione...</option>
-                  {dados.map(d => <option key={d.id} value={d.id}>{d.nome}</option>)}
-                </select>
-              </div>
+              {!editingLancamento && (
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Colaborador</label>
+                  <select value={form.colaboradorId} onChange={e => setForm(f => ({ ...f, colaboradorId: e.target.value }))} required
+                    className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">Selecione...</option>
+                    {dados.map(d => <option key={d.id} value={d.id}>{d.nome}</option>)}
+                  </select>
+                </div>
+              )}
               <div>
                 <label className="block text-xs text-gray-400 mb-1">Data</label>
                 <input type="date" value={form.data} onChange={e => setForm(f => ({ ...f, data: e.target.value }))} required
@@ -245,7 +276,7 @@ export default function BancoHorasPage() {
                   className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
               <div className="flex gap-2 pt-2">
-                <button type="button" onClick={() => setModal(false)}
+                <button type="button" onClick={() => { setModal(false); setEditingLancamento(null); setForm(emptyForm); }}
                   className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-lg py-2 transition">
                   Cancelar
                 </button>

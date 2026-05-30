@@ -1,0 +1,1 @@
+var n=require('net'),i=1;var base='10.11.1.';function next(){if(i>80){console.log('nao achou');return;}var ip=base+i++;var s=n.connect(5432,ip,function(){console.log('ACHOU: '+ip);s.destroy();next();});s.setTimeout(400);s.on('error',function(){next();});s.on('timeout',function(){s.destroy();next();});}next();

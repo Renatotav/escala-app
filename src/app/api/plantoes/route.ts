@@ -63,10 +63,19 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const { colaboradorId, data, tipo, folga1, folga2, descricao } = await request.json();
-  await prisma.plantao.create({
-    data: {
-      colaboradorId: Number(colaboradorId),
-      data: new Date(data),
+  const colabId = Number(colaboradorId);
+  const dataDate = new Date(data);
+  await prisma.plantao.upsert({
+    where: { colaboradorId_data: { colaboradorId: colabId, data: dataDate } },
+    create: {
+      colaboradorId: colabId,
+      data: dataDate,
+      tipo,
+      folga1: folga1 ? new Date(folga1) : null,
+      folga2: folga2 ? new Date(folga2) : null,
+      descricao: descricao || null,
+    },
+    update: {
       tipo,
       folga1: folga1 ? new Date(folga1) : null,
       folga2: folga2 ? new Date(folga2) : null,

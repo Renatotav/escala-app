@@ -14,7 +14,7 @@ export default async function DashboardPage() {
   const [colaboradores, plantoesPendentes, plantoesRecentes] = await Promise.all([
     prisma.colaborador.findMany({
       where: { ativo: true },
-      include: { equipe: true, escalas: { orderBy: { semana: "desc" }, take: 10 }, plantoes: true },
+      include: { equipe: true, escalas: { where: { semana: { lte: hoje } }, orderBy: { semana: "desc" }, take: 10 }, plantoes: true },
     }),
     prisma.plantao.findMany({
       where: { OR: [{ folga1: { gte: hoje, lte: em14dias } }, { folga2: { gte: hoje, lte: em14dias } }] },

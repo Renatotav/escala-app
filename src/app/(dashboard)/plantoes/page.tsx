@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 
 type Entry = { id: number; nome: string; equipe: string; sabados: number; domFer: number; total: number; score: number; proximoDeve: "DUPLO" | "SIMPLES" | null };
 type Historico = { id: number; colaboradorId: number; data: string; tipo: string; folga1: string | null; folga2: string | null; descricao: string | null; colaborador: { nome: string; equipe: { nome: string } } };
@@ -56,8 +55,9 @@ function getDiasFinaisMes(mes: string): { data: string; tipo: "SABADO" | "DOMING
   return dias;
 }
 
+type FichaPlantao = { id: number; data: string; tipo: string; folga1: string | null; folga2: string | null; descricao: string | null };
+
 export default function PlantoesPage() {
-  const router = useRouter();
   const [tab, setTab] = useState<"ranking" | "historico" | "saldo" | "folgas" | "escala">("ranking");
   const [ranking, setRanking] = useState<Entry[]>([]);
   const [historico, setHistorico] = useState<Historico[]>([]);
@@ -90,6 +90,9 @@ export default function PlantoesPage() {
   const [saldoVerColab, setSaldoVerColab] = useState<{ id: number; nome: string } | null>(null);
   const [saldoVerFolgas, setSaldoVerFolgas] = useState<FolgaAgendada[]>([]);
   const [toast, setToast] = useState<{ folga1: string; folga2?: string; plantaoData: string; plantaoTipo: string; nome: string } | null>(null);
+  const [fichaModal, setFichaModal] = useState<{ id: number; nome: string; equipe: string } | null>(null);
+  const [fichaPlantoes, setFichaPlantoes] = useState<FichaPlantao[]>([]);
+  const [fichaLoading, setFichaLoading] = useState(false);
 
   useEffect(() => {
     if (!toast) return;
@@ -127,6 +130,14 @@ export default function PlantoesPage() {
   async function loadEscalaMensal() {
     const data = await fetch(`/api/escala-plantao?mes=${mesEscala}`).then((r) => r.json());
     setEscalaMensal(data);
+  }
+
+  async function openFicha(id: number, nome: string, equipe: string) {
+    setFichaModal({ id, nome, equipe });
+    setFichaLoading(true);
+    const data = await fetch(`/api/colaboradores/${id}/ficha`).then(r => r.json());
+    setFichaPlantoes(data.plantoes ?? []);
+    setFichaLoading(false);
   }
 
   const [atestadosAtivos, setAtestadosAtivos] = useState<Set<number>>(new Set());
@@ -403,7 +414,7 @@ export default function PlantoesPage() {
                       <td className="px-4 py-3 text-center text-gray-500 font-mono text-xs">{idx + 1}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <button onClick={() => router.push(`/colaboradores/${entry.id}?tab=plantoes`)} className="text-white font-medium hover:text-blue-400 transition text-left">{entry.nome}</button>
+                          <button onClick={() => openFicha(entry.id, entry.nome, entry.equipe)} className="text-white font-medium hover:text-blue-400 transition text-left">{entry.nome}</button>
                           {atestadosAtivos.has(entry.id) && (
                             <span className="text-xs px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400 border border-orange-500/30">Afastado</span>
                           )}
@@ -479,7 +490,7 @@ export default function PlantoesPage() {
                 return (
                   <tr key={h.id} className={`border-b border-gray-800 last:border-0 transition hover:bg-gray-800/50 ${pendente ? "bg-yellow-900/5" : ""}`}>
                     <td className="px-4 py-3">
-                      <button onClick={() => router.push(`/colaboradores/${h.colaboradorId}?tab=plantoes`)} className="text-white font-medium hover:text-blue-400 transition text-left">{h.colaborador.nome}</button>
+                      <button onClick={() => openFicha(h.colaboradorId, h.colaborador.nome, h.colaborador.equipe.nome)} className="text-white font-medium hover:text-blue-400 transition text-left">{h.colaborador.nome}</button>
                     </td>
                     <td className="px-4 py-3">
                       <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-700 text-gray-300">{h.colaborador.equipe.nome}</span>
@@ -533,7 +544,7 @@ export default function PlantoesPage() {
               {saldo.map((s) => (
                 <tr key={s.id} className={`border-b border-gray-800 last:border-0 transition hover:bg-gray-800/50 ${s.pendentes > 0 ? "bg-yellow-900/5" : ""}`}>
                   <td className="px-4 py-3">
-                    <button onClick={() => router.push(`/colaboradores/${s.id}?tab=plantoes`)} className="text-white font-medium hover:text-blue-400 transition text-left">{s.nome}</button>
+                    <button onClick={() => openFicha(s.id, s.nome, s.equipe)} className="text-white font-medium hover:text-blue-400 transition text-left">{s.nome}</button>
                   </td>
                   <td className="px-4 py-3">
                     <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-700 text-gray-300">{s.equipe}</span>
@@ -601,7 +612,7 @@ export default function PlantoesPage() {
                   <tr key={f.id} className="border-b border-gray-800 last:border-0 hover:bg-gray-800/50 transition">
                     <td className="px-4 py-3 text-green-400 font-mono font-medium">{fmt(f.data)}</td>
                     <td className="px-4 py-3">
-                      <button onClick={() => router.push(`/colaboradores/${f.colaboradorId}?tab=plantoes`)} className="text-white font-medium hover:text-blue-400 transition text-left">{f.colaborador.nome}</button>
+                      <button onClick={() => openFicha(f.colaboradorId, f.colaborador.nome, f.colaborador.equipe.nome)} className="text-white font-medium hover:text-blue-400 transition text-left">{f.colaborador.nome}</button>
                     </td>
                     <td className="px-4 py-3">
                       <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-700 text-gray-300">{f.colaborador.equipe.nome}</span>
@@ -952,6 +963,67 @@ export default function PlantoesPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL — Plantões do colaborador */}
+      {fichaModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4" onClick={() => setFichaModal(null)}>
+          <div className="bg-gray-900 border border-gray-800 rounded-xl w-full max-w-2xl p-6 max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h3 className="text-base font-semibold text-white">{fichaModal.nome}</h3>
+                <p className="text-xs text-gray-500">{fichaModal.equipe}</p>
+              </div>
+              <button onClick={() => setFichaModal(null)} className="text-gray-600 hover:text-gray-400 text-lg leading-none ml-4">✕</button>
+            </div>
+            {fichaLoading ? (
+              <p className="text-gray-500 text-sm py-6 text-center">Carregando...</p>
+            ) : (
+              <>
+                {fichaPlantoes.length > 0 && (() => {
+                  const creditos = fichaPlantoes.reduce((acc, p) => acc + (p.tipo === "SABADO" || p.tipo === "PONTO_FACULTATIVO" ? 1 : 2), 0);
+                  const agendadas = fichaPlantoes.reduce((acc, p) => acc + (p.folga1 ? 1 : 0) + (p.folga2 ? 1 : 0), 0);
+                  const pendentes = Math.max(0, creditos - agendadas);
+                  return (
+                    <div className="flex gap-4 mb-4 text-sm flex-wrap">
+                      <span className="text-gray-400">Plantões: <strong className="text-white">{fichaPlantoes.length}</strong></span>
+                      <span className="text-gray-400">Folgas devidas: <strong className="text-white">{creditos}</strong></span>
+                      <span className="text-gray-400">Agendadas: <strong className="text-green-400">{agendadas}</strong></span>
+                      <span className="text-gray-400">Pendentes: <strong className={pendentes > 0 ? "text-yellow-400" : "text-gray-500"}>{pendentes}</strong></span>
+                    </div>
+                  );
+                })()}
+                <div className="overflow-y-auto flex-1">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wide">
+                        <th className="text-left py-2 pr-4">Data</th>
+                        <th className="text-left py-2 pr-4">Tipo</th>
+                        <th className="text-left py-2 pr-4">Folga</th>
+                        <th className="text-left py-2 pr-4">2ª Folga</th>
+                        <th className="text-left py-2">Observação</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {fichaPlantoes.length === 0 && (
+                        <tr><td colSpan={5} className="text-center text-gray-500 py-6">Nenhum plantão registrado</td></tr>
+                      )}
+                      {fichaPlantoes.map(p => (
+                        <tr key={p.id} className="border-b border-gray-800 last:border-0">
+                          <td className="py-2.5 pr-4 text-gray-300 font-mono text-xs">{fmt(p.data)}</td>
+                          <td className="py-2.5 pr-4">{tipoBadge(p.tipo)}</td>
+                          <td className="py-2.5 pr-4 text-xs text-green-400">{fmt(p.folga1)}</td>
+                          <td className="py-2.5 pr-4 text-xs text-green-400">{fmt(p.folga2)}</td>
+                          <td className="py-2.5 text-xs text-gray-400 italic">{p.descricao ?? "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

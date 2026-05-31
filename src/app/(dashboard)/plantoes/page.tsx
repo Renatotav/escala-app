@@ -403,7 +403,7 @@ export default function PlantoesPage() {
                       <td className="px-4 py-3 text-center text-gray-500 font-mono text-xs">{idx + 1}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <button onClick={() => router.push(`/colaboradores/${entry.id}`)} className="text-white font-medium hover:text-blue-400 transition text-left">{entry.nome}</button>
+                          <button onClick={() => router.push(`/colaboradores/${entry.id}?tab=plantoes`)} className="text-white font-medium hover:text-blue-400 transition text-left">{entry.nome}</button>
                           {atestadosAtivos.has(entry.id) && (
                             <span className="text-xs px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400 border border-orange-500/30">Afastado</span>
                           )}
@@ -479,7 +479,7 @@ export default function PlantoesPage() {
                 return (
                   <tr key={h.id} className={`border-b border-gray-800 last:border-0 transition hover:bg-gray-800/50 ${pendente ? "bg-yellow-900/5" : ""}`}>
                     <td className="px-4 py-3">
-                      <button onClick={() => router.push(`/colaboradores/${h.colaboradorId}`)} className="text-white font-medium hover:text-blue-400 transition text-left">{h.colaborador.nome}</button>
+                      <button onClick={() => router.push(`/colaboradores/${h.colaboradorId}?tab=plantoes`)} className="text-white font-medium hover:text-blue-400 transition text-left">{h.colaborador.nome}</button>
                     </td>
                     <td className="px-4 py-3">
                       <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-700 text-gray-300">{h.colaborador.equipe.nome}</span>
@@ -533,7 +533,7 @@ export default function PlantoesPage() {
               {saldo.map((s) => (
                 <tr key={s.id} className={`border-b border-gray-800 last:border-0 transition hover:bg-gray-800/50 ${s.pendentes > 0 ? "bg-yellow-900/5" : ""}`}>
                   <td className="px-4 py-3">
-                    <button onClick={() => router.push(`/colaboradores/${s.id}`)} className="text-white font-medium hover:text-blue-400 transition text-left">{s.nome}</button>
+                    <button onClick={() => router.push(`/colaboradores/${s.id}?tab=plantoes`)} className="text-white font-medium hover:text-blue-400 transition text-left">{s.nome}</button>
                   </td>
                   <td className="px-4 py-3">
                     <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-700 text-gray-300">{s.equipe}</span>
@@ -601,7 +601,7 @@ export default function PlantoesPage() {
                   <tr key={f.id} className="border-b border-gray-800 last:border-0 hover:bg-gray-800/50 transition">
                     <td className="px-4 py-3 text-green-400 font-mono font-medium">{fmt(f.data)}</td>
                     <td className="px-4 py-3">
-                      <button onClick={() => router.push(`/colaboradores/${f.colaboradorId}`)} className="text-white font-medium hover:text-blue-400 transition text-left">{f.colaborador.nome}</button>
+                      <button onClick={() => router.push(`/colaboradores/${f.colaboradorId}?tab=plantoes`)} className="text-white font-medium hover:text-blue-400 transition text-left">{f.colaborador.nome}</button>
                     </td>
                     <td className="px-4 py-3">
                       <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-700 text-gray-300">{f.colaborador.equipe.nome}</span>

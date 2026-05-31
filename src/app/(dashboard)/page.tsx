@@ -89,7 +89,7 @@ export default async function DashboardPage() {
               {plantoesRecentes.map(p => (
                 <div key={p.id} className="flex items-center justify-between py-2.5">
                   <div>
-                    <p className="text-white text-sm font-medium">{p.colaborador.nome}</p>
+                    <a href={`/colaboradores/${p.colaboradorId}?tab=plantoes`} className="text-white text-sm font-medium hover:text-blue-400 transition">{p.colaborador.nome}</a>
                     <p className="text-xs text-gray-500">{p.colaborador.equipe.nome}</p>
                   </div>
                   <div className="text-right">

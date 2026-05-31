@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { buscarCid } from "@/lib/cid";
 
 type Equipe = { id: number; nome: string };
@@ -32,7 +32,9 @@ export default function FichaPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const [colab, setColab] = useState<Colaborador | null>(null);
-  const [tab, setTab] = useState<"dados" | "plantoes" | "feedbacks" | "ocorrencias" | "atestados">("dados");
+  const searchParams = useSearchParams();
+  const initialTab = (searchParams.get("tab") ?? "dados") as "dados" | "plantoes" | "feedbacks" | "ocorrencias" | "atestados";
+  const [tab, setTab] = useState<"dados" | "plantoes" | "feedbacks" | "ocorrencias" | "atestados">(initialTab);
   const [editando, setEditando] = useState(false);
   const [dadosForm, setDadosForm] = useState({ dataNascimento: "", cpf: "", email: "", telefone: "", telefoneEmerg: "", nomeEmerg: "", endereco: "" });
   const [saving, setSaving] = useState(false);

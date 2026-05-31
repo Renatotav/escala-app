@@ -1,27 +1,33 @@
 #!/bin/sh
+set -e
 echo "Running database migration..."
 
 node -e "
-const { PrismaClient } = require('./src/generated/prisma');
-const prisma = new PrismaClient();
+const { Client } = require('pg');
+const client = new Client({ connectionString: process.env.DATABASE_URL });
 
 async function migrate() {
-  const q = (sql) => prisma.\$executeRawUnsafe(sql);
+  await client.connect();
 
-  // Enum value
-  try { await q(\"ALTER TYPE \\\"TipoFolga\\\" ADD VALUE IF NOT EXISTS 'PONTO_FACULTATIVO'\"); } catch(e) { console.log('enum skip:', e.message); }
+  // Enum value — must be outside a transaction
+  try {
+    await client.query(\"ALTER TYPE \\\"TipoFolga\\\" ADD VALUE IF NOT EXISTS 'PONTO_FACULTATIVO'\");
+  } catch(e) { console.log('enum skip:', e.message); }
 
   // New columns on Colaborador
-  await q('ALTER TABLE \"Colaborador\" ADD COLUMN IF NOT EXISTS \"dataNascimento\" DATE');
-  await q('ALTER TABLE \"Colaborador\" ADD COLUMN IF NOT EXISTS \"cpf\" TEXT');
-  await q('ALTER TABLE \"Colaborador\" ADD COLUMN IF NOT EXISTS \"email\" TEXT');
-  await q('ALTER TABLE \"Colaborador\" ADD COLUMN IF NOT EXISTS \"telefone\" TEXT');
-  await q('ALTER TABLE \"Colaborador\" ADD COLUMN IF NOT EXISTS \"telefoneEmerg\" TEXT');
-  await q('ALTER TABLE \"Colaborador\" ADD COLUMN IF NOT EXISTS \"nomeEmerg\" TEXT');
-  await q('ALTER TABLE \"Colaborador\" ADD COLUMN IF NOT EXISTS \"endereco\" TEXT');
+  const cols = [
+    'ALTER TABLE \"Colaborador\" ADD COLUMN IF NOT EXISTS \"dataNascimento\" DATE',
+    'ALTER TABLE \"Colaborador\" ADD COLUMN IF NOT EXISTS \"cpf\" TEXT',
+    'ALTER TABLE \"Colaborador\" ADD COLUMN IF NOT EXISTS \"email\" TEXT',
+    'ALTER TABLE \"Colaborador\" ADD COLUMN IF NOT EXISTS \"telefone\" TEXT',
+    'ALTER TABLE \"Colaborador\" ADD COLUMN IF NOT EXISTS \"telefoneEmerg\" TEXT',
+    'ALTER TABLE \"Colaborador\" ADD COLUMN IF NOT EXISTS \"nomeEmerg\" TEXT',
+    'ALTER TABLE \"Colaborador\" ADD COLUMN IF NOT EXISTS \"endereco\" TEXT',
+  ];
+  for (const sql of cols) await client.query(sql);
 
   // Atestado table
-  await q(\`CREATE TABLE IF NOT EXISTS \"Atestado\" (
+  await client.query(\`CREATE TABLE IF NOT EXISTS \"Atestado\" (
     \"id\" SERIAL PRIMARY KEY,
     \"colaboradorId\" INTEGER NOT NULL,
     \"dataInicio\" DATE NOT NULL,
@@ -31,10 +37,9 @@ async function migrate() {
     \"createdAt\" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT \"Atestado_colaboradorId_fkey\" FOREIGN KEY (\"colaboradorId\") REFERENCES \"Colaborador\"(\"id\") ON DELETE RESTRICT ON UPDATE CASCADE
   )\`);
-  await q('ALTER TABLE \"Atestado\" ADD COLUMN IF NOT EXISTS \"cid\" TEXT');
 
   // Feedback table
-  await q(\`CREATE TABLE IF NOT EXISTS \"Feedback\" (
+  await client.query(\`CREATE TABLE IF NOT EXISTS \"Feedback\" (
     \"id\" SERIAL PRIMARY KEY,
     \"colaboradorId\" INTEGER NOT NULL,
     \"data\" DATE NOT NULL,
@@ -45,7 +50,7 @@ async function migrate() {
   )\`);
 
   // Ocorrencia table
-  await q(\`CREATE TABLE IF NOT EXISTS \"Ocorrencia\" (
+  await client.query(\`CREATE TABLE IF NOT EXISTS \"Ocorrencia\" (
     \"id\" SERIAL PRIMARY KEY,
     \"colaboradorId\" INTEGER NOT NULL,
     \"data\" DATE NOT NULL,
@@ -56,11 +61,15 @@ async function migrate() {
     CONSTRAINT \"Ocorrencia_colaboradorId_fkey\" FOREIGN KEY (\"colaboradorId\") REFERENCES \"Colaborador\"(\"id\") ON DELETE RESTRICT ON UPDATE CASCADE
   )\`);
 
-  await prisma.\$disconnect();
+  await client.end();
   console.log('Migration completed successfully.');
 }
 
-migrate().catch(e => { console.error('Migration error:', e.message); prisma.\$disconnect(); });
+migrate().catch(async e => {
+  console.error('Migration failed:', e.message);
+  await client.end().catch(() => {});
+  process.exit(1);
+});
 "
 
 echo "Starting server..."

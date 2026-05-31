@@ -65,6 +65,19 @@ export default function AtestadosPage() {
     load();
   }
 
+  function exportCSV() {
+    const rows = [["Colaborador", "Equipe", "Início", "Fim", "Dias", "CID", "Observação"]];
+    for (const a of atestados) {
+      rows.push([a.colaborador.nome, a.colaborador.equipe.nome, fmt(a.dataInicio), fmt(a.dataFim), String(a.dias), a.cid ?? "", a.descricao ?? ""]);
+    }
+    const csv = rows.map(r => r.map(v => `"${v.replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "atestados.csv"; a.click();
+    URL.revokeObjectURL(url);
+  }
+
   async function handleDelete(id: number) {
     if (!confirm("Excluir este atestado?")) return;
     await fetch(`/api/atestados?id=${id}`, { method: "DELETE" });
@@ -80,10 +93,16 @@ export default function AtestadosPage() {
           <h2 className="text-xl font-semibold text-white">Atestados Médicos</h2>
           <p className="text-sm text-gray-400 mt-0.5">Registro de afastamentos e declarações médicas</p>
         </div>
-        <button onClick={() => { setForm(emptyForm); setCidDescricao(null); setCidSugestoes([]); setModal(true); }}
-          className="bg-orange-600 hover:bg-orange-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
-          + Registrar atestado
-        </button>
+        <div className="flex gap-2">
+          <button onClick={exportCSV}
+            className="bg-green-600 hover:bg-green-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
+            Exportar CSV
+          </button>
+          <button onClick={() => { setForm(emptyForm); setCidDescricao(null); setCidSugestoes([]); setModal(true); }}
+            className="bg-orange-600 hover:bg-orange-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
+            + Registrar atestado
+          </button>
+        </div>
       </div>
 
       <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto">

@@ -13,4 +13,4 @@ ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 
-CMD ["sh", "-c", "timeout 30 npx prisma db push --skip-generate --accept-data-loss || true; npx next start -p 3000"]
+CMD ["sh", "-c", "timeout 120 npx prisma db push --skip-generate --accept-data-loss || true; npx next start -p 3000"]

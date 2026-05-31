@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 type Equipe = { id: number; nome: string; thresholdAmarelo: number; thresholdVerde: number };
-type Colaborador = { id: number; nome: string; cargo: string | null; matricula: string | null; equipe: Equipe };
+type Colaborador = { id: number; nome: string; cargo: string | null; matricula: string | null; equipe: Equipe; dataNascimento: string | null; cpf: string | null; email: string | null; telefone: string | null; telefoneEmerg: string | null; nomeEmerg: string | null; endereco: string | null };
 
 const empty = { nome: "", cargo: "", matricula: "", equipeId: "" };
 
@@ -64,9 +64,10 @@ export default function ColaboradoresPage() {
     if (q) params.set("q", q);
     if (equipeId) params.set("equipeId", equipeId);
     const data = await fetch(`/api/colaboradores?${params}`).then(r => r.json());
-    const rows = [["Nome", "Matrícula", "Cargo", "Equipe"]];
+    const rows = [["Nome", "Matrícula", "Cargo", "Equipe", "CPF", "Email", "Telefone", "Telefone Emergência", "Contato Emergência", "Endereço", "Data Nascimento"]];
     for (const c of data.colaboradores as Colaborador[]) {
-      rows.push([c.nome, c.matricula ?? "", c.cargo ?? "", c.equipe.nome]);
+      const nascimento = c.dataNascimento ? new Date(c.dataNascimento).toLocaleDateString("pt-BR", { timeZone: "UTC" }) : "";
+      rows.push([c.nome, c.matricula ?? "", c.cargo ?? "", c.equipe.nome, c.cpf ?? "", c.email ?? "", c.telefone ?? "", c.telefoneEmerg ?? "", c.nomeEmerg ?? "", c.endereco ?? "", nascimento]);
     }
     const csv = rows.map(r => r.map(v => `"${v.replace(/"/g, '""')}"`).join(",")).join("\n");
     const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });

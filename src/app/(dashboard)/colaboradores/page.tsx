@@ -101,14 +101,14 @@ export default function ColaboradoresPage() {
         </div>
       </div>
 
-      <div className="flex gap-3 mb-4">
+      <div className="flex flex-wrap gap-2 mb-4">
         <input
           value={q} onChange={e => { setQ(e.target.value); setPage(1); }}
           placeholder="Buscar por nome..."
-          className="flex-1 bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="flex-1 min-w-[160px] bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <select value={equipeId} onChange={e => { setEquipeId(e.target.value); setPage(1); }}
-          className="bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          className="min-w-[130px] bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
           <option value="">Todas as equipes</option>
           {equipes.map(eq => <option key={eq.id} value={eq.id}>{eq.nome}</option>)}
         </select>

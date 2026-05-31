@@ -115,9 +115,9 @@ export default function BancoHorasPage() {
             Horas positivas = crédito &nbsp;·&nbsp; Horas negativas = débito
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-2">
           <select value={equipeId} onChange={e => setEquipeId(e.target.value)}
-            className="bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            className="min-w-[130px] bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option value="">Todas as equipes</option>
             {equipes.map(eq => <option key={eq.id} value={eq.id}>{eq.nome}</option>)}
           </select>

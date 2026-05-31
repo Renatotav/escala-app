@@ -389,7 +389,7 @@ export default function PlantoesPage() {
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`px-4 py-1.5 rounded-md text-sm font-medium transition ${tab === t ? "bg-blue-600 text-white" : "text-gray-400 hover:text-white"}`}
+            className={`px-4 py-1.5 rounded-md text-sm font-medium whitespace-nowrap shrink-0 transition ${tab === t ? "bg-blue-600 text-white" : "text-gray-400 hover:text-white"}`}
           >
             {t === "ranking"   ? "Sequência"
               : t === "historico" ? "Histórico"
@@ -404,14 +404,14 @@ export default function PlantoesPage() {
       {/* SEQUÊNCIA (RANKING) */}
       {tab === "ranking" && (
         <>
-          <div className="flex gap-3 mb-4">
+          <div className="flex flex-wrap gap-2 mb-4">
             <select value={filtroEquipe} onChange={(e) => setFiltroEquipe(e.target.value)}
-              className="bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+              className="flex-1 min-w-[130px] bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
               <option value="">Todas as equipes</option>
               {equipes.map((eq) => <option key={eq.id} value={eq.nome}>{eq.nome}</option>)}
             </select>
             <select value={filtroColab} onChange={(e) => setFiltroColab(e.target.value)}
-              className="bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+              className="flex-1 min-w-[130px] bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
               <option value="">Todos os colaboradores</option>
               {rankingAlfabetico.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
             </select>
@@ -482,13 +482,15 @@ export default function PlantoesPage() {
       {/* HISTÓRICO */}
       {tab === "historico" && (
         <>
-        <div className="flex gap-3 mb-4 items-center">
-          <button onClick={() => navMesHistorico(-1)} className="bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg px-3 py-2 text-sm transition">‹</button>
-          <input type="month" value={mesHistorico} onChange={e => setMesHistorico(e.target.value)}
-            className="bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-          <button onClick={() => navMesHistorico(1)} className="bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg px-3 py-2 text-sm transition">›</button>
+        <div className="flex flex-wrap gap-2 mb-4 items-center">
+          <div className="flex gap-1 shrink-0">
+            <button onClick={() => navMesHistorico(-1)} className="bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg px-3 py-2 text-sm transition">‹</button>
+            <input type="month" value={mesHistorico} onChange={e => setMesHistorico(e.target.value)}
+              className="bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <button onClick={() => navMesHistorico(1)} className="bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg px-3 py-2 text-sm transition">›</button>
+          </div>
           <select value={colaboradorHistorico} onChange={e => setColaboradorHistorico(e.target.value)}
-            className="bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            className="flex-1 min-w-[130px] bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option value="">Todos os colaboradores</option>
             {rankingAlfabetico.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
           </select>
@@ -606,13 +608,15 @@ export default function PlantoesPage() {
       {/* FOLGAS */}
       {tab === "folgas" && (
         <>
-          <div className="flex gap-3 mb-4 items-center">
-            <button onClick={() => navMes(-1)} className="bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg px-3 py-2 text-sm transition">‹</button>
-            <input type="month" value={mesFolga} onChange={e => setMesFolga(e.target.value)}
-              className="bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-            <button onClick={() => navMes(1)} className="bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg px-3 py-2 text-sm transition">›</button>
+          <div className="flex flex-wrap gap-2 mb-4 items-center">
+            <div className="flex gap-1 shrink-0">
+              <button onClick={() => navMes(-1)} className="bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg px-3 py-2 text-sm transition">‹</button>
+              <input type="month" value={mesFolga} onChange={e => setMesFolga(e.target.value)}
+                className="bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <button onClick={() => navMes(1)} className="bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg px-3 py-2 text-sm transition">›</button>
+            </div>
             <select value={colaboradorFolga} onChange={e => setColaboradorFolga(e.target.value)}
-              className="bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+              className="flex-1 min-w-[130px] bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
               <option value="">Todos os colaboradores</option>
               {rankingAlfabetico.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
             </select>
@@ -704,8 +708,8 @@ export default function PlantoesPage() {
       {/* ESCALA DO MÊS */}
       {tab === "escala" && (
         <>
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex gap-3 items-center">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+            <div className="flex gap-1 items-center shrink-0">
               <button onClick={() => { const [y,m] = mesEscala.split("-").map(Number); const d = new Date(y,m-2,1); setMesEscala(d.toISOString().slice(0,7)); }} className="bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg px-3 py-2 text-sm transition">‹</button>
               <input type="month" value={mesEscala} onChange={e => setMesEscala(e.target.value)}
                 className="bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />

@@ -89,7 +89,7 @@ export function Sidebar() {
       </aside>
 
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex flex-col w-60 shrink-0 bg-gray-900 border-r border-gray-800 h-screen sticky top-0">
+      <aside className="hidden md:flex flex-col w-60 shrink-0 bg-gray-900 border-r border-gray-800 h-dvh sticky top-0">
         <div className="px-5 py-5 border-b border-gray-800">
           <h1 className="text-sm font-semibold text-white leading-tight">Gestão de Escalas</h1>
           <p className="text-xs text-gray-500 mt-0.5">Painel administrativo</p>

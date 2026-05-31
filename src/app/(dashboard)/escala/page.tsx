@@ -96,7 +96,7 @@ export default function EscalaPage() {
     <div>
       <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
         <h2 className="text-xl font-semibold text-white">Escala Semanal</h2>
-        <div className="flex gap-3 items-center">
+        <div className="flex flex-wrap gap-2 items-center">
           <button onClick={() => { const d = new Date(semana); d.setDate(d.getDate() - 7); setSemana(d.toISOString().slice(0, 10)); }}
             className="bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg px-3 py-2 text-sm transition">‹</button>
           <input type="date" value={semana} onChange={e => setSemana(e.target.value)}
@@ -104,7 +104,7 @@ export default function EscalaPage() {
           <button onClick={() => { const d = new Date(semana); d.setDate(d.getDate() + 7); setSemana(d.toISOString().slice(0, 10)); }}
             className="bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg px-3 py-2 text-sm transition">›</button>
           <select value={equipeId} onChange={e => setEquipeId(e.target.value)}
-            className="bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            className="min-w-[130px] bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option value="">Todas as equipes</option>
             {equipesEscala.map(eq => <option key={eq.id} value={eq.id}>{eq.nome}</option>)}
           </select>

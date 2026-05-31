@@ -131,7 +131,9 @@ export default function ColaboradoresPage() {
             )}
             {colaboradores.map(c => (
               <tr key={c.id} className="border-b border-gray-800 last:border-0 hover:bg-gray-800/50 transition">
-                <td className="px-4 py-3 text-white font-medium">{c.nome}</td>
+                <td className="px-4 py-3">
+                  <a href={`/colaboradores/${c.id}`} className="text-white font-medium hover:text-blue-400 transition">{c.nome}</a>
+                </td>
                 <td className="px-4 py-3 text-gray-400">{c.matricula ?? "—"}</td>
                 <td className="px-4 py-3 text-gray-400">{c.cargo ?? "—"}</td>
                 <td className="px-4 py-3">

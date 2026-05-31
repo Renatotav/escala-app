@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 type Entry = { id: number; nome: string; equipe: string; sabados: number; domFer: number; total: number; score: number; proximoDeve: "DUPLO" | "SIMPLES" | null };
 type Historico = { id: number; colaboradorId: number; data: string; tipo: string; folga1: string | null; folga2: string | null; descricao: string | null; colaborador: { nome: string; equipe: { nome: string } } };
@@ -56,6 +57,7 @@ function getDiasFinaisMes(mes: string): { data: string; tipo: "SABADO" | "DOMING
 }
 
 export default function PlantoesPage() {
+  const router = useRouter();
   const [tab, setTab] = useState<"ranking" | "historico" | "saldo" | "folgas" | "escala" | "atestados">("ranking");
   const [ranking, setRanking] = useState<Entry[]>([]);
   const [historico, setHistorico] = useState<Historico[]>([]);
@@ -92,8 +94,6 @@ export default function PlantoesPage() {
   const [saldoVerColab, setSaldoVerColab] = useState<{ id: number; nome: string } | null>(null);
   const [saldoVerFolgas, setSaldoVerFolgas] = useState<FolgaAgendada[]>([]);
   const [toast, setToast] = useState<{ folga1: string; folga2?: string; plantaoData: string; plantaoTipo: string; nome: string } | null>(null);
-  const [obsColab, setObsColab] = useState<{ id: number; nome: string } | null>(null);
-  const [obsPlantoes, setObsPlantoes] = useState<Historico[]>([]);
 
   useEffect(() => {
     if (!toast) return;
@@ -319,11 +319,6 @@ export default function PlantoesPage() {
     loadSaldo();
   }
 
-  async function openObs(colab: { id: number; nome: string }) {
-    const data = await fetch(`/api/plantoes?view=historico&colaboradorId=${colab.id}`).then(r => r.json()) as Historico[];
-    setObsColab(colab);
-    setObsPlantoes(data);
-  }
 
   async function openSaldoVerFolgas(s: Saldo) {
     const data = await fetch(`/api/plantoes?view=folgas-agendadas&colaboradorId=${s.id}`).then(r => r.json()) as FolgaAgendada[];
@@ -447,7 +442,7 @@ export default function PlantoesPage() {
                       <td className="px-4 py-3 text-center text-gray-500 font-mono text-xs">{idx + 1}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <button onClick={() => openObs(entry)} className="text-white font-medium hover:text-blue-400 transition text-left">{entry.nome}</button>
+                          <button onClick={() => router.push(`/colaboradores/${entry.id}`)} className="text-white font-medium hover:text-blue-400 transition text-left">{entry.nome}</button>
                           {atestadosAtivos.has(entry.id) && (
                             <span className="text-xs px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400 border border-orange-500/30">Afastado</span>
                           )}
@@ -521,7 +516,7 @@ export default function PlantoesPage() {
                 return (
                   <tr key={h.id} className={`border-b border-gray-800 last:border-0 transition hover:bg-gray-800/50 ${pendente ? "bg-yellow-900/5" : ""}`}>
                     <td className="px-4 py-3">
-                      <button onClick={() => openObs({ id: h.colaboradorId, nome: h.colaborador.nome })} className="text-white font-medium hover:text-blue-400 transition text-left">{h.colaborador.nome}</button>
+                      <button onClick={() => router.push(`/colaboradores/${h.colaboradorId}`)} className="text-white font-medium hover:text-blue-400 transition text-left">{h.colaborador.nome}</button>
                     </td>
                     <td className="px-4 py-3">
                       <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-700 text-gray-300">{h.colaborador.equipe.nome}</span>
@@ -575,7 +570,7 @@ export default function PlantoesPage() {
               {saldo.map((s) => (
                 <tr key={s.id} className={`border-b border-gray-800 last:border-0 transition hover:bg-gray-800/50 ${s.pendentes > 0 ? "bg-yellow-900/5" : ""}`}>
                   <td className="px-4 py-3">
-                    <button onClick={() => openObs({ id: s.id, nome: s.nome })} className="text-white font-medium hover:text-blue-400 transition text-left">{s.nome}</button>
+                    <button onClick={() => router.push(`/colaboradores/${s.id}`)} className="text-white font-medium hover:text-blue-400 transition text-left">{s.nome}</button>
                   </td>
                   <td className="px-4 py-3">
                     <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-700 text-gray-300">{s.equipe}</span>
@@ -641,7 +636,7 @@ export default function PlantoesPage() {
                   <tr key={f.id} className="border-b border-gray-800 last:border-0 hover:bg-gray-800/50 transition">
                     <td className="px-4 py-3 text-green-400 font-mono font-medium">{fmt(f.data)}</td>
                     <td className="px-4 py-3">
-                      <button onClick={() => openObs({ id: f.colaboradorId, nome: f.colaborador.nome })} className="text-white font-medium hover:text-blue-400 transition text-left">{f.colaborador.nome}</button>
+                      <button onClick={() => router.push(`/colaboradores/${f.colaboradorId}`)} className="text-white font-medium hover:text-blue-400 transition text-left">{f.colaborador.nome}</button>
                     </td>
                     <td className="px-4 py-3">
                       <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-700 text-gray-300">{f.colaborador.equipe.nome}</span>
@@ -685,7 +680,7 @@ export default function PlantoesPage() {
                 return (
                   <tr key={a.id} className={`border-b border-gray-800 last:border-0 hover:bg-gray-800/50 transition ${ativo ? "bg-orange-900/10" : ""}`}>
                     <td className="px-4 py-3">
-                      <button onClick={() => openObs({ id: a.colaboradorId, nome: a.colaborador.nome })} className="text-white font-medium hover:text-blue-400 transition text-left">{a.colaborador.nome}</button>
+                      <button onClick={() => router.push(`/colaboradores/${a.colaboradorId}`)} className="text-white font-medium hover:text-blue-400 transition text-left">{a.colaborador.nome}</button>
                       {ativo && <span className="ml-2 text-xs px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400 border border-orange-500/30">Afastado</span>}
                     </td>
                     <td className="px-4 py-3"><span className="text-xs px-2 py-0.5 rounded bg-gray-700 text-gray-300">{a.colaborador.equipe.nome}</span></td>
@@ -1081,48 +1076,6 @@ export default function PlantoesPage() {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL — Observações de plantões (via Sequência) */}
-      {obsColab && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4">
-          <div className="bg-gray-900 border border-gray-800 rounded-xl w-full max-w-lg p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="text-base font-semibold text-white">{obsColab.nome}</h3>
-                <p className="text-xs text-gray-500 mt-0.5">Histórico de plantões e observações</p>
-              </div>
-              <button onClick={() => setObsColab(null)} className="text-gray-600 hover:text-gray-400 transition">✕</button>
-            </div>
-            {obsPlantoes.length === 0 ? (
-              <p className="text-sm text-gray-500 text-center py-6">Nenhum plantão registrado.</p>
-            ) : (
-              <div className="divide-y divide-gray-800 max-h-96 overflow-y-auto">
-                {obsPlantoes.map(h => (
-                  <div key={h.id} className="py-3 flex items-start justify-between gap-4">
-                    <div className="flex items-start gap-3">
-                      <div>
-                        <p className="text-sm text-gray-300 font-mono">{fmt(h.data)}</p>
-                        <div className="mt-0.5">{tipoBadge(h.tipo)}</div>
-                      </div>
-                      {h.descricao && (
-                        <p className="text-xs text-gray-400 italic mt-1">"{h.descricao}"</p>
-                      )}
-                    </div>
-                    <div className="text-right text-xs text-gray-600 shrink-0">
-                      {h.folga1 && <p>Folga: {fmt(h.folga1)}</p>}
-                      {h.folga2 && <p>2ª folga: {fmt(h.folga2)}</p>}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-            <button onClick={() => setObsColab(null)}
-              className="mt-4 w-full bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-lg py-2 transition">
-              Fechar
-            </button>
           </div>
         </div>
       )}

@@ -18,22 +18,52 @@ model Equipe {
 }
 
 model Colaborador {
-  id             Int                    @id @default(autoincrement())
-  nome           String
-  cargo          String?
-  matricula      String?                @unique
-  ativo          Boolean                @default(true)
-  equipeId       Int
-  equipe         Equipe                 @relation(fields: [equipeId], references: [id])
-  escalas        EscalaSemana[]
-  pontos         RegistroPonto[]
-  folgas         Folga[]
-  plantoes       Plantao[]
-  bancoHoras          LancamentoBancoHoras[]
-  escalaPlantao       EscalaPlantaoMensal[]
-  atestados           Atestado[]
-  createdAt      DateTime               @default(now())
-  updatedAt      DateTime               @updatedAt
+  id              Int                    @id @default(autoincrement())
+  nome            String
+  cargo           String?
+  matricula       String?                @unique
+  ativo           Boolean                @default(true)
+  equipeId        Int
+  equipe          Equipe                 @relation(fields: [equipeId], references: [id])
+  dataNascimento  DateTime?              @db.Date
+  cpf             String?
+  email           String?
+  telefone        String?
+  telefoneEmerg   String?
+  nomeEmerg       String?
+  endereco        String?
+  escalas         EscalaSemana[]
+  pontos          RegistroPonto[]
+  folgas          Folga[]
+  plantoes        Plantao[]
+  bancoHoras      LancamentoBancoHoras[]
+  escalaPlantao   EscalaPlantaoMensal[]
+  atestados       Atestado[]
+  feedbacks       Feedback[]
+  ocorrencias     Ocorrencia[]
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+}
+
+model Feedback {
+  id            Int         @id @default(autoincrement())
+  colaboradorId Int
+  colaborador   Colaborador @relation(fields: [colaboradorId], references: [id])
+  data          DateTime    @db.Date
+  descricao     String
+  assinatura    String?
+  createdAt     DateTime    @default(now())
+}
+
+model Ocorrencia {
+  id            Int         @id @default(autoincrement())
+  colaboradorId Int
+  colaborador   Colaborador @relation(fields: [colaboradorId], references: [id])
+  data          DateTime    @db.Date
+  tipo          String?
+  descricao     String
+  assinatura    String?
+  createdAt     DateTime    @default(now())
 }
 
 model EscalaSemana {

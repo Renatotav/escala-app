@@ -9,7 +9,7 @@ const tipoLabel: Record<string, string> = { SABADO: "Sábado", DOMINGO: "Domingo
 
 function fmt(iso: string | null) {
   if (!iso) return "—";
-  return iso.split("-").reverse().join("/");
+  return iso.slice(0, 10).split("-").reverse().join("/");
 }
 
 function tipoBadge(tipo: string) {

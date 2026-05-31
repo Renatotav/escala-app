@@ -8,6 +8,7 @@ const navItems = [
   { href: "/", label: "Dashboard", icon: "⊞" },
   { href: "/colaboradores", label: "Colaboradores", icon: "👥" },
   { href: "/escala", label: "Escala", icon: "📅" },
+  { href: "/atestados", label: "Atestados", icon: "🩺" },
   { href: "/banco-horas", label: "Banco de Horas", icon: "⏱" },
   { href: "/plantoes", label: "Plantões & Folgas", icon: "🔔" },
   { href: "/configuracoes", label: "Configurações", icon: "⚙" },

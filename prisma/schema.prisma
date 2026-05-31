@@ -116,6 +116,7 @@ model Atestado {
   colaborador   Colaborador @relation(fields: [colaboradorId], references: [id])
   dataInicio    DateTime    @db.Date
   dataFim       DateTime    @db.Date
+  cid           String?
   descricao     String?
   createdAt     DateTime    @default(now())
 }

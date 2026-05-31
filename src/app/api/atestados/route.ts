@@ -30,12 +30,13 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const { colaboradorId, dataInicio, dataFim, descricao } = await request.json();
+  const { colaboradorId, dataInicio, dataFim, cid, descricao } = await request.json();
   const atestado = await prisma.atestado.create({
     data: {
       colaboradorId: Number(colaboradorId),
       dataInicio: new Date(dataInicio),
       dataFim: new Date(dataFim),
+      cid: cid || null,
       descricao: descricao || null,
     },
     include: { colaborador: { select: { nome: true, equipe: { select: { nome: true } } } } },

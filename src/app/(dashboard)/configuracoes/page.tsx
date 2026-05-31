@@ -11,6 +11,24 @@ export default function ConfiguracoesPage() {
   const [novaEquipe, setNovaEquipe] = useState({ nome: "", thresholdAmarelo: 3, thresholdVerde: 4 });
   const [novoFeriado, setNovoFeriado] = useState({ data: "", descricao: "" });
   const [saving, setSaving] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+
+  async function downloadBackup() {
+    setDownloading(true);
+    try {
+      const res = await fetch("/api/backup");
+      if (!res.ok) throw new Error("Erro ao gerar backup");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `backup_${new Date().toISOString().slice(0, 10)}.sql`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setDownloading(false);
+    }
+  }
 
   const EQUIPES_OCULTAS = ["Supervisão", "Coordenação"];
 
@@ -142,6 +160,20 @@ export default function ConfiguracoesPage() {
               + Adicionar
             </button>
           </form>
+        </div>
+      </section>
+      {/* Backup */}
+      <section>
+        <h3 className="text-sm font-medium text-gray-300 mb-3">Backup do banco de dados</h3>
+        <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm text-white font-medium">Download completo</p>
+            <p className="text-xs text-gray-400 mt-0.5">Gera um arquivo .sql com todos os dados — colaboradores, plantões, folgas, escala e banco de horas.</p>
+          </div>
+          <button onClick={downloadBackup} disabled={downloading}
+            className="shrink-0 bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
+            {downloading ? "Gerando..." : "Download Backup"}
+          </button>
         </div>
       </section>
     </div>

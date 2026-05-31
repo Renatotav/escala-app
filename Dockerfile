@@ -13,5 +13,5 @@ ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 
-RUN chmod +x startup.sh
+RUN sed -i 's/\r$//' startup.sh && chmod +x startup.sh
 CMD ["sh", "startup.sh"]

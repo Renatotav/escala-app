@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { prisma } from "@/lib/prisma";
 import { calcularSinal } from "@/lib/eligibility";
+import PlantaoRecentesCard from "@/app/(dashboard)/components/PlantaoRecentesCard";
 
 function fmt(iso: string) {
   return iso.split("-").reverse().join("/");
@@ -80,27 +81,13 @@ export default async function DashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Plantões recentes */}
-        <div className="bg-gray-900 rounded-xl border border-gray-800 p-5">
-          <h3 className="text-sm font-medium text-gray-300 mb-4">Plantões recentes</h3>
-          {plantoesRecentes.length === 0 ? (
-            <p className="text-gray-600 text-sm">Nenhum plantão registrado.</p>
-          ) : (
-            <div className="divide-y divide-gray-800">
-              {plantoesRecentes.map(p => (
-                <div key={p.id} className="flex items-center justify-between py-2.5">
-                  <div>
-                    <a href={`/colaboradores/${p.colaboradorId}?tab=plantoes`} className="text-white text-sm font-medium hover:text-blue-400 transition">{p.colaborador.nome}</a>
-                    <p className="text-xs text-gray-500">{p.colaborador.equipe.nome}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm text-gray-300">{fmt(p.data.toISOString().slice(0, 10))}</p>
-                    <p className="text-xs text-gray-500">{tipoLabel[p.tipo] ?? p.tipo}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        <PlantaoRecentesCard items={plantoesRecentes.map(p => ({
+          id: p.id,
+          colaboradorId: p.colaboradorId,
+          data: p.data.toISOString().slice(0, 10),
+          tipo: p.tipo,
+          colaborador: { nome: p.colaborador.nome, equipe: { nome: p.colaborador.equipe.nome } },
+        }))} />
 
         {/* Próximas folgas */}
         <div className="bg-gray-900 rounded-xl border border-gray-800 p-5">

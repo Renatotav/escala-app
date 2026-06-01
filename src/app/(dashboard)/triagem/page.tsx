@@ -277,7 +277,7 @@ export default function TriagemPage() {
                     </button>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="text-xs px-2 py-0.5 rounded bg-gray-700 text-gray-300">{c.equipe.nome}</span>
+                    <span className="text-xs px-2 py-0.5 rounded bg-gray-700 text-gray-300 whitespace-nowrap">{c.equipe.nome}</span>
                   </td>
                   <td className="px-4 py-3 text-center">
                     {reg ? (

@@ -76,6 +76,9 @@ async function migrate() {
   // Upgrade DATE -> TIMESTAMP(3) if table was created with old schema
   try { await client.query('ALTER TABLE \"ControleTriagem\" ALTER COLUMN \"dataInicio\" TYPE TIMESTAMP(3) USING \"dataInicio\"::TIMESTAMP(3)'); } catch(e) {}
   try { await client.query('ALTER TABLE \"ControleTriagem\" ALTER COLUMN \"dataFim\" TYPE TIMESTAMP(3) USING \"dataFim\"::TIMESTAMP(3)'); } catch(e) {}
+  // Add horaInicio / horaFim columns
+  try { await client.query('ALTER TABLE \"ControleTriagem\" ADD COLUMN IF NOT EXISTS \"horaInicio\" TEXT'); } catch(e) {}
+  try { await client.query('ALTER TABLE \"ControleTriagem\" ADD COLUMN IF NOT EXISTS \"horaFim\" TEXT'); } catch(e) {}
 
   await client.end();
   console.log('Migration completed successfully.');

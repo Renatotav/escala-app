@@ -30,34 +30,44 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const { colaboradorId, motivo, dataInicio, dataFim, observacao, atestadoId } = await request.json();
+  const { colaboradorId, motivo, dataInicio, horaInicio, dataFim, observacao, atestadoId } = await request.json();
 
   const registro = await prisma.controleTriagem.create({
     data: {
       colaboradorId: Number(colaboradorId),
       motivo,
       dataInicio: new Date(dataInicio),
+      horaInicio: horaInicio || null,
       dataFim: dataFim ? new Date(dataFim) : null,
       observacao: observacao || null,
       atestadoId: atestadoId ? Number(atestadoId) : null,
     },
   });
 
-  return NextResponse.json({ ...registro, dataInicio: registro.dataInicio.toISOString().slice(0, 10), dataFim: registro.dataFim?.toISOString().slice(0, 10) ?? null }, { status: 201 });
+  return NextResponse.json({
+    ...registro,
+    dataInicio: registro.dataInicio.toISOString().slice(0, 10),
+    dataFim: registro.dataFim?.toISOString().slice(0, 10) ?? null,
+  }, { status: 201 });
 }
 
 export async function PATCH(request: NextRequest) {
-  const { id, dataFim, observacao } = await request.json();
+  const { id, dataFim, horaFim, observacao } = await request.json();
 
   const registro = await prisma.controleTriagem.update({
     where: { id: Number(id) },
     data: {
       ...(dataFim !== undefined && { dataFim: dataFim ? new Date(dataFim) : null }),
+      ...(horaFim !== undefined && { horaFim: horaFim || null }),
       ...(observacao !== undefined && { observacao }),
     },
   });
 
-  return NextResponse.json({ ...registro, dataInicio: registro.dataInicio.toISOString().slice(0, 10), dataFim: registro.dataFim?.toISOString().slice(0, 10) ?? null });
+  return NextResponse.json({
+    ...registro,
+    dataInicio: registro.dataInicio.toISOString().slice(0, 10),
+    dataFim: registro.dataFim?.toISOString().slice(0, 10) ?? null,
+  });
 }
 
 export async function DELETE(request: NextRequest) {

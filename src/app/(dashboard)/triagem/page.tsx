@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react";
 
 type Registro = {
-  id: number; colaboradorId: number; motivo: string; dataInicio: string; dataFim: string | null;
+  id: number; colaboradorId: number; motivo: string;
+  dataInicio: string; horaInicio: string | null;
+  dataFim: string | null; horaFim: string | null;
   observacao: string | null; atestadoId: number | null;
 };
 type Colaborador = { id: number; nome: string; equipe: { id: number; nome: string } };
@@ -35,9 +37,27 @@ function diasFora(dataInicio: string) {
   return diff <= 0 ? "Hoje" : `${diff}d`;
 }
 
+function calcHoras(
+  dataInicio: string, horaInicio: string | null,
+  dataFim: string | null, horaFim: string | null
+): string | null {
+  if (!dataFim || !horaInicio || !horaFim) return null;
+  const start = new Date(`${dataInicio.slice(0, 10)}T${horaInicio}:00`);
+  const end = new Date(`${dataFim.slice(0, 10)}T${horaFim}:00`);
+  const totalMin = Math.round((end.getTime() - start.getTime()) / 60000);
+  if (totalMin <= 0) return null;
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  return m > 0 ? `${h}h ${m}min` : `${h}h`;
+}
+
 function registroAtivo(registros: Registro[], colaboradorId: number): Registro | null {
   const hoje = new Date().toISOString().slice(0, 10);
   return registros.find(r => r.colaboradorId === colaboradorId && (!r.dataFim || r.dataFim >= hoje)) ?? null;
+}
+
+function horaAgora() {
+  return new Date().toTimeString().slice(0, 5);
 }
 
 export default function TriagemPage() {
@@ -47,13 +67,17 @@ export default function TriagemPage() {
   const [filtroEquipe, setFiltroEquipe] = useState("");
   const [filtroStatus, setFiltroStatus] = useState<"todos" | "fora" | "lista">("todos");
 
-  // Modal de saída (registrar novo)
+  // Modal registrar saída
   const [modal, setModal] = useState<{ colaboradorId: number; nome: string } | null>(null);
-  const [form, setForm] = useState({ motivo: "DECLARACAO", dataInicio: "", dataFim: "", observacao: "" });
+  const [form, setForm] = useState({ motivo: "DECLARACAO", dataInicio: "", horaInicio: "", dataFim: "", observacao: "" });
   const [saving, setSaving] = useState(false);
-  const [encerrando, setEncerrando] = useState<number | null>(null);
 
-  // Popup do colaborador (inline na página)
+  // Modal registrar retorno (com hora)
+  const [retornoModal, setRetornoModal] = useState<{ id: number; nome: string } | null>(null);
+  const [retornoForm, setRetornoForm] = useState({ dataFim: "", horaFim: "" });
+  const [savingRetorno, setSavingRetorno] = useState(false);
+
+  // Popup colaborador
   const [popup, setPopup] = useState<Colaborador | null>(null);
 
   function load() {
@@ -75,22 +99,36 @@ export default function TriagemPage() {
     await fetch("/api/controle-triagem", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ colaboradorId: modal.colaboradorId, ...form, dataFim: form.dataFim || null }),
+      body: JSON.stringify({
+        colaboradorId: modal.colaboradorId,
+        ...form,
+        horaInicio: form.horaInicio || null,
+        dataFim: form.dataFim || null,
+      }),
     });
     setSaving(false);
     setModal(null);
-    setForm({ motivo: "DECLARACAO", dataInicio: "", dataFim: "", observacao: "" });
+    setForm({ motivo: "DECLARACAO", dataInicio: "", horaInicio: "", dataFim: "", observacao: "" });
     load();
   }
 
-  async function encerrar(id: number) {
-    setEncerrando(id);
+  function abrirRetorno(id: number, nome: string) {
+    setRetornoModal({ id, nome });
+    setRetornoForm({ dataFim: new Date().toISOString().slice(0, 10), horaFim: horaAgora() });
+    setPopup(null);
+  }
+
+  async function handleRetorno(e: { preventDefault(): void }) {
+    e.preventDefault();
+    if (!retornoModal) return;
+    setSavingRetorno(true);
     await fetch("/api/controle-triagem", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, dataFim: new Date().toISOString().slice(0, 10) }),
+      body: JSON.stringify({ id: retornoModal.id, dataFim: retornoForm.dataFim, horaFim: retornoForm.horaFim }),
     });
-    setEncerrando(null);
+    setSavingRetorno(false);
+    setRetornoModal(null);
     load();
   }
 
@@ -110,11 +148,8 @@ export default function TriagemPage() {
 
   const totalFora = colaboradores.filter(c => registroAtivo(registros, c.id)).length;
 
-  // Histórico do colaborador selecionado no popup
   const popupRegistros = popup
-    ? [...registros.filter(r => r.colaboradorId === popup.id)].sort(
-        (a, b) => b.dataInicio.localeCompare(a.dataInicio)
-      )
+    ? [...registros.filter(r => r.colaboradorId === popup.id)].sort((a, b) => b.dataInicio.localeCompare(a.dataInicio))
     : [];
   const popupAtivo = popup ? registroAtivo(registros, popup.id) : null;
 
@@ -168,24 +203,24 @@ export default function TriagemPage() {
               <th className="text-left px-4 py-3">Colaborador</th>
               <th className="text-left px-4 py-3">Equipe</th>
               <th className="text-center px-4 py-3">Status</th>
-              <th className="text-center px-4 py-3">Desde</th>
+              <th className="text-center px-4 py-3">Saída</th>
               <th className="text-center px-4 py-3">Retorno</th>
+              <th className="text-center px-4 py-3">Horas</th>
               <th className="text-left px-4 py-3">Observação</th>
               <th className="px-4 py-3" />
             </tr>
           </thead>
           <tbody>
             {lista.length === 0 && (
-              <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-500">Nenhum colaborador encontrado</td></tr>
+              <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-500">Nenhum colaborador encontrado</td></tr>
             )}
             {lista.map(c => {
               const reg = registroAtivo(registros, c.id);
+              const horas = reg ? calcHoras(reg.dataInicio, reg.horaInicio, reg.dataFim, reg.horaFim) : null;
               return (
                 <tr key={c.id} className={`border-b border-gray-800 last:border-0 transition ${reg ? "bg-red-900/5 hover:bg-red-900/10" : "hover:bg-gray-800/50"}`}>
                   <td className="px-4 py-3">
-                    {/* Botão que abre popup inline — NÃO navega para outra página */}
-                    <button onClick={() => setPopup(c)}
-                      className="text-white font-medium hover:text-blue-400 transition text-left">
+                    <button onClick={() => setPopup(c)} className="text-white font-medium hover:text-blue-400 transition text-left">
                       {c.nome}
                     </button>
                   </td>
@@ -202,25 +237,37 @@ export default function TriagemPage() {
                     )}
                   </td>
                   <td className="px-4 py-3 text-center text-xs text-gray-400">
-                    {reg ? <span className="font-mono">{fmt(reg.dataInicio)} <span className="text-gray-600">({diasFora(reg.dataInicio)})</span></span> : "—"}
+                    {reg ? (
+                      <span className="font-mono">
+                        {fmt(reg.dataInicio)}{reg.horaInicio ? ` ${reg.horaInicio}` : ""}
+                        <span className="text-gray-600 ml-1">({diasFora(reg.dataInicio)})</span>
+                      </span>
+                    ) : "—"}
                   </td>
                   <td className="px-4 py-3 text-center text-xs">
-                    {reg
-                      ? (reg.dataFim ? <span className="text-green-400 font-mono">{fmt(reg.dataFim)}</span> : <span className="text-gray-500">Indeterminado</span>)
-                      : "—"}
+                    {reg ? (
+                      reg.dataFim
+                        ? <span className="text-green-400 font-mono">{fmt(reg.dataFim)}{reg.horaFim ? ` ${reg.horaFim}` : ""}</span>
+                        : <span className="text-gray-500">Em aberto</span>
+                    ) : "—"}
+                  </td>
+                  <td className="px-4 py-3 text-center text-xs">
+                    {horas
+                      ? <span className="font-semibold text-blue-400">{horas}</span>
+                      : <span className="text-gray-600">—</span>}
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-400 italic">{reg?.observacao ?? "—"}</td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex gap-2 justify-end">
                       {reg ? (
-                        <button onClick={() => encerrar(reg.id)} disabled={encerrando === reg.id}
-                          className="text-xs bg-green-700 hover:bg-green-600 disabled:opacity-50 text-white px-2 py-1 rounded transition">
-                          {encerrando === reg.id ? "..." : "Retornou"}
+                        <button onClick={() => abrirRetorno(reg.id, c.nome)}
+                          className="text-xs bg-green-700 hover:bg-green-600 text-white px-2 py-1 rounded transition">
+                          Retornou
                         </button>
                       ) : (
                         <button onClick={() => {
                           setModal({ colaboradorId: c.id, nome: c.nome });
-                          setForm({ motivo: "DECLARACAO", dataInicio: new Date().toISOString().slice(0, 10), dataFim: "", observacao: "" });
+                          setForm({ motivo: "DECLARACAO", dataInicio: new Date().toISOString().slice(0, 10), horaInicio: horaAgora(), dataFim: "", observacao: "" });
                         }} className="text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 px-2 py-1 rounded transition">
                           Registrar saída
                         </button>
@@ -234,18 +281,16 @@ export default function TriagemPage() {
         </table>
       </div>
 
-      {/* ── POPUP do colaborador (histórico inline) ── */}
+      {/* ── Popup colaborador ── */}
       {popup && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4" onClick={() => setPopup(null)}>
           <div className="bg-gray-900 border border-gray-800 rounded-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            {/* Header */}
             <div className="flex items-start justify-between mb-4">
               <div>
                 <h3 className="text-base font-semibold text-white">{popup.nome}</h3>
                 <p className="text-xs text-gray-400 mt-0.5">{popup.equipe.nome}</p>
               </div>
               <div className="flex items-center gap-2">
-                {/* Status atual */}
                 {popupAtivo ? (
                   <span className={`text-xs px-2 py-0.5 rounded-full border ${motivoBadge[popupAtivo.motivo]}`}>
                     {motivoLabel[popupAtivo.motivo]}
@@ -257,27 +302,24 @@ export default function TriagemPage() {
               </div>
             </div>
 
-            {/* Ações rápidas */}
             <div className="flex gap-2 mb-5">
               {popupAtivo ? (
-                <button onClick={async () => { await encerrar(popupAtivo.id); setPopup(null); }}
-                  disabled={encerrando === popupAtivo.id}
-                  className="flex-1 bg-green-700 hover:bg-green-600 disabled:opacity-50 text-white text-sm font-medium py-2 rounded-lg transition">
-                  {encerrando === popupAtivo.id ? "Salvando..." : "✓ Registrar retorno (hoje)"}
+                <button onClick={() => abrirRetorno(popupAtivo.id, popup.nome)}
+                  className="flex-1 bg-green-700 hover:bg-green-600 text-white text-sm font-medium py-2 rounded-lg transition">
+                  ✓ Registrar retorno
                 </button>
               ) : (
                 <button onClick={() => {
                   setPopup(null);
                   setModal({ colaboradorId: popup.id, nome: popup.nome });
-                  setForm({ motivo: "DECLARACAO", dataInicio: new Date().toISOString().slice(0, 10), dataFim: "", observacao: "" });
+                  setForm({ motivo: "DECLARACAO", dataInicio: new Date().toISOString().slice(0, 10), horaInicio: horaAgora(), dataFim: "", observacao: "" });
                 }} className="flex-1 bg-red-600 hover:bg-red-500 text-white text-sm font-medium py-2 rounded-lg transition">
                   Registrar saída
                 </button>
               )}
             </div>
 
-            {/* Histórico */}
-            <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Histórico de triagem</p>
+            <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Histórico</p>
             {popupRegistros.length === 0 ? (
               <p className="text-sm text-gray-600 text-center py-4">Nenhum registro</p>
             ) : (
@@ -285,6 +327,7 @@ export default function TriagemPage() {
                 {popupRegistros.map(r => {
                   const hoje = new Date().toISOString().slice(0, 10);
                   const ativo = !r.dataFim || r.dataFim >= hoje;
+                  const horas = calcHoras(r.dataInicio, r.horaInicio, r.dataFim, r.horaFim);
                   return (
                     <div key={r.id} className={`rounded-lg px-3 py-2.5 border flex items-start justify-between gap-3 ${ativo ? "bg-red-900/10 border-red-800/50" : "bg-gray-800/50 border-gray-700/50"}`}>
                       <div className="flex-1 min-w-0">
@@ -293,10 +336,14 @@ export default function TriagemPage() {
                             {motivoLabel[r.motivo] ?? r.motivo}
                           </span>
                           {ativo && <span className="text-xs text-red-400 font-medium">Ativo</span>}
-                          {r.atestadoId && <span className="text-xs text-gray-600">↗ Atestado</span>}
+                          {horas && <span className="text-xs text-blue-400 font-semibold">{horas}</span>}
                         </div>
                         <p className="text-xs text-gray-400 mt-1 font-mono">
-                          {fmt(r.dataInicio)} → {r.dataFim ? fmt(r.dataFim) : <span className="text-red-400">em aberto</span>}
+                          {fmt(r.dataInicio)}{r.horaInicio ? ` ${r.horaInicio}` : ""}
+                          {" → "}
+                          {r.dataFim
+                            ? <span>{fmt(r.dataFim)}{r.horaFim ? ` ${r.horaFim}` : ""}</span>
+                            : <span className="text-red-400">em aberto</span>}
                         </p>
                         {r.observacao && <p className="text-xs text-gray-500 italic mt-0.5">{r.observacao}</p>}
                       </div>
@@ -310,7 +357,41 @@ export default function TriagemPage() {
         </div>
       )}
 
-      {/* ── Modal — Registrar saída ── */}
+      {/* ── Modal registrar retorno ── */}
+      {retornoModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4" onClick={() => setRetornoModal(null)}>
+          <div className="bg-gray-900 border border-gray-800 rounded-xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
+            <h3 className="text-base font-semibold text-white mb-1">Registrar retorno</h3>
+            <p className="text-xs text-gray-400 mb-4">{retornoModal.nome}</p>
+            <form onSubmit={handleRetorno} className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Data de retorno</label>
+                  <input type="date" value={retornoForm.dataFim}
+                    onChange={e => setRetornoForm(f => ({ ...f, dataFim: e.target.value }))} required
+                    className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Hora de retorno</label>
+                  <input type="time" value={retornoForm.horaFim}
+                    onChange={e => setRetornoForm(f => ({ ...f, horaFim: e.target.value }))} required
+                    className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+                </div>
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button type="button" onClick={() => setRetornoModal(null)}
+                  className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-lg py-2 transition">Cancelar</button>
+                <button type="submit" disabled={savingRetorno}
+                  className="flex-1 bg-green-700 hover:bg-green-600 disabled:opacity-50 text-white text-sm font-medium rounded-lg py-2 transition">
+                  {savingRetorno ? "Salvando..." : "Confirmar retorno"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal registrar saída ── */}
       {modal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4" onClick={() => setModal(null)}>
           <div className="bg-gray-900 border border-gray-800 rounded-xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
@@ -326,13 +407,15 @@ export default function TriagemPage() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs text-gray-400 mb-1">Data início</label>
-                  <input type="date" value={form.dataInicio} onChange={e => setForm(f => ({ ...f, dataInicio: e.target.value }))} required
+                  <label className="block text-xs text-gray-400 mb-1">Data de saída</label>
+                  <input type="date" value={form.dataInicio}
+                    onChange={e => setForm(f => ({ ...f, dataInicio: e.target.value }))} required
                     className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-400 mb-1">Retorno <span className="text-gray-600">(opcional)</span></label>
-                  <input type="date" value={form.dataFim} onChange={e => setForm(f => ({ ...f, dataFim: e.target.value }))}
+                  <label className="block text-xs text-gray-400 mb-1">Hora de saída</label>
+                  <input type="time" value={form.horaInicio}
+                    onChange={e => setForm(f => ({ ...f, horaInicio: e.target.value }))}
                     className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                 </div>
               </div>
@@ -343,8 +426,10 @@ export default function TriagemPage() {
                   className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
               <div className="flex gap-2 pt-2">
-                <button type="button" onClick={() => setModal(null)} className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-lg py-2 transition">Cancelar</button>
-                <button type="submit" disabled={saving} className="flex-1 bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg py-2 transition">
+                <button type="button" onClick={() => setModal(null)}
+                  className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-lg py-2 transition">Cancelar</button>
+                <button type="submit" disabled={saving}
+                  className="flex-1 bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg py-2 transition">
                   {saving ? "Salvando..." : "Registrar saída"}
                 </button>
               </div>

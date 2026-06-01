@@ -63,6 +63,7 @@ export default function PlantoesPage() {
   const [historico, setHistorico] = useState<Historico[]>([]);
   const [saldo, setSaldo] = useState<Saldo[]>([]);
   const [escalaMensal, setEscalaMensal] = useState<EscalaMensal[]>([]);
+  const [feriadosCustom, setFeriadosCustom] = useState<{ id: number; data: string; descricao: string }[]>([]);
   const [mesEscala, setMesEscala] = useState(new Date().toISOString().slice(0, 7));
   const [modalEscala, setModalEscala] = useState<{ data: string; tipo: string } | null>(null);
   const [escalaColabId, setEscalaColabId] = useState("");
@@ -128,8 +129,15 @@ export default function PlantoesPage() {
   }
 
   async function loadEscalaMensal() {
-    const data = await fetch(`/api/escala-plantao?mes=${mesEscala}`).then((r) => r.json());
-    setEscalaMensal(data);
+    const [escala, feriados] = await Promise.all([
+      fetch(`/api/escala-plantao?mes=${mesEscala}`).then((r) => r.json()),
+      fetch("/api/feriados").then((r) => r.json()),
+    ]);
+    setEscalaMensal(escala);
+    setFeriadosCustom(feriados.map((f: { id: number; data: string; descricao: string }) => ({
+      ...f,
+      data: f.data.slice(0, 10),
+    })));
   }
 
   async function openFicha(id: number, nome: string, equipe: string) {
@@ -349,7 +357,16 @@ export default function PlantoesPage() {
 
   const totalFolgasPendentes = saldo.reduce((acc, s) => acc + s.pendentes, 0);
 
-  const diasMes = getDiasFinaisMes(mesEscala);
+  const diasMes: { data: string; tipo: string; descricao?: string }[] = [
+    ...getDiasFinaisMes(mesEscala),
+    ...feriadosCustom
+      .filter(f => f.data.startsWith(mesEscala))
+      .map(f => ({
+        data: f.data,
+        tipo: f.descricao?.toLowerCase().includes("ponto facultativo") ? "PONTO_FACULTATIVO" : "FERIADO",
+        descricao: f.descricao,
+      })),
+  ].sort((a, b) => a.data.localeCompare(b.data));
 
   return (
     <div>
@@ -659,13 +676,21 @@ export default function PlantoesPage() {
                 className="bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
               <button onClick={() => { const [y,m] = mesEscala.split("-").map(Number); const d = new Date(y,m,1); setMesEscala(d.toISOString().slice(0,7)); }} className="bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg px-3 py-2 text-sm transition">›</button>
             </div>
-            <p className="text-xs text-gray-500">{diasMes.length} dias de fim de semana neste mês</p>
+            <p className="text-xs text-gray-500">{diasMes.length} dias de plantão neste mês</p>
           </div>
 
           <div className="space-y-3">
-            {diasMes.map(({ data, tipo }) => {
+            {diasMes.map(({ data, tipo, descricao }) => {
               const designados = escalaMensal.filter(e => e.data === data);
-              const isSab = tipo === "SABADO";
+              const badgeCls =
+                tipo === "SABADO"           ? "bg-blue-500/10 text-blue-300 border-blue-500/30" :
+                tipo === "DOMINGO"          ? "bg-purple-500/10 text-purple-300 border-purple-500/30" :
+                tipo === "FERIADO"          ? "bg-orange-500/10 text-orange-300 border-orange-500/30" :
+                                              "bg-teal-500/10 text-teal-300 border-teal-500/30";
+              const badgeLabel =
+                tipo === "SABADO" ? "Sábado" :
+                tipo === "DOMINGO" ? "Domingo" :
+                tipo === "FERIADO" ? (descricao ?? "Feriado") : "Pto. Facultativo";
               return (
                 <div key={data} className="bg-gray-900 rounded-xl border border-gray-800 p-4">
                   <div className="flex items-center justify-between mb-3">
@@ -675,12 +700,8 @@ export default function PlantoesPage() {
                           {new Date(data + "T12:00:00").toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })}
                         </p>
                       </div>
-                      <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${
-                        isSab
-                          ? "bg-blue-500/10 text-blue-300 border-blue-500/30"
-                          : "bg-purple-500/10 text-purple-300 border-purple-500/30"
-                      }`}>
-                        {isSab ? "Sábado" : "Domingo"}
+                      <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${badgeCls}`}>
+                        {badgeLabel}
                       </span>
                       <span className="text-xs text-gray-500">{designados.length} designado{designados.length !== 1 ? "s" : ""}</span>
                     </div>

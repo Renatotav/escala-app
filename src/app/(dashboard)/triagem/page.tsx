@@ -165,18 +165,15 @@ export default function TriagemPage() {
       return registros.find(r => r.colaboradorId === cid && (!r.dataFim || r.dataFim >= hoje)) ?? null;
     }
 
-    function periodoStr(r: Registro): string {
+    function periodoStr(r: Registro | null): string {
+      if (!r) return "";
       return r.dataFim ? `${fmt(r.dataInicio)} - ${fmt(r.dataFim)}` : "Tempo indeterminado";
     }
 
-    // Normaliza nome da equipe igual à planilha (ERRO/FALHA em vez de ERRO E FALHA)
     function normEq(nome: string): string {
-      return nome
-        .toUpperCase()
-        .replace(/ERRO\s+E\s+FALHA/g, "ERRO/FALHA");
+      return nome.toUpperCase().replace(/ERRO\s+E\s+FALHA/g, "ERRO/FALHA");
     }
 
-    // Equipe 2 derivada automaticamente da Equipe 1
     function eq2(nome: string): string {
       const n = normEq(nome);
       if (n.includes("ERRO/FALHA") || n.includes("FALHA")) {
@@ -186,20 +183,29 @@ export default function TriagemPage() {
       return "-";
     }
 
-    const foraBalcao = colaboradores.filter(c => {
-      const r = getAtivo(c.id);
-      return r && c.equipe.nome.toUpperCase().includes("BALC");
-    });
+    // Seção 1 — TODOS do Balcão Virtual
+    const balcao = colaboradores
+      .filter(c => c.equipe.nome.toUpperCase().includes("BALC"))
+      .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
 
-    const foraDemais = colaboradores.filter(c => {
-      const r = getAtivo(c.id);
-      return r && !c.equipe.nome.toUpperCase().includes("BALC") && ["ATESTADO", "DECLARACAO"].includes(r.motivo);
-    });
+    // Seção 2 — TODOS os demais (exceto quem tem distribuição específica ativa)
+    const demais = colaboradores
+      .filter(c => {
+        if (c.equipe.nome.toUpperCase().includes("BALC")) return false;
+        const r = getAtivo(c.id);
+        // se tem registro ativo de distribuição específica, vai para seção 3
+        if (r && ["QUANTIDADE_CHAMADOS", "ATENDIMENTO_PRESENCIAL"].includes(r.motivo)) return false;
+        return true;
+      })
+      .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
 
-    const distribuicaoEspecifica = colaboradores.filter(c => {
-      const r = getAtivo(c.id);
-      return r && ["QUANTIDADE_CHAMADOS", "ATENDIMENTO_PRESENCIAL"].includes(r.motivo);
-    });
+    // Seção 3 — apenas quem tem registro ativo de distribuição específica
+    const especifica = colaboradores
+      .filter(c => {
+        const r = getAtivo(c.id);
+        return r && ["QUANTIDADE_CHAMADOS", "ATENDIMENTO_PRESENCIAL"].includes(r.motivo);
+      })
+      .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
 
     const linhas: string[] = [];
 
@@ -207,7 +213,7 @@ export default function TriagemPage() {
       if (pessoas.length === 0) return;
       linhas.push(`"${titulo}";"Período";"Equipe 1";"Equipe 2";"Equipe 3"`);
       for (const c of pessoas) {
-        const r = getAtivo(c.id)!;
+        const r = getAtivo(c.id);
         const e1 = normEq(c.equipe.nome);
         const e2 = eq2(c.equipe.nome);
         linhas.push(`"${c.nome.toUpperCase()}";"${periodoStr(r)}";"${e1}";"${e2}";"-"`);
@@ -215,9 +221,9 @@ export default function TriagemPage() {
       linhas.push("");
     }
 
-    addSection("Assistentes fora da listagem de distribuição de chamados - Balcão Virtual", foraBalcao);
-    addSection("Assistentes fora da listagem de distribuição de chamados", foraDemais);
-    addSection("Assistentes com distribuição específica de chamados", distribuicaoEspecifica);
+    addSection("Assistentes fora da listagem de distribuição de chamados - Balcão Virtual", balcao);
+    addSection("Assistentes fora da listagem de distribuição de chamados", demais);
+    if (especifica.length > 0) addSection("Assistentes com distribuição específica de chamados", especifica);
 
     const csv = "﻿" + linhas.join("\r\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });

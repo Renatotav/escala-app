@@ -153,6 +153,58 @@ export default function TriagemPage() {
     : [];
   const popupAtivo = popup ? registroAtivo(registros, popup.id) : null;
 
+  function exportarCSV() {
+    const hoje = new Date().toISOString().slice(0, 10);
+
+    function getAtivo(cid: number): Registro | null {
+      return registros.find(r => r.colaboradorId === cid && (!r.dataFim || r.dataFim >= hoje)) ?? null;
+    }
+
+    function periodoStr(r: Registro): string {
+      return r.dataFim ? `${fmt(r.dataInicio)} - ${fmt(r.dataFim)}` : "Tempo indeterminado";
+    }
+
+    const foraBalcao = colaboradores.filter(c => {
+      const r = getAtivo(c.id);
+      return r && c.equipe.nome.toUpperCase().includes("BALC");
+    });
+
+    const foraDemais = colaboradores.filter(c => {
+      const r = getAtivo(c.id);
+      return r && !c.equipe.nome.toUpperCase().includes("BALC") && ["ATESTADO", "DECLARACAO"].includes(r.motivo);
+    });
+
+    const distribuicaoEspecifica = colaboradores.filter(c => {
+      const r = getAtivo(c.id);
+      return r && ["QUANTIDADE_CHAMADOS", "ATENDIMENTO_PRESENCIAL"].includes(r.motivo);
+    });
+
+    const linhas: string[] = [];
+
+    function addSection(titulo: string, pessoas: Colaborador[]) {
+      if (pessoas.length === 0) return;
+      linhas.push(`"${titulo}";"Período";"Equipe 1";"Equipe 2";"Equipe 3"`);
+      for (const c of pessoas) {
+        const r = getAtivo(c.id)!;
+        linhas.push(`"${c.nome.toUpperCase()}";"${periodoStr(r)}";"${c.equipe.nome.toUpperCase()}";"-";"-"`);
+      }
+      linhas.push("");
+    }
+
+    addSection("Assistentes fora da listagem de distribuição de chamados - Balcão Virtual", foraBalcao);
+    addSection("Assistentes fora da listagem de distribuição de chamados", foraDemais);
+    addSection("Assistentes com distribuição específica de chamados", distribuicaoEspecifica);
+
+    const csv = "﻿" + linhas.join("\r\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `triagem_${hoje}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div>
       {/* Cabeçalho */}
@@ -161,10 +213,10 @@ export default function TriagemPage() {
           <h2 className="text-xl font-semibold text-white">Controle de Triagem</h2>
           <p className="text-sm text-gray-400 mt-0.5">{colaboradores.length} colaboradores · {totalFora} fora da lista</p>
         </div>
-        <a href="/api/triagem-export" download="triagem.xls"
+        <button onClick={exportarCSV}
           className="bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 hover:text-white text-sm font-medium px-4 py-2 rounded-lg transition">
-          ↓ Exportar Excel
-        </a>
+          ↓ Exportar CSV
+        </button>
       </div>
 
       {totalFora > 0 && (
@@ -233,7 +285,7 @@ export default function TriagemPage() {
                         {motivoLabel[reg.motivo] ?? reg.motivo}
                       </span>
                     ) : (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30">Na lista</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30 whitespace-nowrap">Na lista</span>
                     )}
                   </td>
                   <td className="px-4 py-3 text-center text-xs text-gray-400">
@@ -296,7 +348,7 @@ export default function TriagemPage() {
                     {motivoLabel[popupAtivo.motivo]}
                   </span>
                 ) : (
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30">Na lista</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30 whitespace-nowrap">Na lista</span>
                 )}
                 <button onClick={() => setPopup(null)} className="text-gray-500 hover:text-white text-lg leading-none">×</button>
               </div>

@@ -387,13 +387,14 @@ export default function TriagemPage() {
                       <button onClick={() => setPopup(c)} className="text-white font-medium hover:text-blue-400 transition text-left">
                         {c.nome}
                       </button>
-                      {!c.equipe.nome.toUpperCase().includes("BALC") && c.grupoListagem === "ESPECIFICA" && (
-                        <span
-                          onClick={() => alterarGrupo(c.id, "FORA")}
-                          title="Distribuição específica — clique para voltar à lista geral"
-                          className="text-xs px-1.5 py-0.5 rounded border cursor-pointer transition shrink-0 bg-teal-500/20 text-teal-400 border-teal-500/30 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30">
-                          Dist. Esp.
-                        </span>
+                      {!c.equipe.nome.toUpperCase().includes("BALC") && (
+                        <input
+                          type="checkbox"
+                          checked={c.grupoListagem === "ESPECIFICA"}
+                          onChange={() => alterarGrupo(c.id, c.grupoListagem === "ESPECIFICA" ? "FORA" : "ESPECIFICA")}
+                          title={c.grupoListagem === "ESPECIFICA" ? "Distribuição específica — clique para remover" : "Clique para marcar como Distribuição específica"}
+                          className="w-4 h-4 accent-teal-500 cursor-pointer shrink-0"
+                        />
                       )}
                     </div>
                   </td>

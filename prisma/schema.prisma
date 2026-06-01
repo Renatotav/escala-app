@@ -157,8 +157,8 @@ model ControleTriagem {
   colaboradorId Int
   colaborador   Colaborador @relation(fields: [colaboradorId], references: [id])
   motivo        String
-  dataInicio    DateTime    @db.Date
-  dataFim       DateTime?   @db.Date
+  dataInicio    DateTime
+  dataFim       DateTime?
   observacao    String?
   atestadoId    Int?
   createdAt     DateTime    @default(now())

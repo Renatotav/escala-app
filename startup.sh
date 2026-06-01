@@ -66,13 +66,16 @@ async function migrate() {
     \"id\" SERIAL PRIMARY KEY,
     \"colaboradorId\" INTEGER NOT NULL,
     \"motivo\" TEXT NOT NULL,
-    \"dataInicio\" DATE NOT NULL,
-    \"dataFim\" DATE,
+    \"dataInicio\" TIMESTAMP(3) NOT NULL,
+    \"dataFim\" TIMESTAMP(3),
     \"observacao\" TEXT,
     \"atestadoId\" INTEGER,
     \"createdAt\" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT \"ControleTriagem_colaboradorId_fkey\" FOREIGN KEY (\"colaboradorId\") REFERENCES \"Colaborador\"(\"id\") ON DELETE RESTRICT ON UPDATE CASCADE
   )\`);
+  // Upgrade DATE -> TIMESTAMP(3) if table was created with old schema
+  try { await client.query('ALTER TABLE \"ControleTriagem\" ALTER COLUMN \"dataInicio\" TYPE TIMESTAMP(3) USING \"dataInicio\"::TIMESTAMP(3)'); } catch(e) {}
+  try { await client.query('ALTER TABLE \"ControleTriagem\" ALTER COLUMN \"dataFim\" TYPE TIMESTAMP(3) USING \"dataFim\"::TIMESTAMP(3)'); } catch(e) {}
 
   await client.end();
   console.log('Migration completed successfully.');

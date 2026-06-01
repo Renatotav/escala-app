@@ -124,12 +124,18 @@ export default function ConfiguracoesPage() {
         </div>
       </section>
 
-      {/* Feriados */}
+      {/* Feriados extras */}
       <section>
-        <h3 className="text-sm font-medium text-gray-300 mb-3">Feriados customizados</h3>
+        <div className="mb-3">
+          <h3 className="text-sm font-medium text-gray-300">Feriados e Pontos Facultativos extras</h3>
+          <p className="text-xs text-gray-500 mt-0.5">
+            Os feriados nacionais, estaduais (Ceará) e municipais (Fortaleza) já aparecem automaticamente na Escala do Mês.
+            Cadastre aqui apenas <strong className="text-gray-400">pontos facultativos</strong> ou feriados adicionais não previstos.
+          </p>
+        </div>
         <div className="bg-gray-900 rounded-xl border border-gray-800 divide-y divide-gray-800">
           {feriados.length === 0 && (
-            <div className="px-4 py-4 text-sm text-gray-500">Nenhum feriado cadastrado</div>
+            <div className="px-4 py-4 text-sm text-gray-500">Nenhum feriado extra cadastrado</div>
           )}
           {feriados.map(f => (
             <div key={f.id} className="px-4 py-3 flex items-center justify-between">
@@ -143,11 +149,11 @@ export default function ConfiguracoesPage() {
                 className="text-xs text-red-400 hover:text-red-300 transition">Remover</button>
             </div>
           ))}
-          <form onSubmit={handleAddFeriado} className="px-4 py-3 flex gap-3 items-end">
-            <div className="flex-1">
+          <form onSubmit={handleAddFeriado} className="px-4 py-3 flex gap-3 items-end flex-wrap">
+            <div className="flex-1 min-w-[160px]">
               <label className="block text-xs text-gray-400 mb-1">Descrição</label>
               <input value={novoFeriado.descricao} onChange={e => setNovoFeriado(f => ({ ...f, descricao: e.target.value }))} required
-                placeholder="Ex: Dia do Trabalho"
+                placeholder="Ex: Ponto Facultativo"
                 className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             <div>

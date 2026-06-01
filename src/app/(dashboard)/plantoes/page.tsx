@@ -41,6 +41,54 @@ function tipoBadge(tipo: string) {
   return <span className="text-xs px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-300 border border-orange-500/30">Feriado</span>;
 }
 
+// ── Feriados automáticos ──────────────────────────────────────────────────────
+function calcPascoa(ano: number): Date {
+  const a = ano % 19, b = Math.floor(ano / 100), c = ano % 100;
+  const d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4), k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const mes = Math.floor((h + l - 7 * m + 114) / 31);
+  const dia = ((h + l - 7 * m + 114) % 31) + 1;
+  return new Date(ano, mes - 1, dia);
+}
+
+function addD(d: Date, n: number): string {
+  const r = new Date(d); r.setDate(r.getDate() + n);
+  return r.getFullYear() + "-" + String(r.getMonth() + 1).padStart(2, "0") + "-" + String(r.getDate()).padStart(2, "0");
+}
+
+function toISO(d: Date): string {
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+
+function getFeriadosPredefinidos(ano: number): { data: string; descricao: string; tipo: "FERIADO"; predefinido: true }[] {
+  const pascoa = calcPascoa(ano);
+  const fixos: [string, string][] = [
+    [`${ano}-01-01`, "Confraternização Universal"],
+    [`${ano}-03-25`, "Data Magna do Ceará"],
+    [`${ano}-04-21`, "Tiradentes"],
+    [`${ano}-05-01`, "Dia do Trabalho"],
+    [`${ano}-08-15`, "N. Sra. da Assunção (Fortaleza)"],
+    [`${ano}-09-07`, "Independência do Brasil"],
+    [`${ano}-10-12`, "N. Sra. Aparecida"],
+    [`${ano}-11-02`, "Finados"],
+    [`${ano}-11-15`, "Proclamação da República"],
+    [`${ano}-12-25`, "Natal"],
+  ];
+  const moveis: [string, string][] = [
+    [addD(pascoa, -48), "Carnaval (Segunda)"],
+    [addD(pascoa, -47), "Carnaval (Terça)"],
+    [addD(pascoa, -2),  "Sexta-feira Santa"],
+    [toISO(pascoa),     "Páscoa"],
+    [addD(pascoa, 60),  "Corpus Christi"],
+  ];
+  return [...fixos, ...moveis].map(([data, descricao]) => ({ data, descricao, tipo: "FERIADO" as const, predefinido: true as const }));
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 // Gera todos os sábados e domingos de um mês
 function getDiasFinaisMes(mes: string): { data: string; tipo: "SABADO" | "DOMINGO" }[] {
   const [y, m] = mes.split("-").map(Number);
@@ -357,10 +405,16 @@ export default function PlantoesPage() {
 
   const totalFolgasPendentes = saldo.reduce((acc, s) => acc + s.pendentes, 0);
 
-  const diasMes: { data: string; tipo: string; descricao?: string }[] = [
-    ...getDiasFinaisMes(mesEscala),
+  const anoEscala = Number(mesEscala.slice(0, 4));
+  const feriadosPre = getFeriadosPredefinidos(anoEscala).filter(f => f.data.startsWith(mesEscala));
+  // IDs dos dias já cobertos pelos feriados pré-definidos
+  const datasPre = new Set(feriadosPre.map(f => f.data));
+
+  const diasMes: { data: string; tipo: string; descricao?: string; predefinido?: boolean }[] = [
+    ...getDiasFinaisMes(mesEscala).filter(d => !datasPre.has(d.data)), // remove fim-de-semana que cai em feriado predefinido
+    ...feriadosPre,
     ...feriadosCustom
-      .filter(f => f.data.startsWith(mesEscala))
+      .filter(f => f.data.startsWith(mesEscala) && !datasPre.has(f.data))
       .map(f => ({
         data: f.data,
         tipo: f.descricao?.toLowerCase().includes("ponto facultativo") ? "PONTO_FACULTATIVO" : "FERIADO",
@@ -680,7 +734,7 @@ export default function PlantoesPage() {
           </div>
 
           <div className="space-y-3">
-            {diasMes.map(({ data, tipo, descricao }) => {
+            {diasMes.map(({ data, tipo, descricao, predefinido }) => {
               const designados = escalaMensal.filter(e => e.data === data);
               const badgeCls =
                 tipo === "SABADO"           ? "bg-blue-500/10 text-blue-300 border-blue-500/30" :
@@ -688,9 +742,10 @@ export default function PlantoesPage() {
                 tipo === "FERIADO"          ? "bg-orange-500/10 text-orange-300 border-orange-500/30" :
                                               "bg-teal-500/10 text-teal-300 border-teal-500/30";
               const badgeLabel =
-                tipo === "SABADO" ? "Sábado" :
-                tipo === "DOMINGO" ? "Domingo" :
-                tipo === "FERIADO" ? (descricao ?? "Feriado") : "Pto. Facultativo";
+                tipo === "SABADO"           ? "Sábado" :
+                tipo === "DOMINGO"          ? "Domingo" :
+                tipo === "PONTO_FACULTATIVO"? "Pto. Facultativo" :
+                (descricao ?? "Feriado");
               return (
                 <div key={data} className="bg-gray-900 rounded-xl border border-gray-800 p-4">
                   <div className="flex items-center justify-between mb-3">

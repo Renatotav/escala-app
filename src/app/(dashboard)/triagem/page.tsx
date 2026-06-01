@@ -77,6 +77,13 @@ export default function TriagemPage() {
   const [retornoForm, setRetornoForm] = useState({ dataFim: "", horaFim: "" });
   const [savingRetorno, setSavingRetorno] = useState(false);
 
+  // Modal registro em massa (atendimento presencial)
+  const [massaModal, setMassaModal] = useState(false);
+  const [massaLocal, setMassaLocal] = useState("");
+  const [massaSelecionados, setMassaSelecionados] = useState<Set<number>>(new Set());
+  const [massaSaving, setMassaSaving] = useState(false);
+  const [massaBusca, setMassaBusca] = useState("");
+
   // Popup colaborador
   const [popup, setPopup] = useState<Colaborador | null>(null);
 
@@ -91,6 +98,34 @@ export default function TriagemPage() {
     );
     fetch("/api/equipes").then(r => r.json()).then(setEquipes);
   }, []);
+
+  async function handleMassa() {
+    if (!massaLocal.trim() || massaSelecionados.size === 0) return;
+    setMassaSaving(true);
+    const hoje = new Date().toISOString().slice(0, 10);
+    await Promise.all(
+      [...massaSelecionados].map(cid =>
+        fetch("/api/controle-triagem", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            colaboradorId: cid,
+            motivo: "ATENDIMENTO_PRESENCIAL",
+            dataInicio: hoje,
+            horaInicio: null,
+            dataFim: null,
+            observacao: massaLocal.trim(),
+          }),
+        })
+      )
+    );
+    setMassaSaving(false);
+    setMassaModal(false);
+    setMassaLocal("");
+    setMassaSelecionados(new Set());
+    setMassaBusca("");
+    load();
+  }
 
   async function handleSubmit(e: { preventDefault(): void }) {
     e.preventDefault();
@@ -276,10 +311,16 @@ export default function TriagemPage() {
           <h2 className="text-xl font-semibold text-white">Controle de Triagem</h2>
           <p className="text-sm text-gray-400 mt-0.5">{colaboradores.length} colaboradores · {totalFora} fora da lista</p>
         </div>
-        <button onClick={exportarCSV}
-          className="bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 hover:text-white text-sm font-medium px-4 py-2 rounded-lg transition">
-          ↓ Exportar CSV
-        </button>
+        <div className="flex gap-2">
+          <button onClick={() => { setMassaModal(true); setMassaLocal(""); setMassaSelecionados(new Set()); setMassaBusca(""); }}
+            className="bg-orange-600 hover:bg-orange-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
+            + Registro em massa
+          </button>
+          <button onClick={exportarCSV}
+            className="bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 hover:text-white text-sm font-medium px-4 py-2 rounded-lg transition">
+            ↓ Exportar CSV
+          </button>
+        </div>
       </div>
 
       {totalFora > 0 && (
@@ -520,6 +561,69 @@ export default function TriagemPage() {
           </div>
         </div>
       )}
+
+      {/* ── Modal registro em massa ── */}
+      {massaModal && (() => {
+        const disponiveis = colaboradores
+          .filter(c => !isEquipeExcluida(c.equipe.nome) && !registroAtivo(registros, c.id))
+          .filter(c => !massaBusca || c.nome.toLowerCase().includes(massaBusca.toLowerCase()))
+          .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+
+        function toggle(id: number) {
+          setMassaSelecionados(prev => {
+            const next = new Set(prev);
+            next.has(id) ? next.delete(id) : next.add(id);
+            return next;
+          });
+        }
+
+        return (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4" onClick={() => setMassaModal(false)}>
+            <div className="bg-gray-900 border border-gray-800 rounded-xl w-full max-w-lg p-6 max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+              <h3 className="text-base font-semibold text-white mb-1">Registro em massa — Atendimento Presencial</h3>
+              <p className="text-xs text-gray-400 mb-4">Selecione os operadores e informe o local. Data = hoje.</p>
+
+              <div className="mb-3">
+                <label className="block text-xs text-gray-400 mb-1">Local / Unidade</label>
+                <input value={massaLocal} onChange={e => setMassaLocal(e.target.value)} required
+                  placeholder="Ex: SEJUD CRIME, Núcleo de Custódia (Caucaia)..."
+                  className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500" />
+              </div>
+
+              <div className="mb-2">
+                <input value={massaBusca} onChange={e => setMassaBusca(e.target.value)}
+                  placeholder="Buscar colaborador..."
+                  className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500" />
+              </div>
+
+              <div className="flex-1 overflow-y-auto border border-gray-800 rounded-lg divide-y divide-gray-800 min-h-0 mb-3">
+                {disponiveis.length === 0 && (
+                  <p className="text-sm text-gray-500 text-center py-4">Nenhum disponível</p>
+                )}
+                {disponiveis.map(c => (
+                  <label key={c.id} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-800 cursor-pointer">
+                    <input type="checkbox" checked={massaSelecionados.has(c.id)} onChange={() => toggle(c.id)}
+                      className="accent-orange-500" />
+                    <span className="text-sm text-white flex-1">{c.nome}</span>
+                    <span className="text-xs text-gray-500">{c.equipe.nome}</span>
+                  </label>
+                ))}
+              </div>
+
+              <p className="text-xs text-gray-500 mb-3">{massaSelecionados.size} selecionado{massaSelecionados.size !== 1 ? "s" : ""}</p>
+
+              <div className="flex gap-2">
+                <button type="button" onClick={() => setMassaModal(false)}
+                  className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-lg py-2 transition">Cancelar</button>
+                <button onClick={handleMassa} disabled={massaSaving || massaSelecionados.size === 0 || !massaLocal.trim()}
+                  className="flex-1 bg-orange-600 hover:bg-orange-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg py-2 transition">
+                  {massaSaving ? "Registrando..." : `Registrar ${massaSelecionados.size > 0 ? massaSelecionados.size : ""} saída${massaSelecionados.size !== 1 ? "s" : ""}`}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── Modal registrar saída ── */}
       {modal && (

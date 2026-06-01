@@ -260,14 +260,14 @@ export default function TriagemPage() {
       })
       .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
 
-    // Seção 3a — grupoListagem="ESPECIFICA" + equipe Migração
+    // Seção 3a — grupoListagem="ESPECIFICA" + equipe Migração (apenas fora da lista)
     const especificaMigr = colabAtivos
-      .filter(c => c.grupoListagem === "ESPECIFICA" && c.equipe.nome.toUpperCase().includes("MIGRA"))
+      .filter(c => c.grupoListagem === "ESPECIFICA" && c.equipe.nome.toUpperCase().includes("MIGRA") && getAtivo(c.id) !== null)
       .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
 
-    // Seção 3b — grupoListagem="ESPECIFICA" + outras equipes
+    // Seção 3b — grupoListagem="ESPECIFICA" + outras equipes (apenas fora da lista)
     const especificaOutros = colabAtivos
-      .filter(c => c.grupoListagem === "ESPECIFICA" && !c.equipe.nome.toUpperCase().includes("MIGRA"))
+      .filter(c => c.grupoListagem === "ESPECIFICA" && !c.equipe.nome.toUpperCase().includes("MIGRA") && getAtivo(c.id) !== null)
       .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
 
     const linhas: string[] = [];

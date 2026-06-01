@@ -8,8 +8,9 @@ export async function GET(request: NextRequest) {
   const page = Number(searchParams.get("page") ?? 1);
   const limit = 20;
 
+  const status = searchParams.get("status");
   const where = {
-    ativo: true,
+    ...(status === "todos" ? {} : status === "inativos" ? { ativo: false } : { ativo: true }),
     ...(q && { nome: { contains: q, mode: "insensitive" as const } }),
     ...(equipeId && { equipeId: Number(equipeId) }),
   };

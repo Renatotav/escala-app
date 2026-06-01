@@ -12,6 +12,17 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   return NextResponse.json(colaborador);
 }
 
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const { ativo } = await request.json();
+  const colaborador = await prisma.colaborador.update({
+    where: { id: Number(id) },
+    data: { ativo },
+    include: { equipe: true },
+  });
+  return NextResponse.json(colaborador);
+}
+
 export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   await prisma.colaborador.update({

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 type Equipe = { id: number; nome: string; thresholdAmarelo: number; thresholdVerde: number };
-type Colaborador = { id: number; nome: string; cargo: string | null; matricula: string | null; equipe: Equipe; dataNascimento: string | null; cpf: string | null; email: string | null; telefone: string | null; telefoneEmerg: string | null; nomeEmerg: string | null; endereco: string | null };
+type Colaborador = { id: number; nome: string; cargo: string | null; matricula: string | null; ativo: boolean; equipe: Equipe; dataNascimento: string | null; cpf: string | null; email: string | null; telefone: string | null; telefoneEmerg: string | null; nomeEmerg: string | null; endereco: string | null };
 
 const empty = { nome: "", cargo: "", matricula: "", equipeId: "" };
 
@@ -15,13 +15,14 @@ export default function ColaboradoresPage() {
   const [pages, setPages] = useState(1);
   const [q, setQ] = useState("");
   const [equipeId, setEquipeId] = useState("");
+  const [filtroStatus, setFiltroStatus] = useState<"ativos" | "inativos" | "todos">("ativos");
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<Colaborador | null>(null);
   const [form, setForm] = useState(empty);
   const [saving, setSaving] = useState(false);
 
   async function load(pageOverride?: number) {
-    const params = new URLSearchParams({ page: String(pageOverride ?? page) });
+    const params = new URLSearchParams({ page: String(pageOverride ?? page), status: filtroStatus });
     if (q) params.set("q", q);
     if (equipeId) params.set("equipeId", equipeId);
     const res = await fetch(`/api/colaboradores?${params}`);
@@ -31,8 +32,17 @@ export default function ColaboradoresPage() {
     setPages(data.pages);
   }
 
+  async function toggleAtivo(c: Colaborador) {
+    await fetch(`/api/colaboradores/${c.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ativo: !c.ativo }),
+    });
+    load();
+  }
+
   useEffect(() => { fetch("/api/equipes").then(r => r.json()).then(setEquipes); }, []);
-  useEffect(() => { load(); }, [page, q, equipeId]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { load(); }, [page, q, equipeId, filtroStatus]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function openNew() { setEditing(null); setForm(empty); setModal(true); }
   function openEdit(c: Colaborador) {
@@ -103,6 +113,16 @@ export default function ColaboradoresPage() {
       </div>
 
       <div className="flex flex-wrap gap-2 mb-4">
+        <div className="flex rounded-lg overflow-hidden border border-gray-700">
+          {(["ativos", "inativos", "todos"] as const).map(s => (
+            <button key={s} onClick={() => { setFiltroStatus(s); setPage(1); }}
+              className={`px-3 py-1.5 text-sm transition capitalize ${filtroStatus === s
+                ? (s === "inativos" ? "bg-red-700 text-white" : s === "todos" ? "bg-gray-600 text-white" : "bg-green-700 text-white")
+                : "bg-gray-900 text-gray-400 hover:text-white"}`}>
+              {s === "ativos" ? "Ativos" : s === "inativos" ? "Inativos" : "Todos"}
+            </button>
+          ))}
+        </div>
         <input
           value={q} onChange={e => { setQ(e.target.value); setPage(1); }}
           placeholder="Buscar por nome..."
@@ -119,6 +139,7 @@ export default function ColaboradoresPage() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wide">
+              <th className="px-4 py-3 w-10" title="Ativo">✓</th>
               <th className="text-left px-4 py-3">Nome</th>
               <th className="text-left px-4 py-3">Matrícula</th>
               <th className="text-left px-4 py-3">Cargo</th>
@@ -128,12 +149,22 @@ export default function ColaboradoresPage() {
           </thead>
           <tbody>
             {colaboradores.length === 0 && (
-              <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-500">Nenhum colaborador encontrado</td></tr>
+              <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-500">Nenhum colaborador encontrado</td></tr>
             )}
             {colaboradores.map(c => (
-              <tr key={c.id} className="border-b border-gray-800 last:border-0 hover:bg-gray-800/50 transition">
+              <tr key={c.id} className={`border-b border-gray-800 last:border-0 transition ${c.ativo ? "hover:bg-gray-800/50" : "opacity-50 hover:opacity-70"}`}>
                 <td className="px-4 py-3">
-                  <a href={`/colaboradores/${c.id}`} className="text-white font-medium hover:text-blue-400 transition">{c.nome}</a>
+                  <label className="flex items-center cursor-pointer" title={c.ativo ? "Clique para inativar" : "Clique para ativar"}>
+                    <input
+                      type="checkbox"
+                      checked={c.ativo}
+                      onChange={() => toggleAtivo(c)}
+                      className="w-4 h-4 accent-green-500 cursor-pointer"
+                    />
+                  </label>
+                </td>
+                <td className="px-4 py-3">
+                  <a href={`/colaboradores/${c.id}`} className={`font-medium hover:text-blue-400 transition ${c.ativo ? "text-white" : "text-gray-500"}`}>{c.nome}</a>
                 </td>
                 <td className="px-4 py-3 text-gray-400">{c.matricula ?? "—"}</td>
                 <td className="px-4 py-3 text-gray-400">{c.cargo ?? "—"}</td>
@@ -145,7 +176,6 @@ export default function ColaboradoresPage() {
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-2">
                     <button onClick={() => openEdit(c)} className="text-xs text-blue-400 hover:text-blue-300 transition">Editar</button>
-                    <button onClick={() => handleDelete(c.id)} className="text-xs text-red-400 hover:text-red-300 transition">Excluir</button>
                   </div>
                 </td>
               </tr>

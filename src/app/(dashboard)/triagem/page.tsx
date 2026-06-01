@@ -164,6 +164,23 @@ export default function TriagemPage() {
       return r.dataFim ? `${fmt(r.dataInicio)} - ${fmt(r.dataFim)}` : "Tempo indeterminado";
     }
 
+    // Normaliza nome da equipe igual à planilha (ERRO/FALHA em vez de ERRO E FALHA)
+    function normEq(nome: string): string {
+      return nome
+        .toUpperCase()
+        .replace(/ERRO\s+E\s+FALHA/g, "ERRO/FALHA");
+    }
+
+    // Equipe 2 derivada automaticamente da Equipe 1
+    function eq2(nome: string): string {
+      const n = normEq(nome);
+      if (n.includes("ERRO/FALHA") || n.includes("FALHA")) {
+        if (n.includes("2G")) return "ORIENTAÇÃO TÉCNICA 2G";
+        if (n.includes("1G")) return "ORIENTAÇÃO TÉCNICA 1G";
+      }
+      return "-";
+    }
+
     const foraBalcao = colaboradores.filter(c => {
       const r = getAtivo(c.id);
       return r && c.equipe.nome.toUpperCase().includes("BALC");
@@ -186,7 +203,9 @@ export default function TriagemPage() {
       linhas.push(`"${titulo}";"Período";"Equipe 1";"Equipe 2";"Equipe 3"`);
       for (const c of pessoas) {
         const r = getAtivo(c.id)!;
-        linhas.push(`"${c.nome.toUpperCase()}";"${periodoStr(r)}";"${c.equipe.nome.toUpperCase()}";"-";"-"`);
+        const e1 = normEq(c.equipe.nome);
+        const e2 = eq2(c.equipe.nome);
+        linhas.push(`"${c.nome.toUpperCase()}";"${periodoStr(r)}";"${e1}";"${e2}";"-"`);
       }
       linhas.push("");
     }

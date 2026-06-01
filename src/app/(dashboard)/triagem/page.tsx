@@ -126,7 +126,7 @@ export default function TriagemPage() {
           <h2 className="text-xl font-semibold text-white">Controle de Triagem</h2>
           <p className="text-sm text-gray-400 mt-0.5">{colaboradores.length} colaboradores · {totalFora} fora da lista</p>
         </div>
-        <a href="/api/triagem-export" download
+        <a href="/api/triagem-export" download="triagem.xlsx"
           className="bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 hover:text-white text-sm font-medium px-4 py-2 rounded-lg transition">
           ↓ Exportar Excel
         </a>

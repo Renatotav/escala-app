@@ -191,26 +191,38 @@ export default function TriagemPage() {
 
     const colabAtivos = colaboradores.filter(c => !isEquipeExcluida(c.equipe.nome));
 
-    // Seção 1 — TODOS do Balcão Virtual
+    // Seção 1 — Balcão Virtual fora por motivo NÃO presencial (Declaração, Atestado)
+    // Balcão Virtual em atendimento presencial vai para seção 2
     const balcao = colabAtivos
-      .filter(c => c.equipe.nome.toUpperCase().includes("BALC"))
-      .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
-
-    // Seção 2 — TODOS os demais (exceto quem tem distribuição específica ativa)
-    const demais = colabAtivos
       .filter(c => {
-        if (c.equipe.nome.toUpperCase().includes("BALC")) return false;
+        if (!c.equipe.nome.toUpperCase().includes("BALC")) return false;
         const r = getAtivo(c.id);
-        if (r && ["QUANTIDADE_CHAMADOS", "ATENDIMENTO_PRESENCIAL"].includes(r.motivo)) return false;
+        // Se está em atendimento presencial, vai para seção 2
+        if (r && r.motivo === "ATENDIMENTO_PRESENCIAL") return false;
         return true;
       })
       .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
 
-    // Seção 3 — apenas quem tem registro ativo de distribuição específica
+    // Seção 2 — Todos em atendimento presencial (qualquer equipe)
+    //           + não-Balcão fora por outros motivos (Declaração, Atestado)
+    const demais = colabAtivos
+      .filter(c => {
+        const r = getAtivo(c.id);
+        const isBalcao = c.equipe.nome.toUpperCase().includes("BALC");
+        // Balcão Virtual em atendimento presencial entra aqui
+        if (isBalcao && r && r.motivo === "ATENDIMENTO_PRESENCIAL") return true;
+        if (isBalcao) return false; // demais Balcão ficam na seção 1
+        // Não-Balcão com distribuição específica vai para seção 3
+        if (r && r.motivo === "QUANTIDADE_CHAMADOS") return false;
+        return true;
+      })
+      .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+
+    // Seção 3 — Distribuição específica (quantidade de chamados limitada)
     const especifica = colabAtivos
       .filter(c => {
         const r = getAtivo(c.id);
-        return r && ["QUANTIDADE_CHAMADOS", "ATENDIMENTO_PRESENCIAL"].includes(r.motivo);
+        return r && r.motivo === "QUANTIDADE_CHAMADOS";
       })
       .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
 
@@ -218,12 +230,12 @@ export default function TriagemPage() {
 
     function addSection(titulo: string, pessoas: Colaborador[]) {
       if (pessoas.length === 0) return;
-      linhas.push(`"${titulo}";"Período";"Equipe 1";"Equipe 2";"Equipe 3"`);
+      linhas.push([titulo, "Período", "Equipe 1", "Equipe 2", "Equipe 3"].join(";"));
       for (const c of pessoas) {
         const r = getAtivo(c.id);
         const e1 = normEq(c.equipe.nome);
         const e2 = eq2(c.equipe.nome);
-        linhas.push(`"${c.nome.toUpperCase()}";"${periodoStr(r)}";"${e1}";"${e2}";"-"`);
+        linhas.push([c.nome.toUpperCase(), periodoStr(r), e1, e2, "-"].join(";"));
       }
       linhas.push("");
     }
@@ -232,8 +244,14 @@ export default function TriagemPage() {
     addSection("Assistentes fora da listagem de distribuição de chamados", demais);
     if (especifica.length > 0) addSection("Assistentes com distribuição específica de chamados", especifica);
 
-    const csv = "﻿" + linhas.join("\r\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    // TextEncoder garante UTF-8 puro sem dupla codificação
+    const encoder = new TextEncoder();
+    const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
+    const content = encoder.encode(linhas.join("\r\n"));
+    const combined = new Uint8Array(bom.length + content.length);
+    combined.set(bom);
+    combined.set(content, bom.length);
+    const blob = new Blob([combined], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;

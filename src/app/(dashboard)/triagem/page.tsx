@@ -387,13 +387,13 @@ export default function TriagemPage() {
                       <button onClick={() => setPopup(c)} className="text-white font-medium hover:text-blue-400 transition text-left">
                         {c.nome}
                       </button>
-                      {!c.equipe.nome.toUpperCase().includes("BALC") && (
-                        <button
-                          onClick={() => alterarGrupo(c.id, c.grupoListagem === "ESPECIFICA" ? "FORA" : "ESPECIFICA")}
-                          title={c.grupoListagem === "ESPECIFICA" ? "Distribuição específica — clique para mover para Fora da lista" : "Fora da lista — clique para mover para Distribuição específica"}
-                          className={`text-xs px-1.5 py-0.5 rounded border transition shrink-0 ${c.grupoListagem === "ESPECIFICA" ? "bg-teal-500/20 text-teal-400 border-teal-500/30 hover:bg-teal-500/40" : "bg-gray-700/40 text-gray-600 border-gray-700 hover:bg-gray-700 hover:text-gray-400"}`}>
-                          {c.grupoListagem === "ESPECIFICA" ? "Espec." : "Fora"}
-                        </button>
+                      {!c.equipe.nome.toUpperCase().includes("BALC") && c.grupoListagem === "ESPECIFICA" && (
+                        <span
+                          onClick={() => alterarGrupo(c.id, "FORA")}
+                          title="Distribuição específica (CSV seção 3) — clique para mover para Lista geral"
+                          className="text-xs px-1.5 py-0.5 rounded border bg-teal-500/20 text-teal-400 border-teal-500/30 hover:bg-red-500/20 hover:text-red-400 hover:border-red-500/30 cursor-pointer transition shrink-0">
+                          Dist. Esp.
+                        </span>
                       )}
                     </div>
                   </td>
@@ -579,47 +579,73 @@ export default function TriagemPage() {
           });
         }
 
+        const locaisSugeridos = [
+          "SEJUD CRIME", "SEJUD", "VDOC", "6º JURI",
+          "Vara de Família", "Vara de Fazenda",
+          "Núcleo de Custódia (Caucaia)", "Núcleo de Custódia (Maracanau)", "Núcleo de Custódia (Fortaleza)",
+        ];
+
         return (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4" onClick={() => setMassaModal(false)}>
-            <div className="bg-gray-900 border border-gray-800 rounded-xl w-full max-w-lg p-6 max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
-              <h3 className="text-base font-semibold text-white mb-1">Registro em massa — Atendimento Presencial</h3>
-              <p className="text-xs text-gray-400 mb-4">Selecione os operadores e informe o local. Data = hoje.</p>
+            <div className="bg-gray-900 border border-gray-800 rounded-xl w-full max-w-lg flex flex-col max-h-[92vh]" onClick={e => e.stopPropagation()}>
 
-              <div className="mb-3">
-                <label className="block text-xs text-gray-400 mb-1">Local / Unidade</label>
-                <input value={massaLocal} onChange={e => setMassaLocal(e.target.value)} required
-                  placeholder="Ex: SEJUD CRIME, Núcleo de Custódia (Caucaia)..."
-                  className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500" />
+              {/* Header */}
+              <div className="px-6 pt-5 pb-4 border-b border-gray-800">
+                <h3 className="text-base font-semibold text-white">Registro em massa — Atendimento Presencial</h3>
+                <p className="text-xs text-gray-400 mt-0.5">Data: hoje · Selecione o local e os operadores</p>
               </div>
 
-              <div className="mb-2">
-                <input value={massaBusca} onChange={e => setMassaBusca(e.target.value)}
-                  placeholder="Buscar colaborador..."
-                  className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500" />
+              <div className="px-6 py-4 space-y-4 flex-1 overflow-y-auto min-h-0">
+                {/* Local */}
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1.5">Local / Unidade</label>
+                  <input value={massaLocal} onChange={e => setMassaLocal(e.target.value)}
+                    placeholder="Digite ou escolha abaixo..."
+                    className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 mb-2" />
+                  <div className="flex flex-wrap gap-1.5">
+                    {locaisSugeridos.map(l => (
+                      <button key={l} type="button" onClick={() => setMassaLocal(l)}
+                        className={`text-xs px-2.5 py-1 rounded-full border transition ${massaLocal === l ? "bg-orange-600 text-white border-orange-600" : "bg-gray-800 text-gray-400 border-gray-700 hover:border-orange-500 hover:text-orange-400"}`}>
+                        {l}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Busca + lista */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs text-gray-400">Operadores disponíveis</label>
+                    {massaSelecionados.size > 0 && (
+                      <span className="text-xs text-orange-400 font-medium">{massaSelecionados.size} selecionado{massaSelecionados.size !== 1 ? "s" : ""}</span>
+                    )}
+                  </div>
+                  <input value={massaBusca} onChange={e => setMassaBusca(e.target.value)}
+                    placeholder="Buscar por nome..."
+                    className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 mb-2" />
+                  <div className="border border-gray-800 rounded-lg divide-y divide-gray-800 overflow-y-auto max-h-52">
+                    {disponiveis.length === 0 && (
+                      <p className="text-sm text-gray-500 text-center py-6">Nenhum operador disponível</p>
+                    )}
+                    {disponiveis.map(c => (
+                      <label key={c.id} className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-800 cursor-pointer">
+                        <input type="checkbox" checked={massaSelecionados.has(c.id)} onChange={() => toggle(c.id)}
+                          className="accent-orange-500 w-4 h-4 shrink-0" />
+                        <span className="text-sm text-white flex-1 leading-tight">{c.nome}</span>
+                        <span className="text-xs text-gray-500 whitespace-nowrap">{c.equipe.nome}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto border border-gray-800 rounded-lg divide-y divide-gray-800 min-h-0 mb-3">
-                {disponiveis.length === 0 && (
-                  <p className="text-sm text-gray-500 text-center py-4">Nenhum disponível</p>
-                )}
-                {disponiveis.map(c => (
-                  <label key={c.id} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-800 cursor-pointer">
-                    <input type="checkbox" checked={massaSelecionados.has(c.id)} onChange={() => toggle(c.id)}
-                      className="accent-orange-500" />
-                    <span className="text-sm text-white flex-1">{c.nome}</span>
-                    <span className="text-xs text-gray-500">{c.equipe.nome}</span>
-                  </label>
-                ))}
-              </div>
-
-              <p className="text-xs text-gray-500 mb-3">{massaSelecionados.size} selecionado{massaSelecionados.size !== 1 ? "s" : ""}</p>
-
-              <div className="flex gap-2">
+              {/* Footer */}
+              <div className="px-6 py-4 border-t border-gray-800 flex gap-2">
                 <button type="button" onClick={() => setMassaModal(false)}
                   className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-lg py-2 transition">Cancelar</button>
                 <button onClick={handleMassa} disabled={massaSaving || massaSelecionados.size === 0 || !massaLocal.trim()}
                   className="flex-1 bg-orange-600 hover:bg-orange-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg py-2 transition">
-                  {massaSaving ? "Registrando..." : `Registrar ${massaSelecionados.size > 0 ? massaSelecionados.size : ""} saída${massaSelecionados.size !== 1 ? "s" : ""}`}
+                  {massaSaving ? "Registrando..." : `Registrar ${massaSelecionados.size || ""} saída${massaSelecionados.size !== 1 ? "s" : ""}`}
                 </button>
               </div>
             </div>

@@ -238,21 +238,23 @@ export default function TriagemPage() {
 
     const colabAtivos = colaboradores.filter(c => !isEquipeExcluida(c.equipe.nome));
 
-    // Seção 1 — Balcão Virtual (todos, exceto quem está em atendimento presencial)
+    // Seção 1 — Balcão Virtual fora da lista (apenas quem está com triagem ativa, exceto presencial)
     const balcao = colabAtivos
       .filter(c => {
         if (!c.equipe.nome.toUpperCase().includes("BALC")) return false;
         const r = getAtivo(c.id);
-        return !(r && r.motivo === "ATENDIMENTO_PRESENCIAL");
+        return r !== null && r.motivo !== "ATENDIMENTO_PRESENCIAL";
       })
       .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
 
-    // Seção 2 — grupoListagem="FORA" + Balcão Virtual em atendimento presencial
+    // Seção 2 — Apenas quem está FORA agora (atendimento presencial de qualquer equipe
+    //            + não-Balcão com outros motivos, exceto distribuição específica)
     const demais = colabAtivos
       .filter(c => {
-        const isBalcao = c.equipe.nome.toUpperCase().includes("BALC");
         const r = getAtivo(c.id);
-        if (isBalcao && r && r.motivo === "ATENDIMENTO_PRESENCIAL") return true;
+        if (!r) return false; // sem triagem ativa = na lista = não aparece
+        const isBalcao = c.equipe.nome.toUpperCase().includes("BALC");
+        if (isBalcao && r.motivo === "ATENDIMENTO_PRESENCIAL") return true;
         if (isBalcao) return false;
         return c.grupoListagem !== "ESPECIFICA";
       })

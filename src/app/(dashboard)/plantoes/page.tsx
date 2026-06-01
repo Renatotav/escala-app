@@ -182,6 +182,9 @@ export default function PlantoesPage() {
     } else if (tab === "saldo") {
       csv = ["Nome,Equipe,Plantões,Folgas Devidas,Agendadas,Pendentes", ...saldo.map(s => `"${s.nome}","${s.equipe}",${s.totalPlantoes},${s.creditos},${s.agendadas},${s.pendentes}`)].join("\n");
       filename = "saldo-plantoes.csv";
+    } else if (tab === "folgas") {
+      csv = ["Data da Folga,Colaborador,Equipe,Data do Plantão,Tipo", ...folgasAgendadas.map(f => `"${fmt(f.data)}","${f.colaborador.nome}","${f.colaborador.equipe.nome}","${fmt(f.dataPlantao)}","${tipoLabel[f.tipoPlantao] ?? f.tipoPlantao}"`)].join("\n");
+      filename = `folgas-${mesFolga}.csv`;
     } else if (tab === "escala") {
       const rows = ["Data,Dia da Semana,Tipo,Colaborador,Equipe"];
       for (const { data, tipo } of diasMes) {
@@ -356,7 +359,7 @@ export default function PlantoesPage() {
           <p className="text-xs text-gray-400 mt-0.5">Sáb / Pto. Fac. = 1 pt · Dom / Feriado = 2 pts</p>
         </div>
         <div className="flex gap-2">
-          {(tab === "ranking" || tab === "historico" || tab === "saldo" || tab === "escala") && (
+          {(tab === "ranking" || tab === "historico" || tab === "saldo" || tab === "folgas" || tab === "escala") && (
             <button onClick={exportCSV}
               className="bg-green-600 hover:bg-green-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
               Exportar CSV

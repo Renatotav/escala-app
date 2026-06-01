@@ -236,7 +236,7 @@ export default function TriagemPage() {
       return "-";
     }
 
-    const colabAtivos = colaboradores.filter(c => !isEquipeExcluida(c.equipe.nome));
+    const colabAtivos = colaboradores.filter(c => !isEquipeExcluida(c.equipe.nome) && c.equipe.nome.toUpperCase() !== "TRIAGEM");
 
     // Seção 1 — Balcão Virtual fora da lista (apenas quem está com triagem ativa, exceto presencial)
     const balcao = colabAtivos

@@ -60,6 +60,8 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   const id = Number(new URL(request.url).searchParams.get("id"));
   if (!id) return NextResponse.json({ ok: false }, { status: 400 });
+  // Remove o registro de triagem vinculado antes de deletar o atestado
+  await prisma.controleTriagem.deleteMany({ where: { atestadoId: id } });
   await prisma.atestado.delete({ where: { id } });
   return NextResponse.json({ ok: true });
 }

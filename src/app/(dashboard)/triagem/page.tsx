@@ -138,13 +138,18 @@ export default function TriagemPage() {
     load();
   }
 
-  const lista = colaboradores.filter(c => {
-    if (filtroEquipe && c.equipe.nome !== filtroEquipe) return false;
-    const reg = registroAtivo(registros, c.id);
-    if (filtroStatus === "fora" && !reg) return false;
-    if (filtroStatus === "lista" && reg) return false;
-    return true;
-  });
+  const lista = colaboradores
+    .filter(c => {
+      if (filtroEquipe && c.equipe.nome !== filtroEquipe) return false;
+      const reg = registroAtivo(registros, c.id);
+      if (filtroStatus === "fora" && !reg) return false;
+      if (filtroStatus === "lista" && reg) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      const eq = a.equipe.nome.localeCompare(b.equipe.nome, "pt-BR");
+      return eq !== 0 ? eq : a.nome.localeCompare(b.nome, "pt-BR");
+    });
 
   const totalFora = colaboradores.filter(c => registroAtivo(registros, c.id)).length;
 
@@ -285,12 +290,17 @@ export default function TriagemPage() {
             {lista.length === 0 && (
               <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-500">Nenhum colaborador encontrado</td></tr>
             )}
-            {lista.map(c => {
+            {lista.map((c, i) => {
               const reg = registroAtivo(registros, c.id);
               const horas = reg ? calcHoras(reg.dataInicio, reg.horaInicio, reg.dataFim, reg.horaFim) : null;
+              const novoGrupo = !filtroEquipe && (i === 0 || lista[i - 1].equipe.nome !== c.equipe.nome);
               return (
-                <tr key={c.id} className={`border-b border-gray-800 last:border-0 transition ${reg ? "bg-red-900/5 hover:bg-red-900/10" : "hover:bg-gray-800/50"}`}>
-                  <td className="px-4 py-3">
+                <tr key={c.id} className={`border-b border-gray-800 last:border-0 transition ${reg ? "bg-red-900/5 hover:bg-red-900/10" : "hover:bg-gray-800/50"}`}
+                  style={novoGrupo ? { boxShadow: "inset 0 3px 0 0 rgb(55 65 81)" } : undefined}>
+                  <td className="px-4 py-3" style={novoGrupo ? { paddingTop: "1.25rem" } : undefined}>
+                    {novoGrupo && (
+                      <span className="block text-xs font-semibold text-gray-500 uppercase tracking-widest mb-1">{c.equipe.nome}</span>
+                    )}
                     <button onClick={() => setPopup(c)} className="text-white font-medium hover:text-blue-400 transition text-left">
                       {c.nome}
                     </button>

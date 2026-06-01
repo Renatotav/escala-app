@@ -182,6 +182,21 @@ export default function PlantoesPage() {
     } else if (tab === "saldo") {
       csv = ["Nome,Equipe,Plantões,Folgas Devidas,Agendadas,Pendentes", ...saldo.map(s => `"${s.nome}","${s.equipe}",${s.totalPlantoes},${s.creditos},${s.agendadas},${s.pendentes}`)].join("\n");
       filename = "saldo-plantoes.csv";
+    } else if (tab === "escala") {
+      const rows = ["Data,Dia da Semana,Tipo,Colaborador,Equipe"];
+      for (const { data, tipo } of diasMes) {
+        const designados = escalaMensal.filter(e => e.data === data);
+        const diaSemana = new Date(data + "T12:00:00").toLocaleDateString("pt-BR", { weekday: "long" });
+        if (designados.length === 0) {
+          rows.push(`"${fmt(data)}","${diaSemana}","${tipoLabel[tipo] ?? tipo}","",""`);
+        } else {
+          for (const d of designados) {
+            rows.push(`"${fmt(data)}","${diaSemana}","${tipoLabel[tipo] ?? tipo}","${d.colaborador.nome}","${d.colaborador.equipe}"`);
+          }
+        }
+      }
+      csv = rows.join("\n");
+      filename = `escala-${mesEscala}.csv`;
     } else return;
     const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -341,7 +356,7 @@ export default function PlantoesPage() {
           <p className="text-xs text-gray-400 mt-0.5">Sáb / Pto. Fac. = 1 pt · Dom / Feriado = 2 pts</p>
         </div>
         <div className="flex gap-2">
-          {(tab === "ranking" || tab === "historico" || tab === "saldo") && (
+          {(tab === "ranking" || tab === "historico" || tab === "saldo" || tab === "escala") && (
             <button onClick={exportCSV}
               className="bg-green-600 hover:bg-green-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
               Exportar CSV

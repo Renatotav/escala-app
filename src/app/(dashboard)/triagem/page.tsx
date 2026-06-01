@@ -175,7 +175,7 @@ export default function TriagemPage() {
 
   function isEquipeExcluida(nome: string) {
     const n = nome.toUpperCase();
-    return n.includes("COORDENA") || n.includes("SUPERVIS") || n === "TRIAGEM";
+    return n.includes("COORDENA") || n.includes("SUPERVIS");
   }
 
   async function alterarGrupo(id: number, grupoListagem: string) {
@@ -387,12 +387,18 @@ export default function TriagemPage() {
                       <button onClick={() => setPopup(c)} className="text-white font-medium hover:text-blue-400 transition text-left">
                         {c.nome}
                       </button>
-                      {!c.equipe.nome.toUpperCase().includes("BALC") && c.grupoListagem === "ESPECIFICA" && (
+                      {!c.equipe.nome.toUpperCase().includes("BALC") && (
                         <span
-                          onClick={() => alterarGrupo(c.id, "FORA")}
-                          title="Distribuição específica (CSV seção 3) — clique para mover para Lista geral"
-                          className="text-xs px-1.5 py-0.5 rounded border bg-teal-500/20 text-teal-400 border-teal-500/30 hover:bg-red-500/20 hover:text-red-400 hover:border-red-500/30 cursor-pointer transition shrink-0">
-                          Dist. Esp.
+                          onClick={() => alterarGrupo(c.id, c.grupoListagem === "ESPECIFICA" ? "FORA" : "ESPECIFICA")}
+                          title={c.grupoListagem === "ESPECIFICA"
+                            ? "Distribuição específica — clique para voltar à lista geral"
+                            : "Lista geral — clique para marcar como Distribuição específica"}
+                          className={`text-xs px-1.5 py-0.5 rounded border cursor-pointer transition shrink-0 ${
+                            c.grupoListagem === "ESPECIFICA"
+                              ? "bg-teal-500/20 text-teal-400 border-teal-500/30 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30"
+                              : "bg-transparent text-gray-600 border-gray-700 hover:bg-teal-500/10 hover:text-teal-400 hover:border-teal-500/30"
+                          }`}>
+                          {c.grupoListagem === "ESPECIFICA" ? "Dist. Esp." : "·  ·  ·"}
                         </span>
                       )}
                     </div>

@@ -99,6 +99,63 @@ export default function TriagemPage() {
 
   const totalFora = colaboradores.filter(c => registroAtivo(registros, c.id)).length;
 
+  function exportarCSV() {
+    const hoje = new Date().toISOString().slice(0, 10);
+
+    function getAtivo(cid: number): Registro | null {
+      return registros.find(r => r.colaboradorId === cid && (!r.dataFim || r.dataFim >= hoje)) ?? null;
+    }
+
+    function periodo(reg: Registro): string {
+      if (!reg.dataFim) return "Tempo indeterminado";
+      return `${fmt(reg.dataInicio)} - ${fmt(reg.dataFim)}`;
+    }
+
+    function isBalcao(nome: string) {
+      return nome.toLowerCase().includes("balc");
+    }
+
+    const foraBalcao = colaboradores.filter(c => {
+      const r = getAtivo(c.id);
+      return r && isBalcao(c.equipe.nome);
+    });
+
+    const foraDemais = colaboradores.filter(c => {
+      const r = getAtivo(c.id);
+      return r && !isBalcao(c.equipe.nome) && ["ATESTADO", "DECLARACAO"].includes(r.motivo);
+    });
+
+    const distribuicaoEspecifica = colaboradores.filter(c => {
+      const r = getAtivo(c.id);
+      return r && ["QUANTIDADE_CHAMADOS", "ATENDIMENTO_PRESENCIAL"].includes(r.motivo);
+    });
+
+    const rows: string[] = [];
+
+    function addSection(titulo: string, pessoas: Colaborador[]) {
+      if (pessoas.length === 0) return;
+      rows.push(`"${titulo}";"Período";"Equipe 1";"Equipe 2";"Equipe 3"`);
+      for (const c of pessoas) {
+        const r = getAtivo(c.id)!;
+        rows.push(`"${c.nome.toUpperCase()}";"${periodo(r)}";"${c.equipe.nome.toUpperCase()}";"-";"-"`);
+      }
+      rows.push("");
+    }
+
+    addSection("Assistentes fora da listagem de distribuição de chamados - Balcão Virtual", foraBalcao);
+    addSection("Assistentes fora da listagem de distribuição de chamados", foraDemais);
+    addSection("Assistentes com distribuição específica de chamados", distribuicaoEspecifica);
+
+    const csv = "﻿" + rows.join("\r\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `triagem_${hoje}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div>
       <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
@@ -106,6 +163,10 @@ export default function TriagemPage() {
           <h2 className="text-xl font-semibold text-white">Controle de Triagem</h2>
           <p className="text-sm text-gray-400 mt-0.5">{colaboradores.length} colaboradores · {totalFora} fora da lista</p>
         </div>
+        <button onClick={exportarCSV}
+          className="bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 hover:text-white text-sm font-medium px-4 py-2 rounded-lg transition">
+          ↓ Exportar CSV
+        </button>
       </div>
 
       {totalFora > 0 && (

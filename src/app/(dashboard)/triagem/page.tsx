@@ -8,7 +8,7 @@ type Registro = {
   dataFim: string | null; horaFim: string | null;
   observacao: string | null; atestadoId: number | null;
 };
-type Colaborador = { id: number; nome: string; equipe: { id: number; nome: string } };
+type Colaborador = { id: number; nome: string; equipe: { id: number; nome: string }; grupoListagem: string };
 type Equipe = { id: number; nome: string };
 
 const motivoLabel: Record<string, string> = {
@@ -140,7 +140,16 @@ export default function TriagemPage() {
 
   function isEquipeExcluida(nome: string) {
     const n = nome.toUpperCase();
-    return n.includes("COORDENA") || n.includes("SUPERVIS");
+    return n.includes("COORDENA") || n.includes("SUPERVIS") || n === "TRIAGEM";
+  }
+
+  async function alterarGrupo(id: number, grupoListagem: string) {
+    await fetch("/api/colaboradores", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, grupoListagem }),
+    });
+    setColaboradores(prev => prev.map(c => c.id === id ? { ...c, grupoListagem } : c));
   }
 
   const lista = colaboradores
@@ -177,12 +186,15 @@ export default function TriagemPage() {
     }
 
     function normEq(nome: string): string {
-      return nome.toUpperCase().replace(/ERRO\s+E\s+FALHA/g, "ERRO/FALHA");
+      return nome
+        .toUpperCase()
+        .replace(/ERRO\s+E\s+FALHA/g, "ERRO/FALHA")
+        .replace(/^CADASTRO$/, "CADASTRO GERAL");
     }
 
     function eq2(nome: string): string {
       const n = normEq(nome);
-      if (n.includes("ERRO/FALHA") || n.includes("FALHA")) {
+      if (n.includes("ERRO/FALHA")) {
         if (n.includes("2G")) return "ORIENTAÇÃO TÉCNICA 2G";
         if (n.includes("1G")) return "ORIENTAÇÃO TÉCNICA 1G";
       }
@@ -191,39 +203,34 @@ export default function TriagemPage() {
 
     const colabAtivos = colaboradores.filter(c => !isEquipeExcluida(c.equipe.nome));
 
-    // Seção 1 — Balcão Virtual fora por motivo NÃO presencial (Declaração, Atestado)
-    // Balcão Virtual em atendimento presencial vai para seção 2
+    // Seção 1 — Balcão Virtual (todos, exceto quem está em atendimento presencial)
     const balcao = colabAtivos
       .filter(c => {
         if (!c.equipe.nome.toUpperCase().includes("BALC")) return false;
         const r = getAtivo(c.id);
-        // Se está em atendimento presencial, vai para seção 2
-        if (r && r.motivo === "ATENDIMENTO_PRESENCIAL") return false;
-        return true;
+        return !(r && r.motivo === "ATENDIMENTO_PRESENCIAL");
       })
       .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
 
-    // Seção 2 — Todos em atendimento presencial (qualquer equipe)
-    //           + não-Balcão fora por outros motivos (Declaração, Atestado)
+    // Seção 2 — grupoListagem="FORA" + Balcão Virtual em atendimento presencial
     const demais = colabAtivos
       .filter(c => {
-        const r = getAtivo(c.id);
         const isBalcao = c.equipe.nome.toUpperCase().includes("BALC");
-        // Balcão Virtual em atendimento presencial entra aqui
+        const r = getAtivo(c.id);
         if (isBalcao && r && r.motivo === "ATENDIMENTO_PRESENCIAL") return true;
-        if (isBalcao) return false; // demais Balcão ficam na seção 1
-        // Não-Balcão com distribuição específica vai para seção 3
-        if (r && r.motivo === "QUANTIDADE_CHAMADOS") return false;
-        return true;
+        if (isBalcao) return false;
+        return c.grupoListagem !== "ESPECIFICA";
       })
       .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
 
-    // Seção 3 — Distribuição específica (quantidade de chamados limitada)
-    const especifica = colabAtivos
-      .filter(c => {
-        const r = getAtivo(c.id);
-        return r && r.motivo === "QUANTIDADE_CHAMADOS";
-      })
+    // Seção 3a — grupoListagem="ESPECIFICA" + equipe Migração
+    const especificaMigr = colabAtivos
+      .filter(c => c.grupoListagem === "ESPECIFICA" && c.equipe.nome.toUpperCase().includes("MIGRA"))
+      .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+
+    // Seção 3b — grupoListagem="ESPECIFICA" + outras equipes
+    const especificaOutros = colabAtivos
+      .filter(c => c.grupoListagem === "ESPECIFICA" && !c.equipe.nome.toUpperCase().includes("MIGRA"))
       .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
 
     const linhas: string[] = [];
@@ -242,7 +249,8 @@ export default function TriagemPage() {
 
     addSection("Assistentes fora da listagem de distribuição de chamados - Balcão Virtual", balcao);
     addSection("Assistentes fora da listagem de distribuição de chamados", demais);
-    if (especifica.length > 0) addSection("Assistentes com distribuição específica de chamados", especifica);
+    if (especificaMigr.length > 0) addSection("Assistentes com distribuição específica de chamados", especificaMigr);
+    if (especificaOutros.length > 0) addSection("Assistentes com distribuição específica de chamados", especificaOutros);
 
     // TextEncoder garante UTF-8 puro sem dupla codificação
     const encoder = new TextEncoder();
@@ -332,9 +340,19 @@ export default function TriagemPage() {
                     {novoGrupo && (
                       <span className="block text-xs font-semibold text-gray-500 uppercase tracking-widest mb-1">{c.equipe.nome}</span>
                     )}
-                    <button onClick={() => setPopup(c)} className="text-white font-medium hover:text-blue-400 transition text-left">
-                      {c.nome}
-                    </button>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <button onClick={() => setPopup(c)} className="text-white font-medium hover:text-blue-400 transition text-left">
+                        {c.nome}
+                      </button>
+                      {!c.equipe.nome.toUpperCase().includes("BALC") && (
+                        <button
+                          onClick={() => alterarGrupo(c.id, c.grupoListagem === "ESPECIFICA" ? "FORA" : "ESPECIFICA")}
+                          title={c.grupoListagem === "ESPECIFICA" ? "Distribuição específica — clique para mover para Fora da lista" : "Fora da lista — clique para mover para Distribuição específica"}
+                          className={`text-xs px-1.5 py-0.5 rounded border transition shrink-0 ${c.grupoListagem === "ESPECIFICA" ? "bg-teal-500/20 text-teal-400 border-teal-500/30 hover:bg-teal-500/40" : "bg-gray-700/40 text-gray-600 border-gray-700 hover:bg-gray-700 hover:text-gray-400"}`}>
+                          {c.grupoListagem === "ESPECIFICA" ? "Espec." : "Fora"}
+                        </button>
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-3">
                     <span className="text-xs px-2 py-0.5 rounded bg-gray-700 text-gray-300 whitespace-nowrap">{c.equipe.nome}</span>

@@ -42,6 +42,7 @@ model Colaborador {
   feedbacks         Feedback[]
   ocorrencias       Ocorrencia[]
   controleTriagem   ControleTriagem[]
+  grupoListagem   String                 @default("FORA")
   createdAt       DateTime               @default(now())
   updatedAt       DateTime               @updatedAt
 }

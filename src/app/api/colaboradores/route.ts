@@ -37,6 +37,16 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ colaboradores, total, page, pages: Math.ceil(total / limit) });
 }
 
+export async function PATCH(request: NextRequest) {
+  const { id, grupoListagem } = await request.json();
+  const colab = await prisma.colaborador.update({
+    where: { id: Number(id) },
+    data: { grupoListagem },
+    include: { equipe: true },
+  });
+  return NextResponse.json(colab);
+}
+
 export async function POST(request: NextRequest) {
   const { nome, cargo, matricula, equipeId } = await request.json();
   const colaborador = await prisma.colaborador.create({

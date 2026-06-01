@@ -140,14 +140,14 @@ export default function PlantoesPage() {
     setFichaLoading(false);
   }
 
-  const [atestadosAtivos, setAtestadosAtivos] = useState<Set<number>>(new Set());
+  const [foraLista, setForaLista] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     loadRanking();
     loadSaldo();
     fetch("/api/equipes").then((r) => r.json()).then(setEquipes);
-    fetch("/api/atestados?ativos=true").then(r => r.json()).then((data: Atestado[]) => {
-      setAtestadosAtivos(new Set(data.map(a => a.colaboradorId)));
+    fetch("/api/controle-triagem?ativos=true").then(r => r.json()).then((data: { colaboradorId: number }[]) => {
+      setForaLista(new Set(data.map(r => r.colaboradorId)));
     });
   }, []);
 
@@ -433,8 +433,8 @@ export default function PlantoesPage() {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <button onClick={() => openFicha(entry.id, entry.nome, entry.equipe)} className="text-white font-medium hover:text-blue-400 transition text-left">{entry.nome}</button>
-                          {atestadosAtivos.has(entry.id) && (
-                            <span className="text-xs px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400 border border-orange-500/30">Afastado</span>
+                          {foraLista.has(entry.id) && (
+                            <span className="text-xs px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30">Fora da lista</span>
                           )}
                         </div>
                       </td>

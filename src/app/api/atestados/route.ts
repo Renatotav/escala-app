@@ -41,6 +41,19 @@ export async function POST(request: NextRequest) {
     },
     include: { colaborador: { select: { nome: true, equipe: { select: { nome: true } } } } },
   });
+
+  // Auto-registra no Controle de Triagem
+  await prisma.controleTriagem.create({
+    data: {
+      colaboradorId: Number(colaboradorId),
+      motivo: "ATESTADO",
+      dataInicio: new Date(dataInicio),
+      dataFim: new Date(dataFim),
+      observacao: cid ? `CID: ${cid}` : (descricao || null),
+      atestadoId: atestado.id,
+    },
+  });
+
   return NextResponse.json({ ...atestado, dias: Math.round((atestado.dataFim.getTime() - atestado.dataInicio.getTime()) / 86400000) + 1 }, { status: 201 });
 }
 

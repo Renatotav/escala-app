@@ -61,6 +61,19 @@ async function migrate() {
     CONSTRAINT \"Ocorrencia_colaboradorId_fkey\" FOREIGN KEY (\"colaboradorId\") REFERENCES \"Colaborador\"(\"id\") ON DELETE RESTRICT ON UPDATE CASCADE
   )\`);
 
+  // ControleTriagem table
+  await client.query(`CREATE TABLE IF NOT EXISTS "ControleTriagem" (
+    "id" SERIAL PRIMARY KEY,
+    "colaboradorId" INTEGER NOT NULL,
+    "motivo" TEXT NOT NULL,
+    "dataInicio" DATE NOT NULL,
+    "dataFim" DATE,
+    "observacao" TEXT,
+    "atestadoId" INTEGER,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "ControleTriagem_colaboradorId_fkey" FOREIGN KEY ("colaboradorId") REFERENCES "Colaborador"("id") ON DELETE RESTRICT ON UPDATE CASCADE
+  )`);
+
   await client.end();
   console.log('Migration completed successfully.');
 }

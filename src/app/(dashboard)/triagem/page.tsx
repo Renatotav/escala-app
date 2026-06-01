@@ -138,8 +138,14 @@ export default function TriagemPage() {
     load();
   }
 
+  function isEquipeExcluida(nome: string) {
+    const n = nome.toUpperCase();
+    return n.includes("COORDENA") || n.includes("SUPERVIS");
+  }
+
   const lista = colaboradores
     .filter(c => {
+      if (isEquipeExcluida(c.equipe.nome)) return false;
       if (filtroEquipe && c.equipe.nome !== filtroEquipe) return false;
       const reg = registroAtivo(registros, c.id);
       if (filtroStatus === "fora" && !reg) return false;
@@ -151,7 +157,7 @@ export default function TriagemPage() {
       return eq !== 0 ? eq : a.nome.localeCompare(b.nome, "pt-BR");
     });
 
-  const totalFora = colaboradores.filter(c => registroAtivo(registros, c.id)).length;
+  const totalFora = colaboradores.filter(c => !isEquipeExcluida(c.equipe.nome) && registroAtivo(registros, c.id)).length;
 
   const popupRegistros = popup
     ? [...registros.filter(r => r.colaboradorId === popup.id)].sort((a, b) => b.dataInicio.localeCompare(a.dataInicio))
@@ -183,24 +189,25 @@ export default function TriagemPage() {
       return "-";
     }
 
+    const colabAtivos = colaboradores.filter(c => !isEquipeExcluida(c.equipe.nome));
+
     // Seção 1 — TODOS do Balcão Virtual
-    const balcao = colaboradores
+    const balcao = colabAtivos
       .filter(c => c.equipe.nome.toUpperCase().includes("BALC"))
       .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
 
     // Seção 2 — TODOS os demais (exceto quem tem distribuição específica ativa)
-    const demais = colaboradores
+    const demais = colabAtivos
       .filter(c => {
         if (c.equipe.nome.toUpperCase().includes("BALC")) return false;
         const r = getAtivo(c.id);
-        // se tem registro ativo de distribuição específica, vai para seção 3
         if (r && ["QUANTIDADE_CHAMADOS", "ATENDIMENTO_PRESENCIAL"].includes(r.motivo)) return false;
         return true;
       })
       .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
 
     // Seção 3 — apenas quem tem registro ativo de distribuição específica
-    const especifica = colaboradores
+    const especifica = colabAtivos
       .filter(c => {
         const r = getAtivo(c.id);
         return r && ["QUANTIDADE_CHAMADOS", "ATENDIMENTO_PRESENCIAL"].includes(r.motivo);
@@ -273,7 +280,7 @@ export default function TriagemPage() {
         <select value={filtroEquipe} onChange={e => setFiltroEquipe(e.target.value)}
           className="flex-1 min-w-[130px] bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
           <option value="">Todas as equipes</option>
-          {equipes.map(eq => <option key={eq.id} value={eq.nome}>{eq.nome}</option>)}
+          {equipes.filter(eq => !isEquipeExcluida(eq.nome)).map(eq => <option key={eq.id} value={eq.nome}>{eq.nome}</option>)}
         </select>
       </div>
 

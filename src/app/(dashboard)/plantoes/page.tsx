@@ -889,6 +889,7 @@ export default function PlantoesPage() {
                   <option value="SABADO">Sábado</option>
                   <option value="DOMINGO">Domingo</option>
                   <option value="FERIADO">Feriado</option>
+                  <option value="PONTO_FACULTATIVO">Ponto Facultativo</option>
                 </select>
               </div>
               <div>

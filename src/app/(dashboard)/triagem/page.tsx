@@ -1096,17 +1096,16 @@ export default function TriagemPage() {
                 {/* Local */}
                 <div>
                   <label className="block text-xs text-gray-400 mb-1.5">Local / Unidade</label>
-                  <input value={massaLocal} onChange={e => setMassaLocal(e.target.value)}
-                    placeholder="Digite ou escolha abaixo..."
-                    className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 mb-2" />
-                  <div className="flex flex-wrap gap-1.5">
-                    {locaisSugeridos.map(l => (
-                      <button key={l} type="button" onClick={() => setMassaLocal(l)}
-                        className={`text-xs px-2.5 py-1 rounded-full border transition ${massaLocal === l ? "bg-orange-600 text-white border-orange-600" : "bg-gray-800 text-gray-400 border-gray-700 hover:border-orange-500 hover:text-orange-400"}`}>
-                        {l}
-                      </button>
-                    ))}
-                  </div>
+                  <input
+                    list="lista-locais"
+                    value={massaLocal}
+                    onChange={e => setMassaLocal(e.target.value)}
+                    placeholder="Digite para filtrar ou selecione..."
+                    className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                  <datalist id="lista-locais">
+                    {locaisSugeridos.map(l => <option key={l} value={l} />)}
+                  </datalist>
                 </div>
 
                 {/* Busca + lista */}

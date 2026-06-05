@@ -1084,9 +1084,19 @@ export default function PlantoesPage() {
                   className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-lg py-2 transition">Cancelar</button>
                 <button type="submit" disabled={savingEdit}
                   className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg py-2 transition">
-                  {savingEdit ? "Salvando..." : "Salvar alteração"}
+                  {savingEdit ? "Salvando..." : "Salvar"}
                 </button>
               </div>
+              <button type="button"
+                onClick={async () => {
+                  if (!confirm(`Excluir o plantão de ${fmt(editPlantao.data)} de ${editPlantao.colaborador.nome}?`)) return;
+                  await fetch(`/api/plantoes/${editPlantao.id}`, { method: "DELETE" });
+                  setEditPlantao(null);
+                  loadHistorico();
+                }}
+                className="w-full mt-1 text-xs text-red-500 hover:text-red-400 transition py-1">
+                Excluir este plantão
+              </button>
             </form>
           </div>
         </div>

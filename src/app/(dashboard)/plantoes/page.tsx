@@ -133,6 +133,9 @@ export default function PlantoesPage() {
   const [folgaForm, setFolgaForm] = useState({ folga1: "", folga2: "" });
   const [folgasAgendadas, setFolgasAgendadas] = useState<FolgaAgendada[]>([]);
   const [saving, setSaving] = useState(false);
+  const [editPlantao, setEditPlantao] = useState<Historico | null>(null);
+  const [editForm, setEditForm] = useState({ colaboradorId: "", data: "", tipo: "SABADO" });
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const [saldoPendingColab, setSaldoPendingColab] = useState<{ id: number; nome: string } | null>(null);
   const [saldoPendingPlantoes, setSaldoPendingPlantoes] = useState<Historico[]>([]);
@@ -403,6 +406,25 @@ export default function PlantoesPage() {
     setModal("folga");
   }
 
+  function openEditPlantao(h: Historico) {
+    setEditPlantao(h);
+    setEditForm({ colaboradorId: String(h.colaboradorId), data: h.data.slice(0, 10), tipo: h.tipo });
+  }
+
+  async function handleEditPlantao(e: { preventDefault(): void }) {
+    e.preventDefault();
+    if (!editPlantao) return;
+    setSavingEdit(true);
+    await fetch(`/api/plantoes/${editPlantao.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(editForm),
+    });
+    setSavingEdit(false);
+    setEditPlantao(null);
+    loadHistorico();
+  }
+
   const totalFolgasPendentes = saldo.reduce((acc, s) => acc + s.pendentes, 0);
 
   const anoEscala = Number(mesEscala.slice(0, 4));
@@ -591,10 +613,16 @@ export default function PlantoesPage() {
                       {needsFolga2 ? fmt(h.folga2) : <span className="text-gray-700">—</span>}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <button onClick={() => openFolga(h)}
-                        className={`text-xs font-medium transition ${pendente ? "text-yellow-400 hover:text-yellow-300" : "text-gray-500 hover:text-gray-300"}`}>
-                        {pendente ? "Agendar folga" : "✎ Editar"}
-                      </button>
+                      <div className="flex items-center justify-end gap-3">
+                        <button onClick={() => openFolga(h)}
+                          className={`text-xs font-medium transition ${pendente ? "text-yellow-400 hover:text-yellow-300" : "text-gray-500 hover:text-gray-300"}`}>
+                          {pendente ? "Agendar folga" : "Folgas"}
+                        </button>
+                        <button onClick={() => openEditPlantao(h)}
+                          className="text-xs text-blue-400 hover:text-blue-300 font-medium transition">
+                          ✎ Editar
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -1022,6 +1050,48 @@ export default function PlantoesPage() {
       )}
 
       {/* MODAL — Agendar folga */}
+      {/* MODAL — Editar plantão */}
+      {editPlantao && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4" onClick={() => setEditPlantao(null)}>
+          <div className="bg-gray-900 border border-gray-800 rounded-xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
+            <h3 className="text-base font-semibold text-white mb-1">Editar plantão</h3>
+            <p className="text-xs text-gray-400 mb-4">Plantão original: {fmt(editPlantao.data)} · {tipoLabel[editPlantao.tipo]} · {editPlantao.colaborador.nome}</p>
+            <form onSubmit={handleEditPlantao} className="space-y-3">
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Colaborador</label>
+                <select value={editForm.colaboradorId} onChange={e => setEditForm(f => ({ ...f, colaboradorId: e.target.value }))} required
+                  className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <option value="">Selecione...</option>
+                  {rankingAlfabetico.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Data do plantão</label>
+                  <input type="date" value={editForm.data} onChange={e => setEditForm(f => ({ ...f, data: e.target.value }))} required
+                    className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Tipo</label>
+                  <select value={editForm.tipo} onChange={e => setEditForm(f => ({ ...f, tipo: e.target.value }))}
+                    className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    {TIPOS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button type="button" onClick={() => setEditPlantao(null)}
+                  className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-lg py-2 transition">Cancelar</button>
+                <button type="submit" disabled={savingEdit}
+                  className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg py-2 transition">
+                  {savingEdit ? "Salvando..." : "Salvar alteração"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {modal === "folga" && selected && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4">
           <div className="bg-gray-900 border border-gray-800 rounded-xl w-full max-w-sm p-6">

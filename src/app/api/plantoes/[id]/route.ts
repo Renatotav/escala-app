@@ -15,6 +15,21 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   return NextResponse.json({ ok: true });
 }
 
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const { colaboradorId, data, tipo } = await request.json();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (prisma as any).plantao.update({
+    where: { id: Number(id) },
+    data: {
+      colaboradorId: Number(colaboradorId),
+      data: new Date(data),
+      tipo,
+    },
+  });
+  return NextResponse.json({ ok: true });
+}
+
 export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

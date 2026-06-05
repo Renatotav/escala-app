@@ -124,6 +124,8 @@ export default function PlantoesPage() {
   const [formFolga, setFormFolga] = useState({ colaboradorId: "", data: "", tipo: "SABADO", descricao: "" });
   const [savingFolga, setSavingFolga] = useState(false);
   const [editingFolga, setEditingFolga] = useState<FolgaReg | null>(null);
+  const [pendentesModal, setPendentesModal] = useState<Historico[]>([]);
+  const [plantaoSelecionado, setPlantaoSelecionado] = useState<Historico | null>(null);
   const [equipes, setEquipes] = useState<Equipe[]>([]);
   const [filtroEquipe, setFiltroEquipe] = useState("");
   const [filtroColab, setFiltroColab] = useState("");
@@ -298,6 +300,19 @@ export default function PlantoesPage() {
     URL.revokeObjectURL(url);
   }
 
+  async function buscarPendentesColab(colaboradorId: string) {
+    if (!colaboradorId) { setPendentesModal([]); setPlantaoSelecionado(null); return; }
+    const data = await fetch(`/api/plantoes?view=historico&colaboradorId=${colaboradorId}`).then(r => r.json()) as Historico[];
+    const pendentes = data
+      .filter(h => {
+        const needsDupla = h.tipo === "DOMINGO" || h.tipo === "FERIADO";
+        return !h.folga1 || (needsDupla && !h.folga2);
+      })
+      .sort((a, b) => a.data.localeCompare(b.data));
+    setPendentesModal(pendentes);
+    setPlantaoSelecionado(pendentes[0] ?? null);
+  }
+
   async function handleSubmitFolga(e: { preventDefault(): void }) {
     e.preventDefault();
     setSavingFolga(true);
@@ -308,11 +323,13 @@ export default function PlantoesPage() {
         body: JSON.stringify({ id: editingFolga.id, data: formFolga.data, tipo: formFolga.tipo, descricao: formFolga.descricao }),
       });
       setEditingFolga(null);
-    } else {
-      await fetch("/api/folgas", {
-        method: "POST",
+    } else if (plantaoSelecionado) {
+      const needsDupla = plantaoSelecionado.tipo === "DOMINGO" || plantaoSelecionado.tipo === "FERIADO";
+      const campo = !plantaoSelecionado.folga1 ? "folga1" : (needsDupla && !plantaoSelecionado.folga2 ? "folga2" : "folga1");
+      await fetch(`/api/plantoes/${plantaoSelecionado.id}`, {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...formFolga, colaboradorId: Number(formFolga.colaboradorId) }),
+        body: JSON.stringify({ folga1: campo === "folga1" ? formFolga.data : plantaoSelecionado.folga1?.slice(0, 10) ?? null, folga2: campo === "folga2" ? formFolga.data : plantaoSelecionado.folga2?.slice(0, 10) ?? null }),
       });
     }
     setSavingFolga(false);
@@ -862,37 +879,48 @@ export default function PlantoesPage() {
             )}
             <form onSubmit={handleSubmitFolga} className="space-y-3">
               {!editingFolga && (
-                <div>
-                  <label className="block text-xs text-gray-400 mb-1">Colaborador</label>
-                  <select value={formFolga.colaboradorId} onChange={e => setFormFolga(f => ({ ...f, colaboradorId: e.target.value }))} required
-                    className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="">Selecione...</option>
-                    {rankingAlfabetico.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
-                  </select>
-                </div>
+                <>
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-1">Colaborador</label>
+                    <select value={formFolga.colaboradorId} onChange={e => { setFormFolga(f => ({ ...f, colaboradorId: e.target.value })); buscarPendentesColab(e.target.value); }} required
+                      className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                      <option value="">Selecione...</option>
+                      {rankingAlfabetico.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
+                    </select>
+                  </div>
+                  {formFolga.colaboradorId && (
+                    <div>
+                      <label className="block text-xs text-gray-400 mb-1">Plantão a compensar</label>
+                      {pendentesModal.length === 0
+                        ? <p className="text-xs text-green-400 py-1">Nenhum plantão pendente</p>
+                        : <select value={plantaoSelecionado?.id ?? ""} onChange={e => setPlantaoSelecionado(pendentesModal.find(p => p.id === Number(e.target.value)) ?? null)}
+                            className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            {pendentesModal.map(p => <option key={p.id} value={p.id}>{fmt(p.data)} · {tipoLabel[p.tipo]}{!p.folga1 ? " (1ª folga)" : " (2ª folga)"}</option>)}
+                          </select>
+                      }
+                    </div>
+                  )}
+                </>
               )}
               <div>
-                <label className="block text-xs text-gray-400 mb-1">Data</label>
+                <label className="block text-xs text-gray-400 mb-1">Data da folga</label>
                 <input type="date" value={formFolga.data} onChange={e => setFormFolga(f => ({ ...f, data: e.target.value }))} required
                   className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
-              <div>
-                <label className="block text-xs text-gray-400 mb-1">Tipo</label>
-                <select value={formFolga.tipo} onChange={e => setFormFolga(f => ({ ...f, tipo: e.target.value }))}
-                  className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  <option value="SABADO">Sábado</option>
-                  <option value="DOMINGO">Domingo</option>
-                  <option value="FERIADO">Feriado</option>
-                  <option value="PONTO_FACULTATIVO">Ponto Facultativo</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs text-gray-400 mb-1">Observação <span className="text-gray-600">(opcional)</span></label>
-                <input value={formFolga.descricao} onChange={e => setFormFolga(f => ({ ...f, descricao: e.target.value }))}
-                  className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              </div>
+              {editingFolga && (
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Tipo</label>
+                  <select value={formFolga.tipo} onChange={e => setFormFolga(f => ({ ...f, tipo: e.target.value }))}
+                    className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="SABADO">Sábado</option>
+                    <option value="DOMINGO">Domingo</option>
+                    <option value="FERIADO">Feriado</option>
+                    <option value="PONTO_FACULTATIVO">Ponto Facultativo</option>
+                  </select>
+                </div>
+              )}
               <div className="flex gap-2 pt-2">
-                <button type="button" onClick={() => { setModalFolga(false); setEditingFolga(null); setFormFolga({ colaboradorId: "", data: "", tipo: "SABADO", descricao: "" }); }}
+                <button type="button" onClick={() => { setModalFolga(false); setEditingFolga(null); setFormFolga({ colaboradorId: "", data: "", tipo: "SABADO", descricao: "" }); setPendentesModal([]); setPlantaoSelecionado(null); }}
                   className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-lg py-2 transition">Cancelar</button>
                 <button type="submit" disabled={savingFolga}
                   className="flex-1 bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg py-2 transition">

@@ -489,12 +489,6 @@ export default function PlantoesPage() {
               Exportar CSV
             </button>
           )}
-          {tab === "historico" && (
-            <button onClick={exportMarkdown}
-              className="bg-gray-700 hover:bg-gray-600 text-gray-200 text-sm font-medium px-4 py-2 rounded-lg transition">
-              ↓ Revisão MD
-            </button>
-          )}
           {tab === "folgas"
             ? <button onClick={() => { setEditingFolga(null); setFormFolga({ colaboradorId: "", data: "", tipo: "SABADO", descricao: "" }); setModalFolga(true); }} className="bg-green-600 hover:bg-green-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition">+ Registrar folga</button>
             : tab === "escala"

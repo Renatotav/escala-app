@@ -335,7 +335,10 @@ export default function PlantoesPage() {
     setSavingFolga(false);
     setModalFolga(false);
     setFormFolga({ colaboradorId: "", data: "", tipo: "SABADO", descricao: "" });
+    setPendentesModal([]);
+    setPlantaoSelecionado(null);
     loadSaldo();
+    loadFolgasAgendadas();
   }
 
 

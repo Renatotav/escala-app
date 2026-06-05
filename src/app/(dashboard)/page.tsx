@@ -57,7 +57,7 @@ export default async function DashboardPage() {
   }
   proximasEntries.sort((a, b) => a.data.localeCompare(b.data));
 
-  const tipoLabel: Record<string, string> = { SABADO: "Sábado", DOMINGO: "Domingo", FERIADO: "Feriado" };
+  const tipoLabel: Record<string, string> = { SABADO: "Sábado", DOMINGO: "Domingo", FERIADO: "Feriado", PONTO_FACULTATIVO: "Pto. Facultativo" };
 
   const cards = [
     { label: "Colaboradores ativos", value: colaboradores.length, color: "text-white", icon: "👥" },

@@ -126,6 +126,8 @@ export default function PlantoesPage() {
   const [editingFolga, setEditingFolga] = useState<FolgaReg | null>(null);
   const [pendentesModal, setPendentesModal] = useState<Historico[]>([]);
   const [plantaoSelecionado, setPlantaoSelecionado] = useState<Historico | null>(null);
+  const [editFolgaModal, setEditFolgaModal] = useState<{ id: string; data: string; nome: string } | null>(null);
+  const [editFolgaData, setEditFolgaData] = useState("");
   const [equipes, setEquipes] = useState<Equipe[]>([]);
   const [filtroEquipe, setFiltroEquipe] = useState("");
   const [filtroColab, setFiltroColab] = useState("");
@@ -298,6 +300,36 @@ export default function PlantoesPage() {
     const a = document.createElement("a");
     a.href = url; a.download = filename; a.click();
     URL.revokeObjectURL(url);
+  }
+
+  function parseFolgaId(id: string) {
+    const [plantaoId, campo] = id.split("-");
+    return { plantaoId: Number(plantaoId), campo: campo === "1" ? "folga1" : "folga2" };
+  }
+
+  async function excluirFolgaAgendada(f: FolgaAgendada) {
+    if (!confirm(`Excluir a folga de ${f.colaborador.nome} em ${fmt(f.data)}?`)) return;
+    const { plantaoId, campo } = parseFolgaId(f.id);
+    await fetch(`/api/plantoes/${plantaoId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ [campo]: null, [campo === "folga1" ? "folga2" : "folga1"]: campo === "folga2" ? f.data : undefined }),
+    });
+    loadFolgasAgendadas();
+    loadSaldo();
+  }
+
+  async function salvarEditFolga() {
+    if (!editFolgaModal || !editFolgaData) return;
+    const { plantaoId, campo } = parseFolgaId(editFolgaModal.id);
+    await fetch(`/api/plantoes/${plantaoId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ [campo]: editFolgaData }),
+    });
+    setEditFolgaModal(null);
+    loadFolgasAgendadas();
+    loadSaldo();
   }
 
   async function buscarPendentesColab(colaboradorId: string) {
@@ -770,6 +802,7 @@ export default function PlantoesPage() {
                   <th className="text-left px-4 py-3">Equipe</th>
                   <th className="text-left px-4 py-3">Data do Plantão</th>
                   <th className="text-left px-4 py-3">Tipo</th>
+                  <th className="px-4 py-3" />
                 </tr>
               </thead>
               <tbody>
@@ -790,6 +823,14 @@ export default function PlantoesPage() {
                       <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs ${tipoBadgeFolga[f.tipoPlantao] ?? "bg-gray-700 text-gray-300"}`}>
                         {tipoLabel[f.tipoPlantao] ?? f.tipoPlantao}
                       </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-3">
+                        <button onClick={() => { setEditFolgaModal({ id: f.id, data: f.data, nome: f.colaborador.nome }); setEditFolgaData(f.data); }}
+                          className="text-xs text-blue-400 hover:text-blue-300 font-medium transition">✎ Editar</button>
+                        <button onClick={() => excluirFolgaAgendada(f)}
+                          className="text-xs text-red-500 hover:text-red-400 transition">Excluir</button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -931,6 +972,26 @@ export default function PlantoesPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL — Editar data da folga */}
+      {editFolgaModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4" onClick={() => setEditFolgaModal(null)}>
+          <div className="bg-gray-900 border border-gray-800 rounded-xl w-full max-w-xs p-6" onClick={e => e.stopPropagation()}>
+            <h3 className="text-base font-semibold text-white mb-1">Editar data da folga</h3>
+            <p className="text-xs text-gray-400 mb-4">{editFolgaModal.nome}</p>
+            <div className="space-y-3">
+              <input type="date" value={editFolgaData} onChange={e => setEditFolgaData(e.target.value)}
+                className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <div className="flex gap-2 pt-1">
+                <button onClick={() => setEditFolgaModal(null)}
+                  className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-lg py-2 transition">Cancelar</button>
+                <button onClick={salvarEditFolga}
+                  className="flex-1 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg py-2 transition">Salvar</button>
+              </div>
+            </div>
           </div>
         </div>
       )}

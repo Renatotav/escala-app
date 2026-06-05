@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  const { id, dataFim, horaFim, observacao } = await request.json();
+  const { id, dataFim, horaFim, observacao, motivo, dataInicio, horaInicio } = await request.json();
 
   const registro = await prisma.controleTriagem.update({
     where: { id: Number(id) },
@@ -60,6 +60,9 @@ export async function PATCH(request: NextRequest) {
       ...(dataFim !== undefined && { dataFim: dataFim ? new Date(dataFim) : null }),
       ...(horaFim !== undefined && { horaFim: horaFim || null }),
       ...(observacao !== undefined && { observacao }),
+      ...(motivo !== undefined && { motivo }),
+      ...(dataInicio !== undefined && { dataInicio: new Date(dataInicio) }),
+      ...(horaInicio !== undefined && { horaInicio: horaInicio || null }),
     },
   });
 

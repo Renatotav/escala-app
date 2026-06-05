@@ -77,6 +77,11 @@ export default function TriagemPage() {
   const [retornoForm, setRetornoForm] = useState({ dataFim: "", horaFim: "" });
   const [savingRetorno, setSavingRetorno] = useState(false);
 
+  // Modal editar registro
+  const [editModal, setEditModal] = useState<Registro | null>(null);
+  const [editForm, setEditForm] = useState({ motivo: "", dataInicio: "", horaInicio: "", observacao: "" });
+  const [savingEdit, setSavingEdit] = useState(false);
+
   // Modal registro em massa (atendimento presencial)
   const [massaModal, setMassaModal] = useState(false);
   const [massaLocal, setMassaLocal] = useState("");
@@ -170,6 +175,36 @@ export default function TriagemPage() {
   async function excluirRegistro(id: number) {
     if (!confirm("Excluir este registro?")) return;
     await fetch(`/api/controle-triagem?id=${id}`, { method: "DELETE" });
+    load();
+  }
+
+  function abrirEditar(r: Registro) {
+    setEditModal(r);
+    setEditForm({
+      motivo: r.motivo,
+      dataInicio: r.dataInicio.slice(0, 10),
+      horaInicio: r.horaInicio ?? "",
+      observacao: r.observacao ?? "",
+    });
+  }
+
+  async function handleEditar(e: { preventDefault(): void }) {
+    e.preventDefault();
+    if (!editModal) return;
+    setSavingEdit(true);
+    await fetch("/api/controle-triagem", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: editModal.id,
+        motivo: editForm.motivo,
+        dataInicio: editForm.dataInicio,
+        horaInicio: editForm.horaInicio || null,
+        observacao: editForm.observacao || null,
+      }),
+    });
+    setSavingEdit(false);
+    setEditModal(null);
     load();
   }
 
@@ -519,12 +554,58 @@ export default function TriagemPage() {
                         </p>
                         {r.observacao && <p className="text-xs text-gray-500 italic mt-0.5">{r.observacao}</p>}
                       </div>
-                      <button onClick={() => excluirRegistro(r.id)} className="text-xs text-red-500 hover:text-red-400 shrink-0">Excluir</button>
+                      <div className="flex gap-2 shrink-0">
+                        <button onClick={() => { setPopup(null); abrirEditar(r); }} className="text-xs text-blue-400 hover:text-blue-300">Editar</button>
+                        <button onClick={() => excluirRegistro(r.id)} className="text-xs text-red-500 hover:text-red-400">Excluir</button>
+                      </div>
                     </div>
                   );
                 })}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal editar registro ── */}
+      {editModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4" onClick={() => setEditModal(null)}>
+          <div className="bg-gray-900 border border-gray-800 rounded-xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
+            <h3 className="text-base font-semibold text-white mb-4">Editar registro</h3>
+            <form onSubmit={handleEditar} className="space-y-3">
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Motivo</label>
+                <select value={editForm.motivo} onChange={e => setEditForm(f => ({ ...f, motivo: e.target.value }))}
+                  className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  {MOTIVOS_MANUAL.map(m => <option key={m} value={m}>{motivoLabel[m]}</option>)}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Data de saída</label>
+                  <input type="date" value={editForm.dataInicio} onChange={e => setEditForm(f => ({ ...f, dataInicio: e.target.value }))} required
+                    className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Hora de saída</label>
+                  <input type="time" value={editForm.horaInicio} onChange={e => setEditForm(f => ({ ...f, horaInicio: e.target.value }))}
+                    className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Observação</label>
+                <input value={editForm.observacao} onChange={e => setEditForm(f => ({ ...f, observacao: e.target.value }))}
+                  className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button type="button" onClick={() => setEditModal(null)}
+                  className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-lg py-2 transition">Cancelar</button>
+                <button type="submit" disabled={savingEdit}
+                  className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg py-2 transition">
+                  {savingEdit ? "Salvando..." : "Salvar"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

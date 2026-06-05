@@ -229,6 +229,37 @@ export default function PlantoesPage() {
     if (tab === "escala") loadEscalaMensal();
   }, [mesEscala]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  async function exportMarkdown() {
+    const todos = await fetch("/api/plantoes?view=historico").then(r => r.json()) as Historico[];
+    const porMes: Record<string, Historico[]> = {};
+    for (const h of todos) {
+      const mes = h.data.slice(0, 7);
+      if (!porMes[mes]) porMes[mes] = [];
+      porMes[mes].push(h);
+    }
+    const mesesOrdenados = Object.keys(porMes).sort();
+    const nomeMes = (m: string) => {
+      const [y, mo] = m.split("-");
+      return new Date(Number(y), Number(mo) - 1, 1).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+    };
+    let md = "# Revisão de Plantões e Folgas\n\n";
+    for (const mes of mesesOrdenados) {
+      md += `## ${nomeMes(mes)}\n\n`;
+      md += "| Colaborador | Equipe | Data Plantão | Tipo | Folga Simples | Folga Dupla |\n";
+      md += "|-------------|--------|--------------|------|--------------|-------------|\n";
+      for (const h of porMes[mes].sort((a, b) => a.data.localeCompare(b.data))) {
+        const needsDupla = h.tipo === "DOMINGO" || h.tipo === "FERIADO";
+        md += `| ${h.colaborador.nome} | ${h.colaborador.equipe.nome} | ${fmt(h.data)} | ${tipoLabel[h.tipo]} | ${fmt(h.folga1)} | ${needsDupla ? fmt(h.folga2) : "—"} |\n`;
+      }
+      md += "\n";
+    }
+    const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "revisao-plantoes.md"; a.click();
+    URL.revokeObjectURL(url);
+  }
+
   function exportCSV() {
     let csv = "";
     let filename = "";
@@ -456,6 +487,12 @@ export default function PlantoesPage() {
             <button onClick={exportCSV}
               className="bg-green-600 hover:bg-green-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
               Exportar CSV
+            </button>
+          )}
+          {tab === "historico" && (
+            <button onClick={exportMarkdown}
+              className="bg-gray-700 hover:bg-gray-600 text-gray-200 text-sm font-medium px-4 py-2 rounded-lg transition">
+              ↓ Revisão MD
             </button>
           )}
           {tab === "folgas"

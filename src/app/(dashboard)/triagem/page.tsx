@@ -32,9 +32,25 @@ function fmt(iso: string | null) {
   return iso.slice(0, 10).split("-").reverse().join("/");
 }
 
-function diasFora(dataInicio: string) {
-  const diff = Math.floor((Date.now() - new Date(dataInicio + "T12:00:00").getTime()) / 86400000);
-  return diff <= 0 ? "Hoje" : `${diff}d`;
+function diasFora(dataInicio: string, feriadosSet: Set<string>) {
+  const start = new Date(dataInicio.slice(0, 10) + "T00:00:00");
+  const hoje = new Date();
+  hoje.setHours(23, 59, 59, 999);
+
+  let count = 0;
+  const d = new Date(start);
+  d.setDate(d.getDate() + 1); // começa a contar a partir do dia seguinte à saída
+
+  while (d <= hoje) {
+    const dow = d.getDay(); // 0=Dom, 6=Sáb
+    const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    if (dow !== 0 && dow !== 6 && !feriadosSet.has(dateStr)) {
+      count++;
+    }
+    d.setDate(d.getDate() + 1);
+  }
+
+  return count <= 0 ? "Hoje" : `${count}d`;
 }
 
 function calcHoras(
@@ -92,6 +108,9 @@ export default function TriagemPage() {
   // Popup colaborador
   const [popup, setPopup] = useState<Colaborador | null>(null);
 
+  // Feriados e pontos facultativos (para contagem de dias úteis)
+  const [feriados, setFeriados] = useState<Set<string>>(new Set());
+
   function load() {
     fetch("/api/controle-triagem").then(r => r.json()).then(setRegistros);
   }
@@ -102,6 +121,9 @@ export default function TriagemPage() {
       setColaboradores([...d.colaboradores].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")))
     );
     fetch("/api/equipes").then(r => r.json()).then(setEquipes);
+    fetch("/api/feriados").then(r => r.json()).then((data: { data: string }[]) =>
+      setFeriados(new Set(data.map(f => f.data.slice(0, 10))))
+    );
   }, []);
 
   async function handleMassa() {
@@ -447,7 +469,7 @@ export default function TriagemPage() {
                     {reg ? (
                       <span className="font-mono">
                         {fmt(reg.dataInicio)}{reg.horaInicio ? ` ${reg.horaInicio}` : ""}
-                        <span className="text-gray-600 ml-1">({diasFora(reg.dataInicio)})</span>
+                        <span className="text-gray-600 ml-1">({diasFora(reg.dataInicio, feriados)})</span>
                       </span>
                     ) : "—"}
                   </td>

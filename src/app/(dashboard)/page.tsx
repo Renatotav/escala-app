@@ -8,6 +8,14 @@ function fmt(iso: string) {
   return iso.split("-").reverse().join("/");
 }
 
+function fmtRelativo(iso: string) {
+  const hojeStr = new Date().toISOString().slice(0, 10);
+  const ontemStr = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  if (iso === hojeStr) return "Hoje";
+  if (iso === ontemStr) return "Ontem";
+  return iso.split("-").reverse().join("/");
+}
+
 export default async function DashboardPage() {
   const hoje = new Date();
   const em14dias = new Date(hoje.getTime() + 14 * 24 * 60 * 60 * 1000);
@@ -106,7 +114,7 @@ export default async function DashboardPage() {
                     <p className="text-xs text-gray-500">{f.equipe}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm text-green-400 font-medium">{fmt(f.data)}</p>
+                    <p className="text-sm text-green-400 font-medium">{fmtRelativo(f.data)}</p>
                     <p className="text-xs text-gray-500">
                       {new Date(f.data + "T12:00:00").toLocaleDateString("pt-BR", { weekday: "long" })}
                     </p>

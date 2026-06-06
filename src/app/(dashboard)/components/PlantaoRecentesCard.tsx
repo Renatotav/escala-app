@@ -12,6 +12,16 @@ function fmt(iso: string | null) {
   return iso.slice(0, 10).split("-").reverse().join("/");
 }
 
+function fmtRelativo(iso: string | null) {
+  if (!iso) return "—";
+  const date = iso.slice(0, 10);
+  const hoje = new Date().toISOString().slice(0, 10);
+  const ontem = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  if (date === hoje) return "Hoje";
+  if (date === ontem) return "Ontem";
+  return date.split("-").reverse().join("/");
+}
+
 function tipoBadge(tipo: string) {
   if (tipo === "SABADO")            return <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">Sábado</span>;
   if (tipo === "DOMINGO")           return <span className="text-xs px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">Domingo</span>;
@@ -50,7 +60,7 @@ export default function PlantaoRecentesCard({ items }: { items: Item[] }) {
                   <p className="text-xs text-gray-500">{p.colaborador.equipe.nome}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm text-gray-300">{fmt(p.data)}</p>
+                  <p className="text-sm text-gray-300">{fmtRelativo(p.data)}</p>
                   <p className="text-xs text-gray-500">{tipoLabel[p.tipo] ?? p.tipo}</p>
                 </div>
               </div>

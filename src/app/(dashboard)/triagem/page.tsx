@@ -111,6 +111,9 @@ export default function TriagemPage() {
   // Feriados e pontos facultativos (para contagem de dias úteis)
   const [feriados, setFeriados] = useState<Set<string>>(new Set());
 
+  // Colaboradores com folga hoje (exibidos automaticamente como fora da lista)
+  const [folgasHoje, setFolgasHoje] = useState<Set<number>>(new Set());
+
   function load() {
     fetch("/api/controle-triagem").then(r => r.json()).then(setRegistros);
   }
@@ -123,6 +126,11 @@ export default function TriagemPage() {
     fetch("/api/equipes").then(r => r.json()).then(setEquipes);
     fetch("/api/feriados").then(r => r.json()).then((data: { data: string }[]) =>
       setFeriados(new Set(data.map(f => f.data.slice(0, 10))))
+    );
+    const hoje = new Date().toISOString().slice(0, 10);
+    const mes = hoje.slice(0, 7);
+    fetch(`/api/folgas?mes=${mes}`).then(r => r.json()).then((data: { colaboradorId: number; data: string }[]) =>
+      setFolgasHoje(new Set(data.filter(f => f.data.slice(0, 10) === hoje).map(f => f.colaboradorId)))
     );
   }, []);
 
@@ -249,8 +257,9 @@ export default function TriagemPage() {
       if (isEquipeExcluida(c.equipe.nome)) return false;
       if (filtroEquipe && c.equipe.nome !== filtroEquipe) return false;
       const reg = registroAtivo(registros, c.id);
-      if (filtroStatus === "fora" && !reg) return false;
-      if (filtroStatus === "lista" && reg) return false;
+      const folga = !reg && folgasHoje.has(c.id);
+      if (filtroStatus === "fora" && !reg && !folga) return false;
+      if (filtroStatus === "lista" && (reg || folga)) return false;
       return true;
     })
     .sort((a, b) => {
@@ -258,7 +267,7 @@ export default function TriagemPage() {
       return eq !== 0 ? eq : a.nome.localeCompare(b.nome, "pt-BR");
     });
 
-  const totalFora = colaboradores.filter(c => !isEquipeExcluida(c.equipe.nome) && registroAtivo(registros, c.id)).length;
+  const totalFora = colaboradores.filter(c => !isEquipeExcluida(c.equipe.nome) && (registroAtivo(registros, c.id) || folgasHoje.has(c.id))).length;
 
   const popupRegistros = popup
     ? [...registros.filter(r => r.colaboradorId === popup.id)].sort((a, b) => b.dataInicio.localeCompare(a.dataInicio))
@@ -434,7 +443,7 @@ export default function TriagemPage() {
               const horas = reg ? calcHoras(reg.dataInicio, reg.horaInicio, reg.dataFim, reg.horaFim) : null;
               const novoGrupo = !filtroEquipe && (i === 0 || lista[i - 1].equipe.nome !== c.equipe.nome);
               return (
-                <tr key={c.id} className={`border-b border-gray-800 last:border-0 transition ${reg ? "bg-red-900/5 hover:bg-red-900/10" : "hover:bg-gray-800/50"}`}
+                <tr key={c.id} className={`border-b border-gray-800 last:border-0 transition ${reg ? "bg-red-900/5 hover:bg-red-900/10" : folgasHoje.has(c.id) ? "bg-amber-900/5 hover:bg-amber-900/10" : "hover:bg-gray-800/50"}`}
                   style={novoGrupo ? { boxShadow: "inset 0 3px 0 0 rgb(55 65 81)" } : undefined}>
                   <td className="px-4 py-3" style={novoGrupo ? { paddingTop: "1.25rem" } : undefined}>
                     {novoGrupo && (
@@ -461,6 +470,8 @@ export default function TriagemPage() {
                       <span className={`text-xs px-2 py-0.5 rounded-full border ${motivoBadge[reg.motivo] ?? "bg-gray-700 text-gray-300"}`}>
                         {motivoLabel[reg.motivo] ?? reg.motivo}
                       </span>
+                    ) : folgasHoje.has(c.id) ? (
+                      <span className="text-xs px-2 py-0.5 rounded-full border bg-amber-500/20 text-amber-400 border-amber-500/30 whitespace-nowrap">Folga</span>
                     ) : (
                       <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30 whitespace-nowrap">Na lista</span>
                     )}
@@ -471,6 +482,8 @@ export default function TriagemPage() {
                         {fmt(reg.dataInicio)}{reg.horaInicio ? ` ${reg.horaInicio}` : ""}
                         <span className="text-gray-600 ml-1">({diasFora(reg.dataInicio, feriados)})</span>
                       </span>
+                    ) : folgasHoje.has(c.id) ? (
+                      <span className="font-mono text-amber-400/70">{fmt(new Date().toISOString().slice(0, 10))}</span>
                     ) : "—"}
                   </td>
                   <td className="px-4 py-3 text-center text-xs">
@@ -478,6 +491,8 @@ export default function TriagemPage() {
                       reg.dataFim
                         ? <span className="text-green-400 font-mono">{fmt(reg.dataFim)}{reg.horaFim ? ` ${reg.horaFim}` : ""}</span>
                         : <span className="text-gray-500">Em aberto</span>
+                    ) : folgasHoje.has(c.id) ? (
+                      <span className="text-amber-400/70">Hoje</span>
                     ) : "—"}
                   </td>
                   <td className="px-4 py-3 text-center text-xs">
@@ -493,6 +508,8 @@ export default function TriagemPage() {
                           className="text-xs bg-green-700 hover:bg-green-600 text-white px-2 py-1 rounded transition">
                           Retornou
                         </button>
+                      ) : folgasHoje.has(c.id) ? (
+                        <span className="text-xs text-amber-500/50 px-2 py-1">Folga automática</span>
                       ) : (
                         <button onClick={() => {
                           setModal({ colaboradorId: c.id, nome: c.nome });

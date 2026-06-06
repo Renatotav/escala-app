@@ -265,6 +265,11 @@ export default function TriagemPage() {
     setColaboradores(prev => prev.map(c => c.id === id ? { ...c, grupoListagem } : c));
   }
 
+  const hojeStr = new Date().toISOString().slice(0, 10);
+  const isWeekend = new Date().getDay() === 0 || new Date().getDay() === 6;
+  const isFeriadoHoje = feriados.has(hojeStr);
+  const isNonWorking = isWeekend || isFeriadoHoje;
+
   const lista = colaboradores
     .filter(c => {
       if (isEquipeExcluida(c.equipe.nome)) return false;
@@ -280,12 +285,6 @@ export default function TriagemPage() {
       const eq = a.equipe.nome.localeCompare(b.equipe.nome, "pt-BR");
       return eq !== 0 ? eq : a.nome.localeCompare(b.nome, "pt-BR");
     });
-
-  const hojeStr = new Date().toISOString().slice(0, 10);
-  const isWeekend = new Date().getDay() === 0 || new Date().getDay() === 6;
-  const isFeriadoHoje = feriados.has(hojeStr);
-
-  const isNonWorking = isWeekend || isFeriadoHoje;
 
   const totalFora = colaboradores.filter(c =>
     !isEquipeExcluida(c.equipe.nome) &&

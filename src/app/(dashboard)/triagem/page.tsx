@@ -729,6 +729,7 @@ export default function TriagemPage() {
           "4ª Vara Criminal da Comarca de Sobral",
           "4ª Vara de Delito de Tráfico de Drogas da Comarca de Fortaleza",
           "4ª Vara do Júri da Comarca de Fortaleza",
+          "5ª Vara do Júri da Comarca de Fortaleza",
           "4º Juizado da Violência Doméstica e Familiar Contra a Mulher da Comarca de Fortaleza",
           "4º Núcleo Regional de Custódia e das Garantias",
           "5ª Vara Criminal da Comarca de Fortaleza",

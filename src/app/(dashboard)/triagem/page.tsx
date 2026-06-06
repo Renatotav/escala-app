@@ -72,6 +72,13 @@ function registroAtivo(registros: Registro[], colaboradorId: number): Registro |
   return registros.find(r => r.colaboradorId === colaboradorId && (!r.dataFim || r.dataFim >= hoje)) ?? null;
 }
 
+// Em fins de semana/feriados, Atendimento Presencial em aberto não conta como fora da lista
+function registroEfetivo(registros: Registro[], colaboradorId: number, isNonWorking: boolean): Registro | null {
+  const reg = registroAtivo(registros, colaboradorId);
+  if (reg && isNonWorking && reg.motivo === "ATENDIMENTO_PRESENCIAL" && !reg.dataFim) return null;
+  return reg;
+}
+
 function horaAgora() {
   return new Date().toTimeString().slice(0, 5);
 }
@@ -262,7 +269,7 @@ export default function TriagemPage() {
     .filter(c => {
       if (isEquipeExcluida(c.equipe.nome)) return false;
       if (filtroEquipe && c.equipe.nome !== filtroEquipe) return false;
-      const reg = registroAtivo(registros, c.id);
+      const reg = registroEfetivo(registros, c.id, isNonWorking);
       const folga = !reg && folgasHoje.has(c.id);
       const plantao = !reg && !folga && plantaoHoje.has(c.id);
       if (filtroStatus === "fora" && !reg && !folga && !plantao) return false;
@@ -278,9 +285,11 @@ export default function TriagemPage() {
   const isWeekend = new Date().getDay() === 0 || new Date().getDay() === 6;
   const isFeriadoHoje = feriados.has(hojeStr);
 
+  const isNonWorking = isWeekend || isFeriadoHoje;
+
   const totalFora = colaboradores.filter(c =>
     !isEquipeExcluida(c.equipe.nome) &&
-    (registroAtivo(registros, c.id) || folgasHoje.has(c.id) || plantaoHoje.has(c.id))
+    (registroEfetivo(registros, c.id, isNonWorking) || folgasHoje.has(c.id) || plantaoHoje.has(c.id))
   ).length;
 
   const popupRegistros = popup
@@ -453,7 +462,7 @@ export default function TriagemPage() {
               <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-500">Nenhum colaborador encontrado</td></tr>
             )}
             {lista.map((c, i) => {
-              const reg = registroAtivo(registros, c.id);
+              const reg = registroEfetivo(registros, c.id, isNonWorking);
               const horas = reg ? calcHoras(reg.dataInicio, reg.horaInicio, reg.dataFim, reg.horaFim) : null;
               const novoGrupo = !filtroEquipe && (i === 0 || lista[i - 1].equipe.nome !== c.equipe.nome);
               return (

@@ -346,10 +346,11 @@ export default function PlantoesPage() {
   async function buscarPendentesColab(colaboradorId: string) {
     if (!colaboradorId) { setPendentesModal([]); setPlantaoSelecionado(null); return; }
     const data = await fetch(`/api/plantoes?view=historico&colaboradorId=${colaboradorId}`).then(r => r.json()) as Historico[];
+    const hoje = new Date().toISOString().slice(0, 10);
     const pendentes = data
       .filter(h => {
         const needsDupla = h.tipo === "DOMINGO" || h.tipo === "FERIADO";
-        return !h.folga1 || (needsDupla && !h.folga2);
+        return h.data <= hoje && (!h.folga1 || (needsDupla && !h.folga2));
       })
       .sort((a, b) => a.data.localeCompare(b.data));
     setPendentesModal(pendentes);
@@ -486,9 +487,10 @@ export default function PlantoesPage() {
 
   async function openSaldoFolga(s: Saldo) {
     const data = await fetch(`/api/plantoes?view=historico&colaboradorId=${s.id}`).then(r => r.json()) as Historico[];
+    const hoje = new Date().toISOString().slice(0, 10);
     const pendentes = data.filter(h => {
       const duplo = h.tipo === "DOMINGO" || h.tipo === "FERIADO";
-      return !h.folga1 || (duplo && !h.folga2);
+      return h.data <= hoje && (!h.folga1 || (duplo && !h.folga2));
     });
     setSaldoPendingColab({ id: s.id, nome: s.nome });
     setSaldoPendingPlantoes(pendentes);
@@ -498,9 +500,10 @@ export default function PlantoesPage() {
     setAbaterBHColab(s);
     setAbaterBHPlantoes([]);
     const data = await fetch(`/api/plantoes?view=historico&colaboradorId=${s.id}`).then(r => r.json()) as Historico[];
+    const hoje = new Date().toISOString().slice(0, 10);
     const pendentes = data.filter(h => {
       const duplo = h.tipo === "DOMINGO" || h.tipo === "FERIADO";
-      return !h.folga1 || (duplo && !h.folga2);
+      return h.data <= hoje && (!h.folga1 || (duplo && !h.folga2));
     });
     setAbaterBHPlantoes(pendentes);
   }
@@ -514,9 +517,10 @@ export default function PlantoesPage() {
     });
     setAbatendoBH(null);
     const data = await fetch(`/api/plantoes?view=historico&colaboradorId=${colaboradorId}`).then(r => r.json()) as Historico[];
+    const hoje = new Date().toISOString().slice(0, 10);
     const pendentes = data.filter(h => {
       const duplo = h.tipo === "DOMINGO" || h.tipo === "FERIADO";
-      return !h.folga1 || (duplo && !h.folga2);
+      return h.data <= hoje && (!h.folga1 || (duplo && !h.folga2));
     });
     setAbaterBHPlantoes(pendentes);
     loadSaldo();
@@ -719,7 +723,8 @@ export default function PlantoesPage() {
               )}
               {historico.map((h) => {
                 const needsFolga2 = h.tipo === "DOMINGO" || h.tipo === "FERIADO";
-                const pendente = !h.folga1 || (needsFolga2 && !h.folga2);
+                const hoje = new Date().toISOString().slice(0, 10);
+                const pendente = h.data <= hoje && (!h.folga1 || (needsFolga2 && !h.folga2));
                 return (
                   <tr key={h.id} className={`border-b border-gray-800 last:border-0 transition hover:bg-gray-800/50 ${pendente ? "bg-yellow-900/5" : ""}`}>
                     <td className="px-4 py-3">

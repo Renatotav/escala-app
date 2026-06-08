@@ -123,9 +123,10 @@ export default function BancoHorasPage() {
     if (plantoesPendentes[colabId] !== undefined) return;
     setPlantoesPendentes(prev => ({ ...prev, [colabId]: [] }));
     const data = await fetch(`/api/plantoes?view=historico&colaboradorId=${colabId}`).then(r => r.json());
+    const hoje = new Date().toISOString().slice(0, 10);
     const pendentes = data.filter((h: PendentePlantao) => {
       const duplo = h.tipo === "DOMINGO" || h.tipo === "FERIADO";
-      return !h.folga1 || (duplo && !h.folga2);
+      return h.data <= hoje && (!h.folga1 || (duplo && !h.folga2));
     });
     setPlantoesPendentes(prev => ({ ...prev, [colabId]: pendentes }));
   }

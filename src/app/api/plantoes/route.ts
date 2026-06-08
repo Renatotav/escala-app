@@ -84,10 +84,11 @@ export async function GET(request: NextRequest) {
       orderBy: { nome: "asc" },
     });
 
+    const hoje = new Date(); hoje.setHours(23, 59, 59, 999);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const saldo = colabs.map((c: any) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const ps: any[] = c.plantoes ?? [];
+      const ps: any[] = (c.plantoes ?? []).filter((p: any) => new Date(p.data) <= hoje);
       const creditos = ps.reduce((acc: number, p: any) => acc + (p.tipo === "SABADO" || p.tipo === "PONTO_FACULTATIVO" ? 1 : 2), 0);
       const agendadas = ps.reduce((acc: number, p: any) => acc + (p.folga1 ? 1 : 0) + (p.folga2 ? 1 : 0), 0);
       return {

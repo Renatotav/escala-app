@@ -79,6 +79,19 @@ function registroEfetivo(registros: Registro[], colaboradorId: number, isNonWork
   return reg;
 }
 
+// Último registro concluído (horaFim set) nos últimos 7 dias — para exibir histórico em cinza
+function ultimoRetornado(registros: Registro[], colaboradorId: number): Registro | null {
+  const limite = new Date();
+  limite.setDate(limite.getDate() - 7);
+  const limiteStr = limite.toISOString().slice(0, 10);
+  return (
+    registros
+      .filter(r => r.colaboradorId === colaboradorId && !!r.horaFim && !!r.dataFim && r.dataFim >= limiteStr)
+      .sort((a, b) => (b.dataFim ?? "").localeCompare(a.dataFim ?? "") || (b.horaFim ?? "").localeCompare(a.horaFim ?? ""))
+      [0] ?? null
+  );
+}
+
 function horaAgora() {
   return new Date().toTimeString().slice(0, 5);
 }
@@ -463,6 +476,8 @@ export default function TriagemPage() {
             {lista.map((c, i) => {
               const reg = registroEfetivo(registros, c.id, isNonWorking);
               const horas = reg ? calcHoras(reg.dataInicio, reg.horaInicio, reg.dataFim, reg.horaFim) : null;
+              const regRecente = !reg ? ultimoRetornado(registros, c.id) : null;
+              const horasRecente = regRecente ? calcHoras(regRecente.dataInicio, regRecente.horaInicio, regRecente.dataFim, regRecente.horaFim) : null;
               const novoGrupo = !filtroEquipe && (i === 0 || lista[i - 1].equipe.nome !== c.equipe.nome);
               return (
                 <tr key={c.id} className={`border-b border-gray-800 last:border-0 transition ${reg ? "bg-red-900/5 hover:bg-red-900/10" : folgasHoje.has(c.id) ? "bg-amber-900/5 hover:bg-amber-900/10" : plantaoHoje.has(c.id) ? "bg-teal-900/5 hover:bg-teal-900/10" : "hover:bg-gray-800/50"}`}
@@ -500,6 +515,11 @@ export default function TriagemPage() {
                       <span className="text-xs px-2 py-0.5 rounded-full border bg-slate-700/50 text-slate-400 border-slate-600/50 whitespace-nowrap">Fim de semana</span>
                     ) : isFeriadoHoje ? (
                       <span className="text-xs px-2 py-0.5 rounded-full border bg-blue-500/20 text-blue-400 border-blue-500/30 whitespace-nowrap">Feriado</span>
+                    ) : regRecente ? (
+                      <div>
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30 whitespace-nowrap">Na lista</span>
+                        <span className="block text-xs text-gray-600 mt-0.5">↩ retornou</span>
+                      </div>
                     ) : (
                       <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30 whitespace-nowrap">Na lista</span>
                     )}
@@ -510,6 +530,8 @@ export default function TriagemPage() {
                         {fmt(reg.dataInicio)}{reg.horaInicio ? ` ${reg.horaInicio}` : ""}
                         <span className="text-gray-600 ml-1">({diasFora(reg.dataInicio, feriados)})</span>
                       </span>
+                    ) : regRecente ? (
+                      <span className="font-mono text-gray-600">{fmt(regRecente.dataInicio)}{regRecente.horaInicio ? ` ${regRecente.horaInicio}` : ""}</span>
                     ) : folgasHoje.has(c.id) ? (
                       <span className="font-mono text-amber-400/70">{fmt(hojeStr)}</span>
                     ) : plantaoHoje.has(c.id) ? (
@@ -521,6 +543,8 @@ export default function TriagemPage() {
                       reg.dataFim
                         ? <span className="text-green-400 font-mono">{fmt(reg.dataFim)}{reg.horaFim ? ` ${reg.horaFim}` : ""}</span>
                         : <span className="text-gray-500">Em aberto</span>
+                    ) : regRecente ? (
+                      <span className="text-gray-600 font-mono">{fmt(regRecente.dataFim)}{regRecente.horaFim ? ` ${regRecente.horaFim}` : ""}</span>
                     ) : folgasHoje.has(c.id) ? (
                       <span className="text-amber-400/70">Hoje</span>
                     ) : plantaoHoje.has(c.id) ? (
@@ -530,9 +554,17 @@ export default function TriagemPage() {
                   <td className="px-4 py-3 text-center text-xs">
                     {horas
                       ? <span className="font-semibold text-blue-400">{horas}</span>
-                      : <span className="text-gray-600">—</span>}
+                      : horasRecente
+                        ? <span className="text-gray-600">{horasRecente}</span>
+                        : <span className="text-gray-600">—</span>}
                   </td>
-                  <td className="px-4 py-3 text-xs text-gray-400 italic">{reg?.observacao ?? "—"}</td>
+                  <td className="px-4 py-3 text-xs italic">
+                    {reg?.observacao
+                      ? <span className="text-gray-400">{reg.observacao}</span>
+                      : regRecente?.observacao
+                        ? <span className="text-gray-600">{regRecente.observacao}</span>
+                        : <span className="text-gray-700">—</span>}
+                  </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex gap-2 justify-end">
                       {reg ? (

@@ -741,10 +741,12 @@ export default function PlantoesPage() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-3">
-                        <button onClick={() => openFolga(h)}
-                          className={`text-xs font-medium transition ${pendente ? "text-yellow-400 hover:text-yellow-300" : "text-gray-500 hover:text-gray-300"}`}>
-                          {pendente ? "Agendar folga" : "Folgas"}
-                        </button>
+                        {h.data <= hoje && (
+                          <button onClick={() => openFolga(h)}
+                            className={`text-xs font-medium transition ${pendente ? "text-yellow-400 hover:text-yellow-300" : "text-gray-500 hover:text-gray-300"}`}>
+                            {pendente ? "Agendar folga" : "Folgas"}
+                          </button>
+                        )}
                         <button onClick={() => openEditPlantao(h)}
                           className="text-xs text-blue-400 hover:text-blue-300 font-medium transition">
                           ✎ Editar

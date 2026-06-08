@@ -141,6 +141,11 @@ export default function PlantoesPage() {
   const [editForm, setEditForm] = useState({ colaboradorId: "", data: "", tipo: "SABADO" });
   const [savingEdit, setSavingEdit] = useState(false);
 
+  const [saldoBH, setSaldoBH] = useState<Record<number, number>>({});
+  const [abaterBHColab, setAbaterBHColab] = useState<Saldo | null>(null);
+  const [abaterBHPlantoes, setAbaterBHPlantoes] = useState<Historico[]>([]);
+  const [abatendoBH, setAbatendoBH] = useState<number | null>(null);
+  const [hPorDiaAbate, setHPorDiaAbate] = useState(9);
   const [saldoPendingColab, setSaldoPendingColab] = useState<{ id: number; nome: string } | null>(null);
   const [saldoPendingPlantoes, setSaldoPendingPlantoes] = useState<Historico[]>([]);
   const [saldoVerColab, setSaldoVerColab] = useState<{ id: number; nome: string } | null>(null);
@@ -171,8 +176,14 @@ export default function PlantoesPage() {
   }
 
   async function loadSaldo() {
-    const data = await fetch("/api/plantoes?view=saldo").then((r) => r.json());
-    setSaldo(data);
+    const [saldoData, bhData] = await Promise.all([
+      fetch("/api/plantoes?view=saldo").then(r => r.json()),
+      fetch("/api/banco-horas").then(r => r.json()).catch(() => []),
+    ]);
+    setSaldo(saldoData);
+    const lookup: Record<number, number> = {};
+    for (const b of bhData) lookup[b.id] = b.saldoMinutos;
+    setSaldoBH(lookup);
   }
 
 
@@ -483,6 +494,34 @@ export default function PlantoesPage() {
     setSaldoPendingPlantoes(pendentes);
   }
 
+  async function openAbaterBH(s: Saldo) {
+    setAbaterBHColab(s);
+    setAbaterBHPlantoes([]);
+    const data = await fetch(`/api/plantoes?view=historico&colaboradorId=${s.id}`).then(r => r.json()) as Historico[];
+    const pendentes = data.filter(h => {
+      const duplo = h.tipo === "DOMINGO" || h.tipo === "FERIADO";
+      return !h.folga1 || (duplo && !h.folga2);
+    });
+    setAbaterBHPlantoes(pendentes);
+  }
+
+  async function confirmarAbatimento(plantaoId: number, colaboradorId: number) {
+    setAbatendoBH(plantaoId);
+    await fetch("/api/banco-horas/converter-folga", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ plantaoId, colaboradorId, hPorDia: hPorDiaAbate }),
+    });
+    setAbatendoBH(null);
+    const data = await fetch(`/api/plantoes?view=historico&colaboradorId=${colaboradorId}`).then(r => r.json()) as Historico[];
+    const pendentes = data.filter(h => {
+      const duplo = h.tipo === "DOMINGO" || h.tipo === "FERIADO";
+      return !h.folga1 || (duplo && !h.folga2);
+    });
+    setAbaterBHPlantoes(pendentes);
+    loadSaldo();
+  }
+
   function openFolga(h: Historico) {
     setSelected(h);
     setFolgaForm({ folga1: h.folga1 ? h.folga1.slice(0, 10) : "", folga2: h.folga2 ? h.folga2.slice(0, 10) : "" });
@@ -762,12 +801,20 @@ export default function PlantoesPage() {
                       : <span className="text-gray-600">0</span>}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    {s.pendentes > 0 && (
-                      <button onClick={() => openSaldoFolga(s)}
-                        className="text-xs font-medium text-yellow-400 hover:text-yellow-300 transition">
-                        Agendar folga
-                      </button>
-                    )}
+                    <div className="flex items-center justify-end gap-3">
+                      {s.pendentes > 0 && (
+                        <button onClick={() => openSaldoFolga(s)}
+                          className="text-xs font-medium text-yellow-400 hover:text-yellow-300 transition">
+                          Agendar folga
+                        </button>
+                      )}
+                      {s.pendentes > 0 && saldoBH[s.id] !== undefined && saldoBH[s.id] < 0 && (
+                        <button onClick={() => openAbaterBH(s)}
+                          className="text-xs font-medium text-blue-400 hover:text-blue-300 transition">
+                          Abater no BH
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -1117,6 +1164,65 @@ export default function PlantoesPage() {
               </div>
             )}
             <button onClick={() => setSaldoVerColab(null)}
+              className="mt-4 w-full bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-lg py-2 transition">
+              Fechar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL — Abater folga no Banco de Horas */}
+      {abaterBHColab && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4">
+          <div className="bg-gray-900 border border-gray-800 rounded-xl w-full max-w-md p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-base font-semibold text-white">Abater no Banco de Horas</h3>
+                <p className="text-xs text-gray-400 mt-0.5">{abaterBHColab.nome}</p>
+              </div>
+              <button onClick={() => setAbaterBHColab(null)} className="text-gray-600 hover:text-gray-400 transition">✕</button>
+            </div>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs text-gray-500">
+                Selecione uma folga para converter no banco de horas.
+              </p>
+              <label className="flex items-center gap-1.5 text-xs text-gray-500 shrink-0 ml-3">
+                h/dia
+                <input type="number" min="1" max="24" value={hPorDiaAbate}
+                  onChange={e => setHPorDiaAbate(Number(e.target.value))}
+                  className="w-14 bg-gray-800 border border-gray-700 text-white rounded px-2 py-1 text-center text-xs focus:outline-none focus:ring-1 focus:ring-blue-500" />
+              </label>
+            </div>
+            {abaterBHPlantoes.length === 0 ? (
+              <p className="text-sm text-gray-500 text-center py-4">
+                {abatendoBH !== null ? "Processando..." : "Nenhuma folga pendente"}
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {abaterBHPlantoes.map(p => {
+                  const duplo = p.tipo === "DOMINGO" || p.tipo === "FERIADO";
+                  const slotsDisponiveis = (!p.folga1 ? 1 : 0) + (duplo && !p.folga2 ? 1 : 0);
+                  return (
+                    <div key={p.id} className="flex items-center justify-between p-2.5 rounded-lg bg-gray-800 border border-gray-700">
+                      <div>
+                        <p className="text-sm text-gray-200 font-mono">{fmt(p.data)}</p>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          {tipoBadge(p.tipo)}
+                          {slotsDisponiveis > 1 && <span className="text-xs text-gray-500">{slotsDisponiveis} slots disponíveis</span>}
+                        </div>
+                      </div>
+                      <button
+                        disabled={abatendoBH === p.id}
+                        onClick={() => confirmarAbatimento(p.id, abaterBHColab.id)}
+                        className="text-xs px-2.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white font-medium transition">
+                        {abatendoBH === p.id ? "..." : `+${hPorDiaAbate}h`}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            <button onClick={() => setAbaterBHColab(null)}
               className="mt-4 w-full bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-lg py-2 transition">
               Fechar
             </button>

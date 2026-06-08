@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 type Equipe = { id: number; nome: string };
 type Historico = { id: number; data: string; horas: number; descricao: string | null };
+type PendentePlantao = { id: number; data: string; tipo: string; folga1: string | null; folga2: string | null };
 type BancoItem = {
   id: number; nome: string; equipe: Equipe;
   lancamentos: number; saldo: string; saldoMinutos: number;
@@ -13,6 +14,7 @@ type BancoItem = {
 const emptyForm = { colaboradorId: "", data: new Date().toISOString().slice(0, 10), sinal: "+" as "+" | "-", horas: "0", minutos: "0", descricao: "", porDias: false, dias: "1", hPorDia: "8" };
 type EditingLancamento = { id: number; data: string; horas: number; descricao: string };
 type ModalMode = "lancar" | "compensar" | "devedor" | "editar";
+const tipoLabel: Record<string, string> = { SABADO: "Sábado", DOMINGO: "Domingo", FERIADO: "Feriado", PONTO_FACULTATIVO: "Pto. Facultativo" };
 
 function fmt(iso: string) {
   return new Date(iso).toLocaleDateString("pt-BR", { timeZone: "UTC" });
@@ -38,6 +40,9 @@ export default function BancoHorasPage() {
   const [editingLancamento, setEditingLancamento] = useState<EditingLancamento | null>(null);
   const [compensandoColab, setCompensandoColab] = useState<BancoItem | null>(null);
   const [verHistorico, setVerHistorico] = useState<BancoItem | null>(null);
+  const [plantoesPendentes, setPlantoesPendentes] = useState<Record<number, PendentePlantao[]>>({});
+  const [abatendoPlantao, setAbatendoPlantao] = useState<number | null>(null);
+  const [hPorDiaAbate, setHPorDiaAbate] = useState(9);
 
   function load() {
     const params = new URLSearchParams();
@@ -112,6 +117,29 @@ export default function BancoHorasPage() {
     setModalMode("devedor");
     setForm({ ...emptyForm, colaboradorId: String(d.id), sinal: "+", descricao: "" });
     setModal(true);
+  }
+
+  async function loadPendentes(colabId: number) {
+    if (plantoesPendentes[colabId] !== undefined) return;
+    setPlantoesPendentes(prev => ({ ...prev, [colabId]: [] }));
+    const data = await fetch(`/api/plantoes?view=historico&colaboradorId=${colabId}`).then(r => r.json());
+    const pendentes = data.filter((h: PendentePlantao) => {
+      const duplo = h.tipo === "DOMINGO" || h.tipo === "FERIADO";
+      return !h.folga1 || (duplo && !h.folga2);
+    });
+    setPlantoesPendentes(prev => ({ ...prev, [colabId]: pendentes }));
+  }
+
+  async function usarFolga(plantaoId: number, colaboradorId: number) {
+    setAbatendoPlantao(plantaoId);
+    await fetch("/api/banco-horas/converter-folga", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ plantaoId, colaboradorId, hPorDia: hPorDiaAbate }),
+    });
+    setAbatendoPlantao(null);
+    setPlantoesPendentes(prev => { const c = { ...prev }; delete c[colaboradorId]; return c; });
+    load();
   }
 
   function exportCSV() {
@@ -235,7 +263,11 @@ export default function BancoHorasPage() {
                   <td className="px-4 py-3 text-center">
                     {d.lancamentos > 0 && (
                       <button
-                        onClick={() => setExpandido(expandido === d.id ? null : d.id)}
+                        onClick={() => {
+                          const newId = expandido === d.id ? null : d.id;
+                          setExpandido(newId);
+                          if (newId !== null && d.saldoMinutos < 0) loadPendentes(d.id);
+                        }}
                         className="text-gray-500 hover:text-gray-300 transition text-xs">
                         {expandido === d.id ? "▲" : "▼"}
                       </button>
@@ -264,6 +296,45 @@ export default function BancoHorasPage() {
                             <div className="flex justify-between text-xs mt-1.5">
                               <span className="text-gray-500">Pago: <span className="text-blue-400 font-mono">+{Math.floor(totalPago/60)}h{String(Math.round(totalPago%60)).padStart(2,"0")}m</span></span>
                               <span className="text-gray-500">Dívida: <span className="text-red-400 font-mono">-{Math.floor(totalDevido/60)}h{String(Math.round(totalDevido%60)).padStart(2,"0")}m</span></span>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                      {/* Folgas disponíveis para abate */}
+                      {d.saldoMinutos < 0 && plantoesPendentes[d.id] !== undefined && (() => {
+                        const lista = plantoesPendentes[d.id];
+                        if (lista.length === 0) return null;
+                        return (
+                          <div className="mb-3 p-2.5 rounded-lg bg-green-500/5 border border-green-500/15">
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="text-xs text-gray-400 font-medium">Folgas disponíveis para abater dívida</p>
+                              <label className="flex items-center gap-1.5 text-xs text-gray-500">
+                                h/dia
+                                <input type="number" min="1" max="24" value={hPorDiaAbate}
+                                  onChange={e => setHPorDiaAbate(Number(e.target.value))}
+                                  className="w-12 bg-gray-700 border border-gray-600 text-white rounded px-1.5 py-0.5 text-center text-xs focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                              </label>
+                            </div>
+                            <div className="space-y-1.5">
+                              {lista.map(p => {
+                                const duplo = p.tipo === "DOMINGO" || p.tipo === "FERIADO";
+                                return (
+                                  <div key={p.id} className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-xs text-gray-400 font-mono">{fmt(p.data)}</span>
+                                      <span className={`text-xs px-1.5 py-0.5 rounded ${duplo ? "bg-orange-500/15 text-orange-400" : "bg-blue-500/15 text-blue-400"}`}>
+                                        {tipoLabel[p.tipo]}
+                                      </span>
+                                    </div>
+                                    <button
+                                      disabled={abatendoPlantao === p.id}
+                                      onClick={() => usarFolga(p.id, d.id)}
+                                      className="text-xs px-2 py-0.5 rounded bg-green-500/15 text-green-400 border border-green-500/25 hover:bg-green-500/25 disabled:opacity-40 transition font-medium">
+                                      {abatendoPlantao === p.id ? "..." : `Usar folga +${hPorDiaAbate}h`}
+                                    </button>
+                                  </div>
+                                );
+                              })}
                             </div>
                           </div>
                         );

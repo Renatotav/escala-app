@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { buscarCid, sugerirCids } from "@/lib/cid";
 
 type Equipe = { id: number; nome: string };
 type Colaborador = { id: number; nome: string; equipe: Equipe };
@@ -24,10 +23,21 @@ export default function AtestadosPage() {
   const [verAtestado, setVerAtestado] = useState<Atestado | null>(null);
   const [cidSugestoes, setCidSugestoes] = useState<{ codigo: string; descricao: string }[]>([]);
   const [cidDescricao, setCidDescricao] = useState<string | null>(null);
+  const [cidDescricoes, setCidDescricoes] = useState<Record<string, string>>({});
   const cidRef = useRef<HTMLDivElement>(null);
+  const cidTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function load() {
-    fetch("/api/atestados").then(r => r.json()).then(setAtestados);
+    fetch("/api/atestados").then(r => r.json()).then((data: Atestado[]) => {
+      setAtestados(data);
+      // Busca descrições dos CIDs já registrados para exibir na tabela
+      const codigosUnicos = [...new Set(data.map(a => a.cid).filter(Boolean))] as string[];
+      if (codigosUnicos.length > 0) {
+        fetch(`/api/cid?codes=${codigosUnicos.join(",")}`)
+          .then(r => r.json())
+          .then(setCidDescricoes);
+      }
+    });
   }
 
   useEffect(() => {
@@ -39,8 +49,18 @@ export default function AtestadosPage() {
 
   function handleCidChange(valor: string) {
     setForm(f => ({ ...f, cid: valor }));
-    setCidSugestoes(sugerirCids(valor));
-    setCidDescricao(buscarCid(valor));
+    setCidDescricao(null);
+    if (cidTimer.current) clearTimeout(cidTimer.current);
+    if (valor.length < 2) { setCidSugestoes([]); return; }
+    cidTimer.current = setTimeout(() => {
+      fetch(`/api/cid?q=${encodeURIComponent(valor)}`)
+        .then(r => r.json())
+        .then((data: { codigo: string; descricao: string }[]) => {
+          setCidSugestoes(data);
+          const exato = data.find(c => c.codigo === valor.toUpperCase());
+          if (exato) setCidDescricao(exato.descricao);
+        });
+    }, 300);
   }
 
   function selecionarCid(codigo: string, descricao: string) {
@@ -125,7 +145,7 @@ export default function AtestadosPage() {
             )}
             {atestados.map(a => {
               const ativo = a.dataInicio <= hoje && a.dataFim >= hoje;
-              const cidLabel = a.cid ? buscarCid(a.cid) : null;
+              const cidLabel = a.cid ? (cidDescricoes[a.cid] ?? null) : null;
               return (
                 <tr key={a.id} className={`border-b border-gray-800 last:border-0 hover:bg-gray-800/50 transition ${ativo ? "bg-orange-900/10" : ""}`}>
                   <td className="px-4 py-3">
@@ -185,7 +205,7 @@ export default function AtestadosPage() {
                 <div>
                   <p className="text-xs text-gray-500">CID</p>
                   <p className="text-blue-400 font-mono text-sm">{verAtestado.cid}</p>
-                  {buscarCid(verAtestado.cid) && <p className="text-gray-300 text-xs mt-0.5">{buscarCid(verAtestado.cid)}</p>}
+                  {cidDescricoes[verAtestado.cid] && <p className="text-gray-300 text-xs mt-0.5">{cidDescricoes[verAtestado.cid]}</p>}
                 </div>
               )}
               {verAtestado.descricao && (

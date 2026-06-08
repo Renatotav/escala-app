@@ -13,6 +13,7 @@ export async function GET(request: NextRequest) {
   if (colaboradorId) where.colaboradorId = Number(colaboradorId);
   if (ativos) {
     where.dataInicio = { lte: hoje };
+    where.horaFim = null;
     where.OR = [{ dataFim: null }, { dataFim: { gte: hoje } }];
   }
 

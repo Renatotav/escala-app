@@ -57,6 +57,33 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({ ...atestado, dias: Math.round((atestado.dataFim.getTime() - atestado.dataInicio.getTime()) / 86400000) + 1 }, { status: 201 });
 }
 
+export async function PATCH(request: NextRequest) {
+  const { id, dataInicio, dataFim, cid, descricao } = await request.json();
+  if (!id) return NextResponse.json({ ok: false }, { status: 400 });
+
+  const atestado = await prisma.atestado.update({
+    where: { id: Number(id) },
+    data: {
+      dataInicio: new Date(dataInicio),
+      dataFim: new Date(dataFim),
+      cid: cid || null,
+      descricao: descricao || null,
+    },
+  });
+
+  // Atualiza o registro de triagem vinculado
+  await prisma.controleTriagem.updateMany({
+    where: { atestadoId: Number(id) },
+    data: {
+      dataInicio: new Date(dataInicio),
+      dataFim: new Date(dataFim),
+      observacao: cid ? `CID: ${cid}` : (descricao || null),
+    },
+  });
+
+  return NextResponse.json({ ok: true, dias: Math.round((atestado.dataFim.getTime() - atestado.dataInicio.getTime()) / 86400000) + 1 });
+}
+
 export async function DELETE(request: NextRequest) {
   const id = Number(new URL(request.url).searchParams.get("id"));
   if (!id) return NextResponse.json({ ok: false }, { status: 400 });

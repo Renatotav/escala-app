@@ -20,6 +20,7 @@ export default function AtestadosPage() {
   const [modal, setModal] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [verAtestado, setVerAtestado] = useState<Atestado | null>(null);
   const [cidSugestoes, setCidSugestoes] = useState<{ codigo: string; descricao: string }[]>([]);
   const [cidDescricao, setCidDescricao] = useState<string | null>(null);
@@ -69,19 +70,40 @@ export default function AtestadosPage() {
     setCidSugestoes([]);
   }
 
-  async function handleSubmit(e: { preventDefault(): void }) {
-    e.preventDefault();
-    setSaving(true);
-    await fetch("/api/atestados", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, colaboradorId: Number(form.colaboradorId) }),
-    });
-    setSaving(false);
+  function openEdit(a: Atestado) {
+    setForm({ colaboradorId: String(a.colaboradorId), dataInicio: a.dataInicio, dataFim: a.dataFim, cid: a.cid ?? "", descricao: a.descricao ?? "" });
+    setCidDescricao(a.cid ? (cidDescricoes[a.cid] ?? null) : null);
+    setCidSugestoes([]);
+    setEditingId(a.id);
+    setModal(true);
+  }
+
+  function closeModal() {
     setModal(false);
+    setEditingId(null);
     setForm(emptyForm);
     setCidDescricao(null);
     setCidSugestoes([]);
+  }
+
+  async function handleSubmit(e: { preventDefault(): void }) {
+    e.preventDefault();
+    setSaving(true);
+    if (editingId !== null) {
+      await fetch("/api/atestados", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: editingId, dataInicio: form.dataInicio, dataFim: form.dataFim, cid: form.cid, descricao: form.descricao }),
+      });
+    } else {
+      await fetch("/api/atestados", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...form, colaboradorId: Number(form.colaboradorId) }),
+      });
+    }
+    setSaving(false);
+    closeModal();
     load();
   }
 
@@ -118,7 +140,7 @@ export default function AtestadosPage() {
             className="bg-green-600 hover:bg-green-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
             Exportar CSV
           </button>
-          <button onClick={() => { setForm(emptyForm); setCidDescricao(null); setCidSugestoes([]); setModal(true); }}
+          <button onClick={() => { setEditingId(null); setForm(emptyForm); setCidDescricao(null); setCidSugestoes([]); setModal(true); }}
             className="bg-orange-600 hover:bg-orange-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
             + Registrar atestado
           </button>
@@ -177,7 +199,10 @@ export default function AtestadosPage() {
                     ) : <span className="text-gray-600 text-xs">—</span>}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button onClick={() => handleDelete(a.id)} className="text-xs text-red-400 hover:text-red-300 transition">Excluir</button>
+                    <div className="flex items-center justify-end gap-3">
+                      <button onClick={() => openEdit(a)} className="text-xs text-blue-400 hover:text-blue-300 transition">Editar</button>
+                      <button onClick={() => handleDelete(a.id)} className="text-xs text-red-400 hover:text-red-300 transition">Excluir</button>
+                    </div>
                   </td>
                 </tr>
               );
@@ -221,15 +246,21 @@ export default function AtestadosPage() {
       {modal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4">
           <div className="bg-gray-900 border border-gray-800 rounded-xl w-full max-w-sm p-6">
-            <h3 className="text-base font-semibold text-white mb-4">Registrar atestado</h3>
+            <h3 className="text-base font-semibold text-white mb-4">{editingId ? "Editar atestado" : "Registrar atestado"}</h3>
             <form onSubmit={handleSubmit} className="space-y-3">
               <div>
                 <label className="block text-xs text-gray-400 mb-1">Colaborador</label>
-                <select value={form.colaboradorId} onChange={e => setForm(f => ({ ...f, colaboradorId: e.target.value }))} required
-                  className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
-                  <option value="">Selecione...</option>
-                  {colaboradores.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
-                </select>
+                {editingId ? (
+                  <p className="text-sm text-white bg-gray-800 border border-gray-700 rounded-lg px-3 py-2">
+                    {colaboradores.find(c => c.id === Number(form.colaboradorId))?.nome ?? "—"}
+                  </p>
+                ) : (
+                  <select value={form.colaboradorId} onChange={e => setForm(f => ({ ...f, colaboradorId: e.target.value }))} required
+                    className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+                    <option value="">Selecione...</option>
+                    {colaboradores.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                  </select>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -273,9 +304,9 @@ export default function AtestadosPage() {
                   className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500" />
               </div>
               <div className="flex gap-2 pt-2">
-                <button type="button" onClick={() => setModal(false)} className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-lg py-2 transition">Cancelar</button>
+                <button type="button" onClick={closeModal} className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-lg py-2 transition">Cancelar</button>
                 <button type="submit" disabled={saving} className="flex-1 bg-orange-600 hover:bg-orange-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg py-2 transition">
-                  {saving ? "Salvando..." : "Registrar"}
+                  {saving ? "Salvando..." : editingId ? "Salvar" : "Registrar"}
                 </button>
               </div>
             </form>

@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { buscarCid } from "@/lib/cid";
 
 type Equipe = { id: number; nome: string };
 type Plantao = { id: number; data: string; tipo: string; folga1: string | null; folga2: string | null; descricao: string | null };
@@ -35,6 +34,7 @@ export default function FichaPage() {
   const searchParams = useSearchParams();
   const initialTab = (searchParams.get("tab") ?? "dados") as "dados" | "plantoes" | "feedbacks" | "ocorrencias" | "atestados";
   const [tab, setTab] = useState<"dados" | "plantoes" | "feedbacks" | "ocorrencias" | "atestados">(initialTab);
+  const [cidDescricoes, setCidDescricoes] = useState<Record<string, string>>({});
   const [editando, setEditando] = useState(false);
   const [dadosForm, setDadosForm] = useState({ dataNascimento: "", cpf: "", email: "", telefone: "", telefoneEmerg: "", nomeEmerg: "", endereco: "" });
   const [saving, setSaving] = useState(false);
@@ -45,6 +45,10 @@ export default function FichaPage() {
   function load() {
     fetch(`/api/colaboradores/${id}/ficha`).then(r => r.json()).then((data: Colaborador) => {
       setColab(data);
+      const codigosCid = [...new Set(data.atestados.map(a => a.cid).filter(Boolean))] as string[];
+      if (codigosCid.length > 0) {
+        fetch(`/api/cid?codes=${codigosCid.join(",")}`).then(r => r.json()).then(setCidDescricoes);
+      }
       setDadosForm({
         dataNascimento: data.dataNascimento ? data.dataNascimento.slice(0, 10) : "",
         cpf: data.cpf ?? "", email: data.email ?? "",
@@ -283,7 +287,7 @@ export default function FichaPage() {
                   <td className="px-4 py-3 text-gray-300 font-mono text-xs">{fmt(a.dataFim)}</td>
                   <td className="px-4 py-3 text-center text-orange-400 font-bold">{a.dias}</td>
                   <td className="px-4 py-3">
-                    {a.cid ? <div><p className="text-blue-400 font-mono text-xs">{a.cid}</p><p className="text-gray-500 text-xs">{buscarCid(a.cid)}</p></div> : <span className="text-gray-600 text-xs">—</span>}
+                    {a.cid ? <div><p className="text-blue-400 font-mono text-xs">{a.cid}</p>{cidDescricoes[a.cid] && <p className="text-gray-500 text-xs">{cidDescricoes[a.cid]}</p>}</div> : <span className="text-gray-600 text-xs">—</span>}
                   </td>
                   <td className="px-4 py-3 text-gray-400 text-xs">{a.descricao ?? "—"}</td>
                 </tr>

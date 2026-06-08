@@ -14,7 +14,23 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
     },
   });
   if (!colaborador) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json(colaborador);
+
+  return NextResponse.json({
+    ...colaborador,
+    dataNascimento: colaborador.dataNascimento?.toISOString().slice(0, 10) ?? null,
+    plantoes: colaborador.plantoes.map(p => ({
+      ...p,
+      data: p.data.toISOString().slice(0, 10),
+      folga1: p.folga1?.toISOString().slice(0, 10) ?? null,
+      folga2: p.folga2?.toISOString().slice(0, 10) ?? null,
+    })),
+    atestados: colaborador.atestados.map(a => ({
+      ...a,
+      dataInicio: a.dataInicio.toISOString().slice(0, 10),
+      dataFim: a.dataFim.toISOString().slice(0, 10),
+      dias: Math.round((a.dataFim.getTime() - a.dataInicio.getTime()) / 86400000) + 1,
+    })),
+  });
 }
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {

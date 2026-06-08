@@ -69,7 +69,7 @@ function calcHoras(
 
 function registroAtivo(registros: Registro[], colaboradorId: number): Registro | null {
   const hoje = new Date().toISOString().slice(0, 10);
-  return registros.find(r => r.colaboradorId === colaboradorId && (!r.dataFim || r.dataFim >= hoje)) ?? null;
+  return registros.find(r => r.colaboradorId === colaboradorId && !r.horaFim && (!r.dataFim || r.dataFim >= hoje)) ?? null;
 }
 
 // Em fins de semana/feriados, Atendimento Presencial em aberto não conta como fora da lista

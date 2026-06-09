@@ -81,6 +81,8 @@ async function migrate() {
   try { await client.query('ALTER TABLE \"ControleTriagem\" ADD COLUMN IF NOT EXISTS \"horaFim\" TEXT'); } catch(e) {}
   // Add grupoListagem to Colaborador
   try { await client.query('ALTER TABLE \"Colaborador\" ADD COLUMN IF NOT EXISTS \"grupoListagem\" TEXT NOT NULL DEFAULT \'FORA\''); } catch(e) {}
+  // Add ajusteSemanasPresencial to Colaborador
+  try { await client.query('ALTER TABLE \"Colaborador\" ADD COLUMN IF NOT EXISTS \"ajusteSemanasPresencial\" INTEGER NOT NULL DEFAULT 0'); } catch(e) {}
 
   await client.end();
   console.log('Migration completed successfully.');

@@ -182,7 +182,7 @@ export default function EscalaPage() {
                         const extraSemanas = !c.semRemoto && c.sinal === "VERDE" ? c.semanasPresencial - c.equipe.thresholdVerde : 0;
                         const isMuitoAcima = !isPriority && !c.semRemoto && extraSemanas >= 2;
                         return (
-                          <tr key={c.id} className={`border-b border-gray-800 last:border-0 transition ${c.semRemoto ? "opacity-50" : isPriority ? "bg-amber-950/25 hover:bg-amber-950/40" : "hover:bg-gray-800/50"}`}>
+                          <tr key={c.id} className={`border-b border-gray-800 last:border-0 transition ${isPriority ? "bg-amber-950/25 hover:bg-amber-950/40" : "hover:bg-gray-800/50"}`}>
                             <td className="px-4 py-3 max-w-[220px]">
                               <div className="flex items-center gap-1.5">
                                 {isPriority && <span className="text-amber-400 text-sm flex-shrink-0">★</span>}
@@ -221,7 +221,9 @@ export default function EscalaPage() {
                               )}
                             </td>
                             <td className="px-4 py-3">
-                              {c.escalaSemana ? (
+                              {c.semRemoto ? (
+                                <span className="text-xs font-medium text-gray-400">Presencial</span>
+                              ) : c.escalaSemana ? (
                                 <span className={`text-xs font-medium ${c.escalaSemana === "REMOTO" ? "text-blue-400" : "text-gray-300"}`}>
                                   {c.escalaSemana === "REMOTO" ? "Remoto" : "Presencial"}
                                 </span>

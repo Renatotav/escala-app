@@ -42,7 +42,8 @@ model Colaborador {
   feedbacks         Feedback[]
   ocorrencias       Ocorrencia[]
   controleTriagem   ControleTriagem[]
-  grupoListagem   String                 @default("FORA")
+  grupoListagem              String                 @default("FORA")
+  ajusteSemanasPresencial    Int                    @default(0)
   createdAt       DateTime               @default(now())
   updatedAt       DateTime               @updatedAt
 }

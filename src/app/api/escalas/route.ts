@@ -23,11 +23,14 @@ export async function GET(request: NextRequest) {
       : c.escalas;
 
     // conta semanas presenciais consecutivas desde o último REMOTO
-    let semanasPresencial = 0;
+    let contadoRaw = 0;
     for (const e of escalasAte) {
       if (e.tipo === "REMOTO") break;
-      semanasPresencial++;
+      contadoRaw++;
     }
+
+    const ajuste = (c as unknown as { ajusteSemanasPresencial: number }).ajusteSemanasPresencial ?? 0;
+    const semanasPresencial = Math.max(0, contadoRaw + ajuste);
 
     // se a escala mais recente (até a semana visualizada) é REMOTO, está elegível
     const ultimaFoiRemoto = escalasAte[0]?.tipo === "REMOTO";
@@ -44,6 +47,8 @@ export async function GET(request: NextRequest) {
       cargo: c.cargo,
       equipe: c.equipe,
       semanasPresencial,
+      ajusteSemanasPresencial: ajuste,
+      contadoRaw,
       sinal,
       escalaSemana,
     };

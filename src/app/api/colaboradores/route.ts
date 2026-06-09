@@ -39,10 +39,15 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  const { id, grupoListagem } = await request.json();
+  const body = await request.json();
+  const { id } = body;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const data: Record<string, any> = {};
+  if (body.grupoListagem !== undefined) data.grupoListagem = body.grupoListagem;
+  if (body.ajusteSemanasPresencial !== undefined) data.ajusteSemanasPresencial = Number(body.ajusteSemanasPresencial);
   const colab = await prisma.colaborador.update({
     where: { id: Number(id) },
-    data: { grupoListagem },
+    data,
     include: { equipe: true },
   });
   return NextResponse.json(colab);

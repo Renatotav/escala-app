@@ -6,7 +6,8 @@ import { sinalConfig, type Sinal } from "@/lib/eligibility";
 type Equipe = { id: number; nome: string };
 type ColaboradorEscala = {
   id: number; nome: string; cargo: string | null;
-  equipe: Equipe; semanasPresencial: number; sinal: Sinal; escalaSemana: string | null;
+  equipe: Equipe; semanasPresencial: number; ajusteSemanasPresencial: number; contadoRaw: number;
+  sinal: Sinal; escalaSemana: string | null;
 };
 
 function getMondayISO() {
@@ -25,6 +26,8 @@ export default function EscalaPage() {
   const [equipes, setEquipes] = useState<Equipe[]>([]);
   const [colaboradores, setColaboradores] = useState<ColaboradorEscala[]>([]);
   const [loading, setLoading] = useState(false);
+  const [editandoId, setEditandoId] = useState<number | null>(null);
+  const [editandoValor, setEditandoValor] = useState("");
 
   useEffect(() => { fetch("/api/equipes").then(r => r.json()).then(setEquipes); }, []);
 
@@ -75,6 +78,22 @@ export default function EscalaPage() {
 
   async function handleLimpar(colaboradorId: number) {
     await fetch(`/api/escalas?colaboradorId=${colaboradorId}&semana=${semana}`, { method: "DELETE" });
+    const params = new URLSearchParams({ semana });
+    if (equipeId) params.set("equipeId", equipeId);
+    const data = await fetch(`/api/escalas?${params}`).then(r => r.json());
+    setColaboradores(data);
+  }
+
+  async function salvarAjuste(c: ColaboradorEscala) {
+    const novoCount = parseInt(editandoValor, 10);
+    if (isNaN(novoCount) || novoCount < 0) { setEditandoId(null); return; }
+    const novoAjuste = novoCount - c.contadoRaw;
+    await fetch("/api/colaboradores", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: c.id, ajusteSemanasPresencial: novoAjuste }),
+    });
+    setEditandoId(null);
     const params = new URLSearchParams({ semana });
     if (equipeId) params.set("equipeId", equipeId);
     const data = await fetch(`/api/escalas?${params}`).then(r => r.json());
@@ -158,7 +177,30 @@ export default function EscalaPage() {
                             <p className="text-white font-medium">{c.nome}</p>
                             {c.cargo && <p className="text-xs text-gray-500">{c.cargo}</p>}
                           </td>
-                          <td className="px-4 py-3 text-gray-300">{c.semanasPresencial}</td>
+                          <td className="px-4 py-3">
+                            {editandoId === c.id ? (
+                              <input
+                                type="number" min="0" value={editandoValor}
+                                onChange={e => setEditandoValor(e.target.value)}
+                                onBlur={() => salvarAjuste(c)}
+                                onKeyDown={e => { if (e.key === "Enter") salvarAjuste(c); if (e.key === "Escape") setEditandoId(null); }}
+                                autoFocus
+                                className="w-16 bg-gray-800 border border-blue-500 text-white rounded px-2 py-0.5 text-sm focus:outline-none"
+                              />
+                            ) : (
+                              <button
+                                onClick={() => { setEditandoId(c.id); setEditandoValor(String(c.semanasPresencial)); }}
+                                title="Clique para ajustar"
+                                className="text-gray-300 hover:text-white flex items-center gap-1 group"
+                              >
+                                {c.semanasPresencial}
+                                {c.ajusteSemanasPresencial !== 0 && (
+                                  <span className="text-xs text-yellow-500/70">({c.ajusteSemanasPresencial > 0 ? "+" : ""}{c.ajusteSemanasPresencial})</span>
+                                )}
+                                <span className="text-gray-600 group-hover:text-gray-400 text-xs">✎</span>
+                              </button>
+                            )}
+                          </td>
                           <td className="px-4 py-3">
                             <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs ${cfg.bg} ${cfg.text}`}>
                               <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />

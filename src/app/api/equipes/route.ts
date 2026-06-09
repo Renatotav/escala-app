@@ -13,3 +13,12 @@ export async function POST(request: NextRequest) {
   });
   return NextResponse.json(equipe, { status: 201 });
 }
+
+export async function PATCH(request: NextRequest) {
+  const { id, thresholdAmarelo, thresholdVerde } = await request.json();
+  const equipe = await prisma.equipe.update({
+    where: { id: Number(id) },
+    data: { thresholdAmarelo: Number(thresholdAmarelo), thresholdVerde: Number(thresholdVerde) },
+  });
+  return NextResponse.json(equipe);
+}

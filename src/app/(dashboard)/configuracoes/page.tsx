@@ -5,6 +5,53 @@ import { useEffect, useState } from "react";
 type Equipe = { id: number; nome: string; thresholdAmarelo: number; thresholdVerde: number };
 type Feriado = { id: number; data: string; descricao: string };
 
+function EquipeRow({ equipe, onSaved }: { equipe: Equipe; onSaved: () => void }) {
+  const [amarelo, setAmarelo] = useState(equipe.thresholdAmarelo);
+  const [verde, setVerde] = useState(equipe.thresholdVerde);
+  const [saving, setSaving] = useState(false);
+
+  const dirty = amarelo !== equipe.thresholdAmarelo || verde !== equipe.thresholdVerde;
+
+  async function salvar() {
+    setSaving(true);
+    await fetch("/api/equipes", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: equipe.id, thresholdAmarelo: amarelo, thresholdVerde: verde }),
+    });
+    setSaving(false);
+    onSaved();
+  }
+
+  return (
+    <div className="px-4 py-3 flex items-center justify-between gap-4">
+      <span className="text-white text-sm font-medium flex-1">{equipe.nome}</span>
+      <div className="flex items-center gap-3 text-xs">
+        <label className="text-yellow-400 flex items-center gap-1.5">
+          Amarelo
+          <input type="number" min={1} max={20} value={amarelo}
+            onChange={e => setAmarelo(Number(e.target.value))}
+            className="w-14 bg-gray-800 border border-gray-700 text-white rounded px-2 py-0.5 text-center focus:outline-none focus:ring-1 focus:ring-yellow-500" />
+          sem.
+        </label>
+        <label className="text-green-400 flex items-center gap-1.5">
+          Verde
+          <input type="number" min={1} max={20} value={verde}
+            onChange={e => setVerde(Number(e.target.value))}
+            className="w-14 bg-gray-800 border border-gray-700 text-white rounded px-2 py-0.5 text-center focus:outline-none focus:ring-1 focus:ring-green-500" />
+          sem.
+        </label>
+        {dirty && (
+          <button onClick={salvar} disabled={saving}
+            className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white px-3 py-0.5 rounded transition text-xs">
+            {saving ? "..." : "Salvar"}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function ConfiguracoesPage() {
   const [equipes, setEquipes] = useState<Equipe[]>([]);
   const [feriados, setFeriados] = useState<Feriado[]>([]);
@@ -85,13 +132,7 @@ export default function ConfiguracoesPage() {
         <h3 className="text-sm font-medium text-gray-300 mb-3">Equipes e limiares de elegibilidade</h3>
         <div className="bg-gray-900 rounded-xl border border-gray-800 divide-y divide-gray-800">
           {equipes.map(eq => (
-            <div key={eq.id} className="px-4 py-3 flex items-center justify-between">
-              <span className="text-white text-sm font-medium">{eq.nome}</span>
-              <div className="flex items-center gap-4 text-xs text-gray-400">
-                <span>🟡 Amarelo: <strong className="text-yellow-400">{eq.thresholdAmarelo} sem.</strong></span>
-                <span>🟢 Verde: <strong className="text-green-400">{eq.thresholdVerde} sem.</strong></span>
-              </div>
-            </div>
+            <EquipeRow key={eq.id} equipe={eq} onSaved={loadEquipes} />
           ))}
           <form onSubmit={handleAddEquipe} className="px-4 py-3 grid grid-cols-3 gap-3 items-end">
             <div className="col-span-1">

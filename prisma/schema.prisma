@@ -44,6 +44,7 @@ model Colaborador {
   controleTriagem   ControleTriagem[]
   grupoListagem              String                 @default("FORA")
   ajusteSemanasPresencial    Int                    @default(0)
+  semRemoto                  Boolean                @default(false)
   createdAt       DateTime               @default(now())
   updatedAt       DateTime               @updatedAt
 }

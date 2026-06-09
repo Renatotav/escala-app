@@ -30,7 +30,9 @@ export async function GET(request: NextRequest) {
     }
 
     const ajuste = (c as unknown as { ajusteSemanasPresencial: number }).ajusteSemanasPresencial ?? 0;
-    const semanasPresencial = Math.max(0, contadoRaw + ajuste);
+    // Se já há um REMOTO no histórico visível, a contagem do banco é precisa — não aplica ajuste histórico
+    const hasRemotoInHistory = escalasAte.some(e => e.tipo === "REMOTO");
+    const semanasPresencial = hasRemotoInHistory ? contadoRaw : Math.max(0, contadoRaw + ajuste);
 
     // se a escala mais recente (até a semana visualizada) é REMOTO, está elegível
     const ultimaFoiRemoto = escalasAte[0]?.tipo === "REMOTO";
@@ -51,6 +53,7 @@ export async function GET(request: NextRequest) {
       contadoRaw,
       sinal,
       escalaSemana,
+      semRemoto: (c as unknown as { semRemoto: boolean }).semRemoto ?? false,
     };
   });
 

@@ -45,6 +45,7 @@ export async function PATCH(request: NextRequest) {
   const data: Record<string, any> = {};
   if (body.grupoListagem !== undefined) data.grupoListagem = body.grupoListagem;
   if (body.ajusteSemanasPresencial !== undefined) data.ajusteSemanasPresencial = Number(body.ajusteSemanasPresencial);
+  if (body.semRemoto !== undefined) data.semRemoto = Boolean(body.semRemoto);
   const colab = await prisma.colaborador.update({
     where: { id: Number(id) },
     data,

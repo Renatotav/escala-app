@@ -194,9 +194,6 @@ export default function EscalaPage() {
                                 className="text-gray-300 hover:text-white flex items-center gap-1 group"
                               >
                                 {c.semanasPresencial}
-                                {c.ajusteSemanasPresencial !== 0 && (
-                                  <span className="text-xs text-yellow-500/70">({c.ajusteSemanasPresencial > 0 ? "+" : ""}{c.ajusteSemanasPresencial})</span>
-                                )}
                                 <span className="text-gray-600 group-hover:text-gray-400 text-xs">✎</span>
                               </button>
                             )}

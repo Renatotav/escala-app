@@ -195,11 +195,6 @@ export default function EscalaPage() {
                             <td className="px-4 py-3">
                               <span className={`font-mono ${isPriority ? "text-amber-300 font-semibold" : "text-gray-300"}`}>
                                 {c.semRemoto ? "—" : c.semanasPresencial}
-                                {!c.semRemoto && extraSemanas > 0 && (
-                                  <span className={`ml-1 text-xs ${isPriority ? "text-amber-500" : "text-gray-600"}`}>
-                                    +{extraSemanas}
-                                  </span>
-                                )}
                               </span>
                             </td>
                             <td className="px-4 py-3">

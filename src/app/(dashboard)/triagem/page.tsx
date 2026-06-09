@@ -16,6 +16,7 @@ const motivoLabel: Record<string, string> = {
   DECLARACAO: "Declaração",
   ATENDIMENTO_PRESENCIAL: "Atendimento Presencial",
   QUANTIDADE_CHAMADOS: "Qtd. Chamados",
+  OUTRAS_ATIVIDADES: "Outras atividades",
 };
 
 const motivoBadge: Record<string, string> = {
@@ -23,9 +24,10 @@ const motivoBadge: Record<string, string> = {
   DECLARACAO: "bg-blue-500/20 text-blue-400 border-blue-500/30",
   ATENDIMENTO_PRESENCIAL: "bg-purple-500/20 text-purple-400 border-purple-500/30",
   QUANTIDADE_CHAMADOS: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
+  OUTRAS_ATIVIDADES: "bg-gray-500/20 text-gray-400 border-gray-500/30",
 };
 
-const MOTIVOS_MANUAL = ["DECLARACAO", "ATENDIMENTO_PRESENCIAL", "QUANTIDADE_CHAMADOS"];
+const MOTIVOS_MANUAL = ["DECLARACAO", "ATENDIMENTO_PRESENCIAL", "QUANTIDADE_CHAMADOS", "OUTRAS_ATIVIDADES"];
 
 function fmt(iso: string | null) {
   if (!iso) return "—";

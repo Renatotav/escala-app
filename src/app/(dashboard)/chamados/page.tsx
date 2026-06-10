@@ -2,10 +2,11 @@
 
 import { useEffect, useState, useCallback } from "react";
 
-type UsuarioStats = { nome: string; total: number };
+type MembroStats = { nome: string; total: number };
+type EquipeStats = { equipe: string; total: number; membros: MembroStats[] };
 type DadosChamados = {
   total: number;
-  porUsuario: UsuarioStats[];
+  porEquipe: EquipeStats[];
   dataMin: string | null;
   dataMax: string | null;
 };
@@ -207,11 +208,8 @@ export default function ChamadosPage() {
     load();
   }
 
-  const maxTotal = dados?.porUsuario[0]?.total ?? 1;
-  const atendentes = dados?.porUsuario.filter((u) => u.total > 0).length ?? 0;
-
-  // Unique users with chamados (nomes únicos importados)
-  const totalAtendentes = dados?.porUsuario.length ?? 0;
+  const totalEquipes = dados?.porEquipe.length ?? 0;
+  const totalAtendentes = dados?.porEquipe.reduce((acc, eq) => acc + eq.membros.length, 0) ?? 0;
 
   return (
     <div>
@@ -249,11 +247,15 @@ export default function ChamadosPage() {
             </p>
           </div>
           <div className="bg-gray-900 rounded-xl border border-gray-800 p-4">
+            <p className="text-xs text-gray-500 mb-1">Equipes</p>
+            <p className="text-3xl font-bold text-white tabular-nums">{totalEquipes}</p>
+          </div>
+          <div className="bg-gray-900 rounded-xl border border-gray-800 p-4">
             <p className="text-xs text-gray-500 mb-1">Atendentes</p>
             <p className="text-3xl font-bold text-white tabular-nums">{totalAtendentes}</p>
           </div>
           {dados.dataMin && dados.dataMax && (
-            <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 col-span-2">
+            <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 col-span-2 md:col-span-1">
               <p className="text-xs text-gray-500 mb-1">Período dos dados</p>
               <p className="text-sm font-medium text-gray-300">
                 {fmtDate(dados.dataMin)} → {fmtDate(dados.dataMax)}
@@ -318,58 +320,69 @@ export default function ChamadosPage() {
             <thead>
               <tr className="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wide">
                 <th className="text-center px-4 py-3 w-10">#</th>
-                <th className="text-left px-4 py-3">Atendente</th>
+                <th className="text-left px-4 py-3">Equipe / Atendente</th>
                 <th className="text-right px-4 py-3 w-20">Total</th>
-                <th className="text-right px-4 py-3 w-16">%</th>
-                <th className="px-4 py-3"></th>
+                <th className="text-right px-4 py-3 w-16">% geral</th>
+                <th className="px-4 py-3 w-48"></th>
               </tr>
             </thead>
             <tbody>
-              {dados.porUsuario.map((u, i) => {
-                const pct = dados.total > 0 ? (u.total / dados.total) * 100 : 0;
-                const barPct = maxTotal > 0 ? (u.total / maxTotal) * 100 : 0;
-                const isTop3 = i < 3 && u.total > 0;
-                const isZero = u.total === 0;
-                return (
-                  <tr key={u.nome} className="border-b border-gray-800 last:border-0 hover:bg-gray-800/40 transition">
-                    <td className="px-4 py-3 text-center">
-                      <span className={`text-xs font-mono ${isTop3 ? "text-amber-400 font-bold" : "text-gray-600"}`}>
-                        {i + 1}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`font-medium ${isTop3 ? "text-white" : isZero ? "text-gray-600" : "text-gray-300"}`}>
-                        {u.nome}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <span className={`font-mono font-bold text-base tabular-nums ${isTop3 ? "text-red-400" : isZero ? "text-gray-600" : "text-gray-300"}`}>
-                        {u.total}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <span className={`font-mono text-xs tabular-nums ${isZero ? "text-gray-700" : "text-gray-500"}`}>
-                        {isZero ? "—" : `${pct.toFixed(1)}%`}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 w-48 min-w-[120px]">
-                      {u.total > 0 && (
+              {dados.porEquipe.flatMap((eq) => [
+                <tr key={`eq-${eq.equipe}`} className="bg-gray-800/70 border-b border-gray-700">
+                  <td className="px-4 py-2.5" />
+                  <td className="px-4 py-2.5">
+                    <span className="text-xs font-semibold text-gray-200 uppercase tracking-wide">
+                      {eq.equipe}
+                    </span>
+                  </td>
+                  <td className="px-4 py-2.5 text-right">
+                    <span className="font-mono font-bold text-white tabular-nums">{eq.total}</span>
+                  </td>
+                  <td className="px-4 py-2.5 text-right">
+                    <span className="font-mono text-xs text-gray-400 tabular-nums">
+                      {dados.total > 0 ? `${((eq.total / dados.total) * 100).toFixed(1)}%` : "—"}
+                    </span>
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-blue-500/50"
+                        style={{ width: `${dados.total > 0 ? (eq.total / dados.total) * 100 : 0}%` }}
+                      />
+                    </div>
+                  </td>
+                </tr>,
+                ...eq.membros.map((m, mi) => {
+                  const pct = dados.total > 0 ? (m.total / dados.total) * 100 : 0;
+                  const barPct = eq.total > 0 ? (m.total / eq.total) * 100 : 0;
+                  return (
+                    <tr key={`${eq.equipe}-${m.nome}-${mi}`} className="border-b border-gray-800/50 hover:bg-gray-800/40 transition">
+                      <td className="px-4 py-2.5 text-center">
+                        <span className="text-xs font-mono text-gray-600">{mi + 1}</span>
+                      </td>
+                      <td className="px-4 py-2.5 pl-8">
+                        <span className="text-sm text-gray-300">{m.nome}</span>
+                      </td>
+                      <td className="px-4 py-2.5 text-right">
+                        <span className="font-mono font-bold tabular-nums text-gray-200">{m.total}</span>
+                      </td>
+                      <td className="px-4 py-2.5 text-right">
+                        <span className="font-mono text-xs tabular-nums text-gray-500">{pct.toFixed(1)}%</span>
+                      </td>
+                      <td className="px-4 py-2.5">
                         <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
-                          <div
-                            className={`h-full rounded-full transition-all ${isTop3 ? "bg-red-500" : "bg-blue-600/60"}`}
-                            style={{ width: `${barPct}%` }}
-                          />
+                          <div className="h-full rounded-full bg-blue-600/60" style={{ width: `${barPct}%` }} />
                         </div>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
+                      </td>
+                    </tr>
+                  );
+                }),
+              ])}
             </tbody>
             <tfoot>
               <tr className="border-t border-gray-700 bg-gray-800/30">
                 <td colSpan={2} className="px-4 py-3 text-xs text-gray-500 font-medium uppercase tracking-wide">
-                  Total — {atendentes} atendente{atendentes !== 1 ? "s" : ""} com chamados
+                  Total — {totalEquipes} equipe{totalEquipes !== 1 ? "s" : ""} · {totalAtendentes} atendente{totalAtendentes !== 1 ? "s" : ""}
                 </td>
                 <td className="px-4 py-3 text-right">
                   <span className="font-mono font-bold text-white tabular-nums">
@@ -419,9 +432,9 @@ export default function ChamadosPage() {
             {/* Preview info */}
             {parsed.length > 0 && (
               <div className="mt-3 px-3 py-2 rounded-lg bg-green-500/10 border border-green-500/20 text-xs text-green-400">
-                {parsed.length.toLocaleString("pt-BR")} chamado{parsed.length !== 1 ? "s" : ""} encontrado
-                {parsed.length !== 1 ? "s" : ""} · {new Set(parsed.map((c) => c.nomeUsuarioAtribuido)).size} atendente
-                {new Set(parsed.map((c) => c.nomeUsuarioAtribuido)).size !== 1 ? "s" : ""}
+                {parsed.length.toLocaleString("pt-BR")} chamado{parsed.length !== 1 ? "s" : ""} encontrado{parsed.length !== 1 ? "s" : ""}{" "}
+                · {new Set(parsed.map((c) => c.nomeDpsAtribuido)).size} equipe{new Set(parsed.map((c) => c.nomeDpsAtribuido)).size !== 1 ? "s" : ""}{" "}
+                · {new Set(parsed.map((c) => c.nomeUsuarioAtribuido)).size} atendente{new Set(parsed.map((c) => c.nomeUsuarioAtribuido)).size !== 1 ? "s" : ""}
               </div>
             )}
             {importError && (

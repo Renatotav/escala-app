@@ -542,12 +542,42 @@ export default function TriagemPage() {
                       <div>
                         <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30 whitespace-nowrap">Na lista</span>
                         <span className="block text-xs text-gray-600 mt-0.5">↩ retornou</span>
-                        {regsAgendados.length > 0 && <span className="block text-xs text-blue-400/70 mt-0.5">📅 {regsAgendados.map(r => fmt(r.dataInicio)).join(" · ")}</span>}
+                        {regsAgendados.length > 0 && (
+                          <span className="flex flex-wrap gap-1 mt-0.5 items-center">
+                            <span className="text-blue-400/70 text-xs">📅</span>
+                            {regsAgendados.map((r, i) => (
+                              <span key={r.id} className="relative group inline-block">
+                                {i > 0 && <span className="text-blue-400/40 mr-1">·</span>}
+                                <span className="text-xs text-blue-400/70 underline decoration-dotted cursor-help hover:text-blue-300 transition">
+                                  {fmt(r.dataInicio)}
+                                  <span className="absolute bottom-full left-0 mb-1 z-20 hidden group-hover:block bg-gray-800 border border-gray-700 rounded-lg px-2.5 py-1.5 shadow-lg text-left min-w-max">
+                                    <span className="block text-gray-200 font-medium">{motivoLabel[r.motivo] ?? r.motivo}</span>
+                                    {r.observacao && <span className="block text-gray-400 mt-0.5">{r.observacao}</span>}
+                                  </span>
+                                </span>
+                              </span>
+                            ))}
+                          </span>
+                        )}
                       </div>
                     ) : regAgendado ? (
                       <div>
                         <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30 whitespace-nowrap">Na lista</span>
-                        <span className="block text-xs text-blue-400/70 mt-0.5">📅 {regsAgendados.map(r => fmt(r.dataInicio)).join(" · ")}</span>
+                        <span className="flex flex-wrap gap-1 mt-0.5 items-center">
+                          <span className="text-blue-400/70 text-xs">📅</span>
+                          {regsAgendados.map((r, i) => (
+                            <span key={r.id} className="relative group inline-block">
+                              {i > 0 && <span className="text-blue-400/40 mr-1">·</span>}
+                              <span className="text-xs text-blue-400/70 underline decoration-dotted cursor-help hover:text-blue-300 transition">
+                                {fmt(r.dataInicio)}
+                                <span className="absolute bottom-full left-0 mb-1 z-20 hidden group-hover:block bg-gray-800 border border-gray-700 rounded-lg px-2.5 py-1.5 shadow-lg text-left min-w-max">
+                                  <span className="block text-gray-200 font-medium">{motivoLabel[r.motivo] ?? r.motivo}</span>
+                                  {r.observacao && <span className="block text-gray-400 mt-0.5">{r.observacao}</span>}
+                                </span>
+                              </span>
+                            </span>
+                          ))}
+                        </span>
                       </div>
                     ) : (
                       <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30 whitespace-nowrap">Na lista</span>

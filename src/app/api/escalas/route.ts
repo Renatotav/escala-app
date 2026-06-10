@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     where: { ativo: true, ...(equipeId && { equipeId: Number(equipeId) }) },
     include: {
       equipe: true,
-      escalas: { orderBy: { semana: "desc" }, take: 10 },
+      escalas: { orderBy: { semana: "desc" } },
     },
     orderBy: { nome: "asc" },
   });
@@ -30,9 +30,31 @@ export async function GET(request: NextRequest) {
     }
 
     const ajuste = (c as unknown as { ajusteSemanasPresencial: number }).ajusteSemanasPresencial ?? 0;
-    // Se já há um REMOTO no histórico visível, a contagem do banco é precisa — não aplica ajuste histórico
     const hasRemotoInHistory = escalasAte.some(e => e.tipo === "REMOTO");
-    const semanasPresencial = hasRemotoInHistory ? contadoRaw : Math.max(0, contadoRaw + ajuste);
+
+    let semanasPresencial: number;
+    if (hasRemotoInHistory || ajuste === 0) {
+      semanasPresencial = hasRemotoInHistory ? contadoRaw : Math.max(0, contadoRaw + ajuste);
+    } else {
+      // ajuste representa semanas virtuais antes do primeiro registro no banco.
+      // Âncora = semana imediatamente anterior ao primeiro registro real.
+      const oldestEscala = c.escalas[c.escalas.length - 1];
+      const oldestWeekStr = oldestEscala
+        ? new Date(oldestEscala.semana).toISOString().slice(0, 10)
+        : null;
+
+      if (!semana || !oldestWeekStr || semana >= oldestWeekStr) {
+        // Semana visualizada é igual ou posterior ao primeiro registro: ajuste completo
+        semanasPresencial = Math.max(0, contadoRaw + ajuste);
+      } else {
+        // Semana visualizada é anterior ao primeiro registro:
+        // cada semana a mais para trás consome uma unidade do ajuste.
+        const anchorMs = new Date(oldestWeekStr + "T00:00:00Z").getTime() - 7 * 24 * 60 * 60 * 1000;
+        const semanaMs = new Date(semana + "T00:00:00Z").getTime();
+        const weeksBack = Math.max(0, Math.round((anchorMs - semanaMs) / (7 * 24 * 60 * 60 * 1000)));
+        semanasPresencial = Math.max(0, ajuste - weeksBack);
+      }
+    }
 
     // se a escala mais recente (até a semana visualizada) é REMOTO, está elegível
     const ultimaFoiRemoto = escalasAte[0]?.tipo === "REMOTO";

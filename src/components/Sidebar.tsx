@@ -11,6 +11,7 @@ const navItems = [
   { href: "/atestados", label: "Atestados", icon: "🩺" },
   { href: "/triagem", label: "Triagem", icon: "📋" },
   { href: "/banco-horas", label: "Banco de Horas", icon: "⏱" },
+  { href: "/chamados", label: "Chamados", icon: "🎫" },
   { href: "/plantoes", label: "Plantões & Folgas", icon: "🔔" },
   { href: "/configuracoes", label: "Configurações", icon: "⚙" },
 ];

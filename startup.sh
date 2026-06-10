@@ -86,6 +86,24 @@ async function migrate() {
   // Add semRemoto to Colaborador
   try { await client.query('ALTER TABLE \"Colaborador\" ADD COLUMN IF NOT EXISTS \"semRemoto\" BOOLEAN NOT NULL DEFAULT false'); } catch(e) {}
 
+  // Chamado table
+  await client.query(\`CREATE TABLE IF NOT EXISTS \"Chamado\" (
+    \"id\" SERIAL PRIMARY KEY,
+    \"referencia\" TEXT NOT NULL DEFAULT '',
+    \"alerta\" TEXT,
+    \"nivelEscalacao\" INTEGER,
+    \"estado\" TEXT,
+    \"dataRegistro\" TIMESTAMP(3),
+    \"nomeAfetado\" TEXT,
+    \"nomeSecao\" TEXT,
+    \"nomeItem\" TEXT,
+    \"nomeCategoria\" TEXT,
+    \"nomeDpsAtribuido\" TEXT,
+    \"nomeUsuarioAtribuido\" TEXT,
+    \"ultimaAcao\" TEXT,
+    \"createdAt\" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+  )\`);
+
   await client.end();
   console.log('Migration completed successfully.');
 }

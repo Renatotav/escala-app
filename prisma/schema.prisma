@@ -187,3 +187,20 @@ model FeriadoCustomizado {
 
   @@unique([data])
 }
+
+model Chamado {
+  id                   Int       @id @default(autoincrement())
+  referencia           String
+  alerta               String?
+  nivelEscalacao       Int?
+  estado               String?
+  dataRegistro         DateTime?
+  nomeAfetado          String?
+  nomeSecao            String?
+  nomeItem             String?
+  nomeCategoria        String?
+  nomeDpsAtribuido     String?
+  nomeUsuarioAtribuido String?
+  ultimaAcao           String?
+  createdAt            DateTime  @default(now())
+}

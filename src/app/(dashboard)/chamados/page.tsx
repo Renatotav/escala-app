@@ -2,16 +2,25 @@
 
 import { useEffect, useState, useCallback } from "react";
 
-type MembroStats = { nome: string; total: number };
-type EquipeStats = { equipe: string; total: number; membros: MembroStats[] };
+type ColabStats = {
+  nome: string;
+  total: number;
+  cadastro: number;
+  erroFalha1G: number;
+  erroFalha2G: number;
+  migracao: number;
+  orientacao: number;
+  outros: number;
+};
+
 type DadosChamados = {
   total: number;
-  porEquipe: EquipeStats[];
+  porColaborador: ColabStats[];
   dataMin: string | null;
   dataMax: string | null;
 };
 
-// ─── CSV/TSV parser ───────────────────────────────────────────────────────────
+// ─── CSV parser ───────────────────────────────────────────────────────────────
 
 function normalize(s: string) {
   return s
@@ -69,7 +78,6 @@ function parseDateBR(s: string): string | null {
 type ChamadoParsed = Record<string, string | number | null>;
 
 function parsePaste(text: string): ChamadoParsed[] {
-  // Strip UTF-8 BOM (﻿) common in Brazilian system exports
   const clean = text.replace(/^﻿/, "");
   const lines = clean.replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim().split("\n");
   if (lines.length < 2) return [];
@@ -97,8 +105,6 @@ function parsePaste(text: string): ChamadoParsed[] {
         obj[field] = raw || null;
       }
     }
-
-    // Include every row that has a ticket reference
     if ((obj.referencia as string | null)?.trim()) result.push(obj);
   }
   return result;
@@ -130,7 +136,6 @@ export default function ChamadosPage() {
   const [customInicio, setCustomInicio] = useState("");
   const [customFim, setCustomFim] = useState("");
 
-  // Import modal
   const [importModal, setImportModal] = useState(false);
   const [fileName, setFileName] = useState("");
   const [parsed, setParsed] = useState<ChamadoParsed[]>([]);
@@ -138,7 +143,6 @@ export default function ChamadosPage() {
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState("");
 
-  // Clear
   const [clearing, setClearing] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
 
@@ -172,9 +176,8 @@ export default function ChamadosPage() {
       const text = ev.target?.result as string;
       const result = parsePaste(text);
       setParsed(result);
-      if (result.length === 0) {
+      if (result.length === 0)
         setImportError("Nenhum chamado encontrado. Verifique se o arquivo tem o cabeçalho correto.");
-      }
     };
     reader.readAsText(file, "UTF-8");
   }
@@ -208,8 +211,17 @@ export default function ChamadosPage() {
     load();
   }
 
-  const totalEquipes = dados?.porEquipe.length ?? 0;
-  const totalAtendentes = dados?.porEquipe.reduce((acc, eq) => acc + eq.membros.length, 0) ?? 0;
+  const totalAtendentes = dados?.porColaborador.length ?? 0;
+
+  // Column totals
+  const totCadastro = dados?.porColaborador.reduce((s, c) => s + c.cadastro, 0) ?? 0;
+  const tot1G = dados?.porColaborador.reduce((s, c) => s + c.erroFalha1G, 0) ?? 0;
+  const tot2G = dados?.porColaborador.reduce((s, c) => s + c.erroFalha2G, 0) ?? 0;
+  const totMigracao = dados?.porColaborador.reduce((s, c) => s + c.migracao, 0) ?? 0;
+  const totOrientacao = dados?.porColaborador.reduce((s, c) => s + c.orientacao, 0) ?? 0;
+  const totOutros = dados?.porColaborador.reduce((s, c) => s + c.outros, 0) ?? 0;
+  const hasOrientacao = (dados?.porColaborador.some((c) => c.orientacao > 0)) ?? false;
+  const hasOutros = (dados?.porColaborador.some((c) => c.outros > 0)) ?? false;
 
   return (
     <div>
@@ -217,9 +229,7 @@ export default function ChamadosPage() {
       <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
         <div>
           <h2 className="text-xl font-semibold text-white">Chamados</h2>
-          <p className="text-sm text-gray-400 mt-0.5">
-            Contagem de chamados por atendente
-          </p>
+          <p className="text-sm text-gray-400 mt-0.5">Quantitativo por colaborador e categoria</p>
         </div>
         <div className="flex gap-2 flex-wrap">
           {dados && dados.total > 0 && (
@@ -247,12 +257,12 @@ export default function ChamadosPage() {
             </p>
           </div>
           <div className="bg-gray-900 rounded-xl border border-gray-800 p-4">
-            <p className="text-xs text-gray-500 mb-1">Equipes</p>
-            <p className="text-3xl font-bold text-white tabular-nums">{totalEquipes}</p>
+            <p className="text-xs text-gray-500 mb-1">Colaboradores</p>
+            <p className="text-3xl font-bold text-white tabular-nums">{totalAtendentes}</p>
           </div>
           <div className="bg-gray-900 rounded-xl border border-gray-800 p-4">
-            <p className="text-xs text-gray-500 mb-1">Atendentes</p>
-            <p className="text-3xl font-bold text-white tabular-nums">{totalAtendentes}</p>
+            <p className="text-xs text-gray-500 mb-1">Cadastro</p>
+            <p className="text-3xl font-bold text-blue-400 tabular-nums">{totCadastro.toLocaleString("pt-BR")}</p>
           </div>
           {dados.dataMin && dados.dataMax && (
             <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 col-span-2 md:col-span-1">
@@ -265,7 +275,7 @@ export default function ChamadosPage() {
         </div>
       )}
 
-      {/* Filtros de período */}
+      {/* Filtros */}
       <div className="flex flex-wrap items-center gap-2 mb-6">
         <span className="text-xs text-gray-500 font-medium uppercase tracking-wide mr-1">Período:</span>
         <button
@@ -306,7 +316,7 @@ export default function ChamadosPage() {
         </div>
       </div>
 
-      {/* Ranking table */}
+      {/* Table */}
       {loading ? (
         <p className="text-gray-500 text-sm">Carregando...</p>
       ) : !dados || dados.total === 0 ? (
@@ -316,80 +326,111 @@ export default function ChamadosPage() {
         </div>
       ) : (
         <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm min-w-[640px]">
             <thead>
-              <tr className="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wide">
-                <th className="text-center px-4 py-3 w-10">#</th>
-                <th className="text-left px-4 py-3">Equipe / Atendente</th>
+              <tr className="border-b border-gray-700 text-gray-400 text-xs uppercase tracking-wide">
+                <th className="text-center px-3 py-3 w-9">#</th>
+                <th className="text-left px-4 py-3">Colaborador</th>
                 <th className="text-right px-4 py-3 w-20">Total</th>
-                <th className="text-right px-4 py-3 w-16">% geral</th>
-                <th className="px-4 py-3 w-48"></th>
+                <th className="text-right px-4 py-3 w-24 text-blue-400">Cadastro</th>
+                <th className="text-right px-4 py-3 w-28 text-amber-400">Erro/Falha 1G</th>
+                <th className="text-right px-4 py-3 w-28 text-orange-400">Erro/Falha 2G</th>
+                <th className="text-right px-4 py-3 w-24 text-purple-400">Migração</th>
+                {hasOrientacao && (
+                  <th className="text-right px-4 py-3 w-24 text-green-400">Orientação</th>
+                )}
+                {hasOutros && (
+                  <th className="text-right px-4 py-3 w-20 text-gray-400">Outros</th>
+                )}
               </tr>
             </thead>
             <tbody>
-              {dados.porEquipe.flatMap((eq) => [
-                <tr key={`eq-${eq.equipe}`} className="bg-gray-800/70 border-b border-gray-700">
-                  <td className="px-4 py-2.5" />
-                  <td className="px-4 py-2.5">
-                    <span className="text-xs font-semibold text-gray-200 uppercase tracking-wide">
-                      {eq.equipe}
-                    </span>
-                  </td>
-                  <td className="px-4 py-2.5 text-right">
-                    <span className="font-mono font-bold text-white tabular-nums">{eq.total}</span>
-                  </td>
-                  <td className="px-4 py-2.5 text-right">
-                    <span className="font-mono text-xs text-gray-400 tabular-nums">
-                      {dados.total > 0 ? `${((eq.total / dados.total) * 100).toFixed(1)}%` : "—"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-2.5">
-                    <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-blue-500/50"
-                        style={{ width: `${dados.total > 0 ? (eq.total / dados.total) * 100 : 0}%` }}
-                      />
-                    </div>
-                  </td>
-                </tr>,
-                ...eq.membros.map((m, mi) => {
-                  const pct = dados.total > 0 ? (m.total / dados.total) * 100 : 0;
-                  const barPct = eq.total > 0 ? (m.total / eq.total) * 100 : 0;
-                  return (
-                    <tr key={`${eq.equipe}-${m.nome}-${mi}`} className="border-b border-gray-800/50 hover:bg-gray-800/40 transition">
-                      <td className="px-4 py-2.5 text-center">
-                        <span className="text-xs font-mono text-gray-600">{mi + 1}</span>
-                      </td>
-                      <td className="px-4 py-2.5 pl-8">
-                        <span className="text-sm text-gray-300">{m.nome}</span>
-                      </td>
-                      <td className="px-4 py-2.5 text-right">
-                        <span className="font-mono font-bold tabular-nums text-gray-200">{m.total}</span>
-                      </td>
-                      <td className="px-4 py-2.5 text-right">
-                        <span className="font-mono text-xs tabular-nums text-gray-500">{pct.toFixed(1)}%</span>
-                      </td>
-                      <td className="px-4 py-2.5">
-                        <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
-                          <div className="h-full rounded-full bg-blue-600/60" style={{ width: `${barPct}%` }} />
+              {dados.porColaborador.map((c, i) => {
+                const pct = dados.total > 0 ? (c.total / dados.total) * 100 : 0;
+                return (
+                  <tr key={c.nome} className="border-b border-gray-800/60 hover:bg-gray-800/40 transition">
+                    <td className="px-3 py-2.5 text-center">
+                      <span className="text-xs font-mono text-gray-600">{i + 1}</span>
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-200">{c.nome}</span>
+                        <div className="flex-1 h-1.5 bg-gray-800 rounded-full overflow-hidden min-w-[40px] max-w-[80px]">
+                          <div className="h-full rounded-full bg-blue-600/60" style={{ width: `${pct}%` }} />
                         </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-2.5 text-right">
+                      <span className="font-mono font-bold tabular-nums text-white">{c.total}</span>
+                    </td>
+                    <td className="px-4 py-2.5 text-right">
+                      <span className={`font-mono tabular-nums ${c.cadastro > 0 ? "text-blue-300" : "text-gray-700"}`}>
+                        {c.cadastro > 0 ? c.cadastro : "—"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2.5 text-right">
+                      <span className={`font-mono tabular-nums ${c.erroFalha1G > 0 ? "text-amber-300" : "text-gray-700"}`}>
+                        {c.erroFalha1G > 0 ? c.erroFalha1G : "—"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2.5 text-right">
+                      <span className={`font-mono tabular-nums ${c.erroFalha2G > 0 ? "text-orange-300" : "text-gray-700"}`}>
+                        {c.erroFalha2G > 0 ? c.erroFalha2G : "—"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2.5 text-right">
+                      <span className={`font-mono tabular-nums ${c.migracao > 0 ? "text-purple-300" : "text-gray-700"}`}>
+                        {c.migracao > 0 ? c.migracao : "—"}
+                      </span>
+                    </td>
+                    {hasOrientacao && (
+                      <td className="px-4 py-2.5 text-right">
+                        <span className={`font-mono tabular-nums ${c.orientacao > 0 ? "text-green-300" : "text-gray-700"}`}>
+                          {c.orientacao > 0 ? c.orientacao : "—"}
+                        </span>
                       </td>
-                    </tr>
-                  );
-                }),
-              ])}
+                    )}
+                    {hasOutros && (
+                      <td className="px-4 py-2.5 text-right">
+                        <span className={`font-mono tabular-nums ${c.outros > 0 ? "text-gray-400" : "text-gray-700"}`}>
+                          {c.outros > 0 ? c.outros : "—"}
+                        </span>
+                      </td>
+                    )}
+                  </tr>
+                );
+              })}
             </tbody>
             <tfoot>
-              <tr className="border-t border-gray-700 bg-gray-800/30">
-                <td colSpan={2} className="px-4 py-3 text-xs text-gray-500 font-medium uppercase tracking-wide">
-                  Total — {totalEquipes} equipe{totalEquipes !== 1 ? "s" : ""} · {totalAtendentes} atendente{totalAtendentes !== 1 ? "s" : ""}
+              <tr className="border-t border-gray-700 bg-gray-800/40 text-xs font-semibold uppercase tracking-wide">
+                <td colSpan={2} className="px-4 py-3 text-gray-400">
+                  Total — {totalAtendentes} colaborador{totalAtendentes !== 1 ? "es" : ""}
                 </td>
-                <td className="px-4 py-3 text-right">
-                  <span className="font-mono font-bold text-white tabular-nums">
-                    {dados.total.toLocaleString("pt-BR")}
-                  </span>
+                <td className="px-4 py-3 text-right font-mono font-bold text-white tabular-nums">
+                  {dados.total.toLocaleString("pt-BR")}
                 </td>
-                <td colSpan={2} />
+                <td className="px-4 py-3 text-right font-mono text-blue-300 tabular-nums">
+                  {totCadastro > 0 ? totCadastro.toLocaleString("pt-BR") : "—"}
+                </td>
+                <td className="px-4 py-3 text-right font-mono text-amber-300 tabular-nums">
+                  {tot1G > 0 ? tot1G.toLocaleString("pt-BR") : "—"}
+                </td>
+                <td className="px-4 py-3 text-right font-mono text-orange-300 tabular-nums">
+                  {tot2G > 0 ? tot2G.toLocaleString("pt-BR") : "—"}
+                </td>
+                <td className="px-4 py-3 text-right font-mono text-purple-300 tabular-nums">
+                  {totMigracao > 0 ? totMigracao.toLocaleString("pt-BR") : "—"}
+                </td>
+                {hasOrientacao && (
+                  <td className="px-4 py-3 text-right font-mono text-green-300 tabular-nums">
+                    {totOrientacao > 0 ? totOrientacao.toLocaleString("pt-BR") : "—"}
+                  </td>
+                )}
+                {hasOutros && (
+                  <td className="px-4 py-3 text-right font-mono text-gray-400 tabular-nums">
+                    {totOutros > 0 ? totOutros.toLocaleString("pt-BR") : "—"}
+                  </td>
+                )}
               </tr>
             </tfoot>
           </table>
@@ -403,14 +444,11 @@ export default function ChamadosPage() {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-base font-semibold text-white">Importar chamados</h3>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  Selecione o arquivo CSV exportado do sistema
-                </p>
+                <p className="text-xs text-gray-500 mt-0.5">Selecione o arquivo CSV exportado do sistema</p>
               </div>
               <button onClick={() => setImportModal(false)} className="text-gray-600 hover:text-gray-400 transition">✕</button>
             </div>
 
-            {/* File input */}
             <label className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-xl cursor-pointer transition
               ${fileName ? "border-blue-500/50 bg-blue-500/5" : "border-gray-700 bg-gray-800/50 hover:border-gray-600 hover:bg-gray-800"}`}>
               <input type="file" accept=".csv,.txt,.tsv" onChange={handleFileChange} className="hidden" />
@@ -429,11 +467,9 @@ export default function ChamadosPage() {
               )}
             </label>
 
-            {/* Preview info */}
             {parsed.length > 0 && (
               <div className="mt-3 px-3 py-2 rounded-lg bg-green-500/10 border border-green-500/20 text-xs text-green-400">
                 {parsed.length.toLocaleString("pt-BR")} chamado{parsed.length !== 1 ? "s" : ""} encontrado{parsed.length !== 1 ? "s" : ""}{" "}
-                · {new Set(parsed.map((c) => c.nomeDpsAtribuido)).size} equipe{new Set(parsed.map((c) => c.nomeDpsAtribuido)).size !== 1 ? "s" : ""}{" "}
                 · {new Set(parsed.map((c) => c.nomeUsuarioAtribuido)).size} atendente{new Set(parsed.map((c) => c.nomeUsuarioAtribuido)).size !== 1 ? "s" : ""}
               </div>
             )}
@@ -443,26 +479,13 @@ export default function ChamadosPage() {
               </div>
             )}
 
-            {/* Opção substituir/adicionar */}
             <div className="mt-3 flex items-center gap-4">
               <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="modo"
-                  checked={substituir}
-                  onChange={() => setSubstituir(true)}
-                  className="accent-blue-500"
-                />
+                <input type="radio" name="modo" checked={substituir} onChange={() => setSubstituir(true)} className="accent-blue-500" />
                 <span className="text-sm text-gray-300">Substituir todos os dados</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="modo"
-                  checked={!substituir}
-                  onChange={() => setSubstituir(false)}
-                  className="accent-blue-500"
-                />
+                <input type="radio" name="modo" checked={!substituir} onChange={() => setSubstituir(false)} className="accent-blue-500" />
                 <span className="text-sm text-gray-300">Adicionar aos existentes</span>
               </label>
             </div>

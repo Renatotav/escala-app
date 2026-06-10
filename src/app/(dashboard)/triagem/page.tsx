@@ -627,10 +627,16 @@ export default function TriagemPage() {
                   <td className="px-4 py-3 text-right">
                     <div className="flex gap-2 justify-end">
                       {reg ? (
-                        <button onClick={() => abrirRetorno(reg.id, c.nome)}
-                          className="text-xs bg-green-700 hover:bg-green-600 text-white px-2 py-1 rounded transition">
-                          Retornou
-                        </button>
+                        <>
+                          <button onClick={() => abrirEditar(reg)}
+                            className="text-xs text-blue-400 hover:text-blue-300 px-2 py-1 rounded transition">
+                            ✎ Editar
+                          </button>
+                          <button onClick={() => abrirRetorno(reg.id, c.nome)}
+                            className="text-xs bg-green-700 hover:bg-green-600 text-white px-2 py-1 rounded transition">
+                            Retornou
+                          </button>
+                        </>
                       ) : folgasHoje.has(c.id) ? (
                         <span className="text-xs text-amber-500/50 px-2 py-1">Folga automática</span>
                       ) : plantaoHoje.has(c.id) ? (

@@ -86,11 +86,11 @@ function registroAtivo(registros: Registro[], colaboradorId: number): Registro |
   ) ?? null;
 }
 
-function registroAgendado(registros: Registro[], colaboradorId: number): Registro | null {
+function registrosAgendados(registros: Registro[], colaboradorId: number): Registro[] {
   const hoje = new Date().toISOString().slice(0, 10);
   return registros
     .filter(r => r.colaboradorId === colaboradorId && !r.horaFim && r.dataInicio > hoje)
-    .sort((a, b) => a.dataInicio.localeCompare(b.dataInicio))[0] ?? null;
+    .sort((a, b) => a.dataInicio.localeCompare(b.dataInicio));
 }
 
 // Em fins de semana/feriados, Atendimento Presencial em aberto não conta como fora da lista
@@ -498,7 +498,8 @@ export default function TriagemPage() {
               const reg = registroEfetivo(registros, c.id, isNonWorking);
               const horas = reg ? calcHoras(reg.dataInicio, reg.horaInicio, reg.dataFim, reg.horaFim) : null;
               const regRecente = !reg ? ultimoRetornado(registros, c.id) : null;
-              const regAgendado = !reg ? registroAgendado(registros, c.id) : null;
+              const regsAgendados = !reg ? registrosAgendados(registros, c.id) : [];
+              const regAgendado = regsAgendados[0] ?? null;
               const horasRecente = regRecente ? calcHoras(regRecente.dataInicio, regRecente.horaInicio, regRecente.dataFim, regRecente.horaFim) : null;
               const novoGrupo = !filtroEquipe && (i === 0 || lista[i - 1].equipe.nome !== c.equipe.nome);
               return (
@@ -541,12 +542,12 @@ export default function TriagemPage() {
                       <div>
                         <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30 whitespace-nowrap">Na lista</span>
                         <span className="block text-xs text-gray-600 mt-0.5">↩ retornou</span>
-                        {regAgendado && <span className="block text-xs text-blue-400/70 mt-0.5">📅 {fmt(regAgendado.dataInicio)}</span>}
+                        {regsAgendados.length > 0 && <span className="block text-xs text-blue-400/70 mt-0.5">📅 {regsAgendados.map(r => fmt(r.dataInicio)).join(" · ")}</span>}
                       </div>
                     ) : regAgendado ? (
                       <div>
                         <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30 whitespace-nowrap">Na lista</span>
-                        <span className="block text-xs text-blue-400/70 mt-0.5">📅 {fmt(regAgendado.dataInicio)}</span>
+                        <span className="block text-xs text-blue-400/70 mt-0.5">📅 {regsAgendados.map(r => fmt(r.dataInicio)).join(" · ")}</span>
                       </div>
                     ) : (
                       <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30 whitespace-nowrap">Na lista</span>

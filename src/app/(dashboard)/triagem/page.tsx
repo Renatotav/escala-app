@@ -35,7 +35,14 @@ function fmt(iso: string | null) {
 }
 
 function diasFora(dataInicio: string, feriadosSet: Set<string>) {
-  const start = new Date(dataInicio.slice(0, 10) + "T00:00:00");
+  const startStr = dataInicio.slice(0, 10);
+  const hojeStr = new Date().toISOString().slice(0, 10);
+  if (startStr > hojeStr) {
+    const diffMs = new Date(startStr + "T00:00:00").getTime() - new Date(hojeStr + "T00:00:00").getTime();
+    const dias = Math.round(diffMs / (1000 * 60 * 60 * 24));
+    return `em ${dias}d`;
+  }
+  const start = new Date(startStr + "T00:00:00");
   const hoje = new Date();
   hoje.setHours(23, 59, 59, 999);
 
@@ -71,7 +78,19 @@ function calcHoras(
 
 function registroAtivo(registros: Registro[], colaboradorId: number): Registro | null {
   const hoje = new Date().toISOString().slice(0, 10);
-  return registros.find(r => r.colaboradorId === colaboradorId && !r.horaFim && (!r.dataFim || r.dataFim >= hoje)) ?? null;
+  return registros.find(r =>
+    r.colaboradorId === colaboradorId &&
+    !r.horaFim &&
+    r.dataInicio <= hoje &&
+    (!r.dataFim || r.dataFim >= hoje)
+  ) ?? null;
+}
+
+function registroAgendado(registros: Registro[], colaboradorId: number): Registro | null {
+  const hoje = new Date().toISOString().slice(0, 10);
+  return registros
+    .filter(r => r.colaboradorId === colaboradorId && !r.horaFim && r.dataInicio > hoje)
+    .sort((a, b) => a.dataInicio.localeCompare(b.dataInicio))[0] ?? null;
 }
 
 // Em fins de semana/feriados, Atendimento Presencial em aberto não conta como fora da lista
@@ -479,6 +498,7 @@ export default function TriagemPage() {
               const reg = registroEfetivo(registros, c.id, isNonWorking);
               const horas = reg ? calcHoras(reg.dataInicio, reg.horaInicio, reg.dataFim, reg.horaFim) : null;
               const regRecente = !reg ? ultimoRetornado(registros, c.id) : null;
+              const regAgendado = !reg ? registroAgendado(registros, c.id) : null;
               const horasRecente = regRecente ? calcHoras(regRecente.dataInicio, regRecente.horaInicio, regRecente.dataFim, regRecente.horaFim) : null;
               const novoGrupo = !filtroEquipe && (i === 0 || lista[i - 1].equipe.nome !== c.equipe.nome);
               return (
@@ -521,6 +541,12 @@ export default function TriagemPage() {
                       <div>
                         <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30 whitespace-nowrap">Na lista</span>
                         <span className="block text-xs text-gray-600 mt-0.5">↩ retornou</span>
+                        {regAgendado && <span className="block text-xs text-blue-400/70 mt-0.5">📅 {fmt(regAgendado.dataInicio)}</span>}
+                      </div>
+                    ) : regAgendado ? (
+                      <div>
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30 whitespace-nowrap">Na lista</span>
+                        <span className="block text-xs text-blue-400/70 mt-0.5">📅 {fmt(regAgendado.dataInicio)}</span>
                       </div>
                     ) : (
                       <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30 whitespace-nowrap">Na lista</span>

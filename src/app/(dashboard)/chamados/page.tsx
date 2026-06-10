@@ -67,7 +67,9 @@ function parseDateBR(s: string): string | null {
 type ChamadoParsed = Record<string, string | number | null>;
 
 function parsePaste(text: string): ChamadoParsed[] {
-  const lines = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim().split("\n");
+  // Strip UTF-8 BOM (﻿) common in Brazilian system exports
+  const clean = text.replace(/^﻿/, "");
+  const lines = clean.replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim().split("\n");
   if (lines.length < 2) return [];
 
   const firstLine = lines[0];
@@ -81,8 +83,6 @@ function parsePaste(text: string): ChamadoParsed[] {
     if (!lines[i].trim()) continue;
     const cols = parseCsvLine(lines[i], delim);
     const obj: ChamadoParsed = {};
-    let hasUser = false;
-
     for (let j = 0; j < fieldMap.length; j++) {
       const field = fieldMap[j];
       if (!field) continue;
@@ -94,10 +94,10 @@ function parsePaste(text: string): ChamadoParsed[] {
       } else {
         obj[field] = raw || null;
       }
-      if (field === "nomeUsuarioAtribuido" && raw) hasUser = true;
     }
 
-    if (hasUser) result.push(obj);
+    // Include every row that has a ticket reference
+    if ((obj.referencia as string | null)?.trim()) result.push(obj);
   }
   return result;
 }
@@ -130,7 +130,7 @@ export default function ChamadosPage() {
 
   // Import modal
   const [importModal, setImportModal] = useState(false);
-  const [pasteText, setPasteText] = useState("");
+  const [fileName, setFileName] = useState("");
   const [parsed, setParsed] = useState<ChamadoParsed[]>([]);
   const [substituir, setSubstituir] = useState(true);
   const [importing, setImporting] = useState(false);
@@ -159,15 +159,22 @@ export default function ChamadosPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  function handlePasteChange(text: string) {
-    setPasteText(text);
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setFileName(file.name);
     setImportError("");
-    if (!text.trim()) { setParsed([]); return; }
-    const result = parsePaste(text);
-    setParsed(result);
-    if (result.length === 0 && text.trim().length > 10) {
-      setImportError("Nenhum chamado encontrado. Verifique se colou os dados com cabeçalho.");
-    }
+    setParsed([]);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const text = ev.target?.result as string;
+      const result = parsePaste(text);
+      setParsed(result);
+      if (result.length === 0) {
+        setImportError("Nenhum chamado encontrado. Verifique se o arquivo tem o cabeçalho correto.");
+      }
+    };
+    reader.readAsText(file, "UTF-8");
   }
 
   async function handleImport() {
@@ -182,7 +189,7 @@ export default function ChamadosPage() {
       const data = await res.json();
       if (data.ok) {
         setImportModal(false);
-        setPasteText("");
+        setFileName("");
         setParsed([]);
         load();
       }
@@ -224,7 +231,7 @@ export default function ChamadosPage() {
             </button>
           )}
           <button
-            onClick={() => { setImportModal(true); setPasteText(""); setParsed([]); setImportError(""); }}
+            onClick={() => { setImportModal(true); setFileName(""); setParsed([]); setImportError(""); }}
             className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
             Importar chamados
           </button>
@@ -302,7 +309,7 @@ export default function ChamadosPage() {
       ) : !dados || dados.total === 0 ? (
         <div className="bg-gray-900 rounded-xl border border-gray-800 p-12 text-center">
           <p className="text-gray-500 text-sm mb-1">Nenhum dado importado ainda.</p>
-          <p className="text-gray-600 text-xs">Clique em "Importar chamados" e cole os dados exportados do sistema.</p>
+          <p className="text-gray-600 text-xs">Clique em "Importar chamados" e selecione o arquivo CSV exportado do sistema.</p>
         </div>
       ) : (
         <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto">
@@ -378,37 +385,49 @@ export default function ChamadosPage() {
       {/* Modal de importação */}
       {importModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4">
-          <div className="bg-gray-900 border border-gray-800 rounded-xl w-full max-w-2xl p-6">
+          <div className="bg-gray-900 border border-gray-800 rounded-xl w-full max-w-md p-6">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-base font-semibold text-white">Importar chamados</h3>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  Cole os dados exportados do sistema (CSV, TSV ou copiado da planilha)
+                  Selecione o arquivo CSV exportado do sistema
                 </p>
               </div>
               <button onClick={() => setImportModal(false)} className="text-gray-600 hover:text-gray-400 transition">✕</button>
             </div>
 
+            {/* File input */}
+            <label className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-xl cursor-pointer transition
+              ${fileName ? "border-blue-500/50 bg-blue-500/5" : "border-gray-700 bg-gray-800/50 hover:border-gray-600 hover:bg-gray-800"}`}>
+              <input type="file" accept=".csv,.txt,.tsv" onChange={handleFileChange} className="hidden" />
+              {fileName ? (
+                <>
+                  <span className="text-2xl mb-1">📄</span>
+                  <span className="text-sm font-medium text-blue-400">{fileName}</span>
+                  <span className="text-xs text-gray-500 mt-0.5">Clique para trocar</span>
+                </>
+              ) : (
+                <>
+                  <span className="text-2xl mb-1">📂</span>
+                  <span className="text-sm text-gray-400">Clique para selecionar o arquivo</span>
+                  <span className="text-xs text-gray-600 mt-0.5">.csv · .txt · .tsv</span>
+                </>
+              )}
+            </label>
+
             {/* Preview info */}
             {parsed.length > 0 && (
-              <div className="mb-3 px-3 py-2 rounded-lg bg-green-500/10 border border-green-500/20 text-xs text-green-400">
-                {parsed.length} chamado{parsed.length !== 1 ? "s" : ""} encontrado
+              <div className="mt-3 px-3 py-2 rounded-lg bg-green-500/10 border border-green-500/20 text-xs text-green-400">
+                {parsed.length.toLocaleString("pt-BR")} chamado{parsed.length !== 1 ? "s" : ""} encontrado
                 {parsed.length !== 1 ? "s" : ""} · {new Set(parsed.map((c) => c.nomeUsuarioAtribuido)).size} atendente
                 {new Set(parsed.map((c) => c.nomeUsuarioAtribuido)).size !== 1 ? "s" : ""}
               </div>
             )}
             {importError && (
-              <div className="mb-3 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-xs text-red-400">
+              <div className="mt-3 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-xs text-red-400">
                 {importError}
               </div>
             )}
-
-            <textarea
-              value={pasteText}
-              onChange={(e) => handlePasteChange(e.target.value)}
-              placeholder={"Cole aqui os dados exportados do sistema.\nExemplo de colunas esperadas:\nReferência  Alerta  Nível de escalação  Estado (texto)  Data/hora de registro  Nome afetado  Nome da seção  Nome do Item  Nome de categoria  Nome do DPS Atribuído  Nome do Usuário Atribuído  Nome da última ação realizada"}
-              className="w-full h-48 bg-gray-800 border border-gray-700 text-white text-xs font-mono rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none placeholder-gray-600"
-            />
 
             {/* Opção substituir/adicionar */}
             <div className="mt-3 flex items-center gap-4">

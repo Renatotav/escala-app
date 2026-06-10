@@ -262,13 +262,31 @@ export default function BancoHorasPage() {
                     )}
                   </td>
                   <td className="px-4 py-3 text-center">
-                    {d.lancamentos > 0 && (
+                    {d.lancamentos === 1 && (
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => openEdit({ id: d.historico[0].id, data: d.historico[0].data, horas: d.historico[0].horas, descricao: d.historico[0].descricao ?? "" })}
+                          title="Editar lançamento"
+                          className="text-blue-500/60 hover:text-blue-400 transition text-xs px-1">
+                          ✎
+                        </button>
+                        <button
+                          onClick={() => handleDelete(d.historico[0].id)}
+                          disabled={deletingId === d.historico[0].id}
+                          title="Excluir lançamento"
+                          className="text-red-500/60 hover:text-red-400 transition disabled:opacity-40 text-xs">
+                          ✕
+                        </button>
+                      </div>
+                    )}
+                    {d.lancamentos > 1 && (
                       <button
                         onClick={() => {
                           const newId = expandido === d.id ? null : d.id;
                           setExpandido(newId);
                           if (newId !== null && d.saldoMinutos < 0) loadPendentes(d.id);
                         }}
+                        title="Ver / editar / excluir lançamentos"
                         className="text-gray-500 hover:text-gray-300 transition text-xs">
                         {expandido === d.id ? "▲" : "▼"}
                       </button>

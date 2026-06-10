@@ -59,9 +59,10 @@ function parseCsvLine(line: string, delim: string): string[] {
 }
 
 function parseDateBR(s: string): string | null {
-  const m = s.match(/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})/);
+  const m = s.match(/^(\d{2})\/(\d{2})\/(\d{2,4})\s+(\d{2}):(\d{2})/);
   if (!m) return null;
-  return `${m[3]}-${m[2]}-${m[1]}T${m[4]}:${m[5]}:00`;
+  const year = m[3].length === 2 ? `20${m[3]}` : m[3];
+  return `${year}-${m[2]}-${m[1]}T${m[4]}:${m[5]}:00`;
 }
 
 type ChamadoParsed = Record<string, string | number | null>;

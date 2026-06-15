@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 
@@ -167,9 +167,21 @@ export default function TriagemPage() {
     );
     const hoje = new Date().toISOString().slice(0, 10);
     const mes = hoje.slice(0, 7);
-    fetch(`/api/folgas?mes=${mes}`).then(r => r.json()).then((data: { colaboradorId: number; data: string }[]) =>
-      setFolgasHoje(new Set(data.filter(f => f.data.slice(0, 10) === hoje).map(f => f.colaboradorId)))
-    );
+    
+    Promise.all([
+      fetch(`/api/folgas?mes=${mes}`).then(r => r.json()),
+      fetch(`/api/plantoes?view=folgas-agendadas&mes=${mes}`).then(r => r.json())
+    ]).then(([folgas, plantoesFolgas]) => {
+      const ids = new Set<number>();
+      folgas.forEach((f: { colaboradorId: number; data: string }) => {
+        if (f.data.slice(0, 10) === hoje) ids.add(f.colaboradorId);
+      });
+      plantoesFolgas.forEach((f: { colaboradorId: number; data: string }) => {
+        if (f.data.slice(0, 10) === hoje) ids.add(f.colaboradorId);
+      });
+      setFolgasHoje(ids);
+    });
+
     fetch(`/api/escala-plantao?mes=${mes}`).then(r => r.json()).then((data: { data: string; colaborador: { id: number } }[]) =>
       setPlantaoHoje(new Set(data.filter(p => p.data === hoje).map(p => p.colaborador.id)))
     );

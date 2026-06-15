@@ -23,10 +23,12 @@ function fmtRelativo(iso: string) {
 
 export default async function DashboardPage() {
   const hoje = new Date();
-  const amanha = new Date(hoje);
-  amanha.setDate(amanha.getDate() + 1);
-  amanha.setHours(0, 0, 0, 0);
-  const em14dias = new Date(hoje.getTime() + 14 * 24 * 60 * 60 * 1000);
+
+  // Compute dates using Brazil time (UTC-3) so server UTC doesn't shift the day
+  const brazilNow = new Date(Date.now() - 3 * 60 * 60 * 1000);
+  const [by, bm, bd] = brazilNow.toISOString().slice(0, 10).split("-").map(Number);
+  const amanha   = new Date(Date.UTC(by, bm - 1, bd + 1));   // tomorrow  00:00 UTC
+  const em14dias = new Date(Date.UTC(by, bm - 1, bd + 15));  // +14 days  00:00 UTC
 
   const [colaboradores, plantoesPendentes, plantoesRecentes] = await Promise.all([
     prisma.colaborador.findMany({

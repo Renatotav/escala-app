@@ -18,6 +18,9 @@ function fmtRelativo(iso: string) {
 
 export default async function DashboardPage() {
   const hoje = new Date();
+  const amanha = new Date(hoje);
+  amanha.setDate(amanha.getDate() + 1);
+  amanha.setHours(0, 0, 0, 0);
   const em14dias = new Date(hoje.getTime() + 14 * 24 * 60 * 60 * 1000);
 
   const [colaboradores, plantoesPendentes, plantoesRecentes] = await Promise.all([
@@ -26,7 +29,7 @@ export default async function DashboardPage() {
       include: { equipe: true, escalas: { where: { semana: { lte: hoje } }, orderBy: { semana: "desc" }, take: 10 }, plantoes: true },
     }),
     prisma.plantao.findMany({
-      where: { OR: [{ folga1: { gte: hoje, lte: em14dias } }, { folga2: { gte: hoje, lte: em14dias } }] },
+      where: { OR: [{ folga1: { gte: amanha, lte: em14dias } }, { folga2: { gte: amanha, lte: em14dias } }] },
       include: { colaborador: { select: { nome: true, equipe: { select: { nome: true } } } } },
     }),
     prisma.plantao.findMany({

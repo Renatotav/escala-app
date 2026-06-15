@@ -1,23 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-function normalizeCategoria(
-  nomeDps: string | null,
-  nomeSecao: string | null,
-  nomeItem: string | null,
-): string {
-  const dps = (nomeDps ?? "").toLowerCase();
-  if (dps.includes("cadastro")) return "Cadastro";
-  if (dps.includes("erro") || dps.includes("falha")) {
-    const sec = (nomeSecao ?? "").toLowerCase();
-    const item = (nomeItem ?? "").toLowerCase();
-    if (sec.includes("1g") || item.includes("1g")) return "Erro/Falha 1G";
-    if (sec.includes("2g") || item.includes("2g")) return "Erro/Falha 2G";
-    return "Erro/Falha";
-  }
-  if (dps.includes("migra")) return "Migração";
-  if (dps.includes("orienta")) return "Orientação";
-  return "Outros";
+function normalizeEquipe(nome: string): string {
+  const n = nome.toLowerCase();
+  if (n.includes("1g")) return "Erro/Falha 1G";
+  if (n.includes("2g")) return "Erro/Falha 2G";
+  if (n.includes("cadastro")) return "Cadastro";
+  if (n.includes("migra")) return "Migração";
+  if (n.includes("supervis")) return "Supervisão";
+  if (n.includes("coordena")) return "Coordenação";
+  if (n.includes("triagem")) return "Triagem";
+  if (n.includes("balc")) return "Balcão Virtual";
+  return nome;
 }
 
 export async function GET(request: NextRequest) {
@@ -35,10 +29,10 @@ export async function GET(request: NextRequest) {
         }
       : {};
 
-  const [total, rows, range] = await Promise.all([
+  const [total, rows, range, colaboradores] = await Promise.all([
     prisma.chamado.count({ where }),
     prisma.chamado.groupBy({
-      by: ["nomeDpsAtribuido", "nomeSecao", "nomeItem", "nomeUsuarioAtribuido"],
+      by: ["nomeUsuarioAtribuido"],
       where,
       _count: { id: true },
     }),
@@ -47,29 +41,42 @@ export async function GET(request: NextRequest) {
       _min: { dataRegistro: true },
       _max: { dataRegistro: true },
     }),
+    prisma.colaborador.findMany({
+      select: { nome: true, equipe: { select: { nome: true } } },
+    }),
   ]);
 
-  // colab → category → count
-  const map: Record<string, Record<string, number>> = {};
-  for (const row of rows) {
-    const colab = row.nomeUsuarioAtribuido ?? "(sem atendente)";
-    const cat = normalizeCategoria(row.nomeDpsAtribuido, row.nomeSecao, row.nomeItem);
-    if (!map[colab]) map[colab] = {};
-    map[colab][cat] = (map[colab][cat] ?? 0) + row._count.id;
+  // nome colaborador (lowercase) → categoria normalizada
+  const equipeMap: Record<string, string> = {};
+  for (const c of colaboradores) {
+    if (c.equipe) {
+      equipeMap[c.nome.toLowerCase().trim()] = normalizeEquipe(c.equipe.nome);
+    }
   }
 
-  const porColaborador = Object.entries(map)
-    .map(([nome, cats]) => ({
-      nome,
-      total: Object.values(cats).reduce((a, b) => a + b, 0),
-      cadastro: cats["Cadastro"] ?? 0,
-      erroFalha1G: cats["Erro/Falha 1G"] ?? 0,
-      erroFalha2G: cats["Erro/Falha 2G"] ?? 0,
-      migracao: cats["Migração"] ?? 0,
-      orientacao: cats["Orientação"] ?? 0,
-      outros: (cats["Erro/Falha"] ?? 0) + (cats["Outros"] ?? 0),
-    }))
-    .sort((a, b) => b.total - a.total);
+  const porColaborador = rows
+    .map((row) => {
+      const nome = row.nomeUsuarioAtribuido ?? "(sem atendente)";
+      const cat = equipeMap[nome.toLowerCase().trim()] ?? "Sem equipe";
+      return { nome, total: row._count.id, categoria: cat };
+    })
+    .sort((a, b) => b.total - a.total)
+    .map((c) => ({
+      nome: c.nome,
+      total: c.total,
+      categoria: c.categoria,
+      cadastro: c.categoria === "Cadastro" ? c.total : 0,
+      erroFalha1G: c.categoria === "Erro/Falha 1G" ? c.total : 0,
+      erroFalha2G: c.categoria === "Erro/Falha 2G" ? c.total : 0,
+      migracao: c.categoria === "Migração" ? c.total : 0,
+      supervisao: c.categoria === "Supervisão" ? c.total : 0,
+      outros:
+        !["Cadastro", "Erro/Falha 1G", "Erro/Falha 2G", "Migração", "Supervisão"].includes(
+          c.categoria,
+        )
+          ? c.total
+          : 0,
+    }));
 
   return NextResponse.json({
     total,

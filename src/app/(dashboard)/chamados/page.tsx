@@ -5,11 +5,12 @@ import { useEffect, useState, useCallback } from "react";
 type ColabStats = {
   nome: string;
   total: number;
+  categoria: string;
   cadastro: number;
   erroFalha1G: number;
   erroFalha2G: number;
   migracao: number;
-  orientacao: number;
+  supervisao: number;
   outros: number;
 };
 
@@ -218,9 +219,9 @@ export default function ChamadosPage() {
   const tot1G = dados?.porColaborador.reduce((s, c) => s + c.erroFalha1G, 0) ?? 0;
   const tot2G = dados?.porColaborador.reduce((s, c) => s + c.erroFalha2G, 0) ?? 0;
   const totMigracao = dados?.porColaborador.reduce((s, c) => s + c.migracao, 0) ?? 0;
-  const totOrientacao = dados?.porColaborador.reduce((s, c) => s + c.orientacao, 0) ?? 0;
+  const totSupervisao = dados?.porColaborador.reduce((s, c) => s + c.supervisao, 0) ?? 0;
   const totOutros = dados?.porColaborador.reduce((s, c) => s + c.outros, 0) ?? 0;
-  const hasOrientacao = (dados?.porColaborador.some((c) => c.orientacao > 0)) ?? false;
+  const hasSupervisao = (dados?.porColaborador.some((c) => c.supervisao > 0)) ?? false;
   const hasOutros = (dados?.porColaborador.some((c) => c.outros > 0)) ?? false;
 
   return (
@@ -336,8 +337,8 @@ export default function ChamadosPage() {
                 <th className="text-right px-4 py-3 w-28 text-amber-400">Erro/Falha 1G</th>
                 <th className="text-right px-4 py-3 w-28 text-orange-400">Erro/Falha 2G</th>
                 <th className="text-right px-4 py-3 w-24 text-purple-400">Migração</th>
-                {hasOrientacao && (
-                  <th className="text-right px-4 py-3 w-24 text-green-400">Orientação</th>
+                {hasSupervisao && (
+                  <th className="text-right px-4 py-3 w-24 text-green-400">Supervisão</th>
                 )}
                 {hasOutros && (
                   <th className="text-right px-4 py-3 w-20 text-gray-400">Outros</th>
@@ -355,7 +356,8 @@ export default function ChamadosPage() {
                     <td className="px-4 py-2.5">
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-gray-200">{c.nome}</span>
-                        <div className="flex-1 h-1.5 bg-gray-800 rounded-full overflow-hidden min-w-[40px] max-w-[80px]">
+                        <span className="text-xs px-1.5 py-0.5 rounded bg-gray-800 text-gray-500 shrink-0">{c.categoria}</span>
+                        <div className="flex-1 h-1.5 bg-gray-800 rounded-full overflow-hidden min-w-[30px] max-w-[60px]">
                           <div className="h-full rounded-full bg-blue-600/60" style={{ width: `${pct}%` }} />
                         </div>
                       </div>
@@ -383,10 +385,10 @@ export default function ChamadosPage() {
                         {c.migracao > 0 ? c.migracao : "—"}
                       </span>
                     </td>
-                    {hasOrientacao && (
+                    {hasSupervisao && (
                       <td className="px-4 py-2.5 text-right">
-                        <span className={`font-mono tabular-nums ${c.orientacao > 0 ? "text-green-300" : "text-gray-700"}`}>
-                          {c.orientacao > 0 ? c.orientacao : "—"}
+                        <span className={`font-mono tabular-nums ${c.supervisao > 0 ? "text-green-300" : "text-gray-700"}`}>
+                          {c.supervisao > 0 ? c.supervisao : "—"}
                         </span>
                       </td>
                     )}
@@ -421,9 +423,9 @@ export default function ChamadosPage() {
                 <td className="px-4 py-3 text-right font-mono text-purple-300 tabular-nums">
                   {totMigracao > 0 ? totMigracao.toLocaleString("pt-BR") : "—"}
                 </td>
-                {hasOrientacao && (
+                {hasSupervisao && (
                   <td className="px-4 py-3 text-right font-mono text-green-300 tabular-nums">
-                    {totOrientacao > 0 ? totOrientacao.toLocaleString("pt-BR") : "—"}
+                    {totSupervisao > 0 ? totSupervisao.toLocaleString("pt-BR") : "—"}
                   </td>
                 )}
                 {hasOutros && (

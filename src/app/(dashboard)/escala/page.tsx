@@ -10,14 +10,31 @@ type ColaboradorEscala = {
   sinal: Sinal; escalaSemana: string | null; semRemoto: boolean;
 };
 
+function toLocalISO(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function mondayOf(isoDate: string): string {
+  const [y, m, d] = isoDate.split("-").map(Number);
+  const dt = new Date(y, m - 1, d); // local constructor — no UTC shift
+  const day = dt.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  dt.setDate(dt.getDate() + diff);
+  return toLocalISO(dt);
+}
+
 function getMondayISO() {
-  const d = new Date();
-  const day = d.getDay(); // 0=dom, 6=sab
-  // No fim de semana já abre na próxima semana
-  const offset = day === 0 || day === 6 ? 1 : 0;
-  const diff = (day === 0 ? -6 : 1 - day) + offset * 7;
-  d.setDate(d.getDate() + diff);
-  return d.toISOString().slice(0, 10);
+  const today = toLocalISO(new Date()); // local date string — no UTC shift
+  const day = new Date().getDay();
+  // On weekend, open next Monday
+  if (day === 0 || day === 6) {
+    const [y, m, d] = today.split("-").map(Number);
+    const dt = new Date(y, m - 1, d);
+    const diff = day === 0 ? 1 : 2; // Sun→Mon+1, Sat→Mon+2
+    dt.setDate(dt.getDate() + diff);
+    return toLocalISO(dt);
+  }
+  return mondayOf(today);
 }
 
 export default function EscalaPage() {
@@ -120,12 +137,16 @@ export default function EscalaPage() {
       <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
         <h2 className="text-xl font-semibold text-white">Escala Semanal</h2>
         <div className="flex flex-wrap gap-2 items-center">
-          <button onClick={() => { const d = new Date(semana); d.setDate(d.getDate() - 7); setSemana(d.toISOString().slice(0, 10)); }}
-            className="bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg px-3 py-2 text-sm transition">‹</button>
-          <input type="date" value={semana} onChange={e => setSemana(e.target.value)}
+          <button onClick={() => {
+              const [y, m, d] = semana.split("-").map(Number);
+              setSemana(toLocalISO(new Date(y, m - 1, d - 7)));
+            }} className="bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg px-3 py-2 text-sm transition">‹</button>
+          <input type="date" value={semana} onChange={e => setSemana(mondayOf(e.target.value))}
             className="bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-          <button onClick={() => { const d = new Date(semana); d.setDate(d.getDate() + 7); setSemana(d.toISOString().slice(0, 10)); }}
-            className="bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg px-3 py-2 text-sm transition">›</button>
+          <button onClick={() => {
+              const [y, m, d] = semana.split("-").map(Number);
+              setSemana(toLocalISO(new Date(y, m - 1, d + 7)));
+            }} className="bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg px-3 py-2 text-sm transition">›</button>
           <select value={equipeId} onChange={e => setEquipeId(e.target.value)}
             className="min-w-[130px] bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option value="">Todas as equipes</option>

@@ -34,9 +34,14 @@ export async function GET(request: NextRequest) {
 
     // conta semanas presenciais consecutivas desde o último REMOTO
     let contadoRaw = 0;
+    const semanasContadas = new Set<string>();
     for (const e of escalasAte) {
       if (e.tipo === "REMOTO") break;
-      contadoRaw++;
+      const weekStr = snapToMonday(new Date(e.semana).toISOString().slice(0, 10));
+      if (!semanasContadas.has(weekStr)) {
+        semanasContadas.add(weekStr);
+        contadoRaw++;
+      }
     }
 
     const ajuste = (c as unknown as { ajusteSemanasPresencial: number }).ajusteSemanasPresencial ?? 0;
@@ -94,10 +99,11 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const { colaboradorId, semana, tipo } = await request.json();
+  const snappedSemana = snapToMonday(semana);
 
   const registro = await prisma.escalaSemana.upsert({
-    where: { colaboradorId_semana: { colaboradorId, semana: new Date(semana) } },
-    create: { colaboradorId, semana: new Date(semana), tipo },
+    where: { colaboradorId_semana: { colaboradorId, semana: new Date(snappedSemana) } },
+    create: { colaboradorId, semana: new Date(snappedSemana), tipo },
     update: { tipo },
   });
 
@@ -110,8 +116,10 @@ export async function DELETE(request: NextRequest) {
   const semana = searchParams.get("semana");
   if (!colaboradorId || !semana) return NextResponse.json({ ok: false }, { status: 400 });
 
+  const snappedSemana = snapToMonday(semana);
+
   await prisma.escalaSemana.deleteMany({
-    where: { colaboradorId, semana: new Date(semana) },
+    where: { colaboradorId, semana: new Date(snappedSemana) },
   });
 
   return NextResponse.json({ ok: true });

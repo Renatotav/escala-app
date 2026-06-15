@@ -12,13 +12,16 @@ function fmt(iso: string | null) {
   return iso.slice(0, 10).split("-").reverse().join("/");
 }
 
+function brazilDateStr(offsetDays = 0): string {
+  const d = new Date(Date.now() - 3 * 60 * 60 * 1000 + offsetDays * 86400000);
+  return d.toISOString().slice(0, 10);
+}
+
 function fmtRelativo(iso: string | null) {
   if (!iso) return "—";
   const date = iso.slice(0, 10);
-  const hoje = new Date().toISOString().slice(0, 10);
-  const ontem = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-  if (date === hoje) return "Hoje";
-  if (date === ontem) return "Ontem";
+  if (date === brazilDateStr(0)) return "Hoje";
+  if (date === brazilDateStr(-1)) return "Ontem";
   return date.split("-").reverse().join("/");
 }
 

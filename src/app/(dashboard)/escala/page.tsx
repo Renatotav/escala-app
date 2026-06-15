@@ -23,22 +23,18 @@ function mondayOf(isoDate: string): string {
   return toLocalISO(dt);
 }
 
-function getMondayISO() {
-  const today = toLocalISO(new Date()); // local date string — no UTC shift
-  const day = new Date().getDay();
-  // On weekend, open next Monday
+function getInitialISO(): string {
+  const d = new Date();
+  const day = d.getDay();
+  // Weekend → next Monday; Weekday → today
   if (day === 0 || day === 6) {
-    const [y, m, d] = today.split("-").map(Number);
-    const dt = new Date(y, m - 1, d);
-    const diff = day === 0 ? 1 : 2; // Sun→Mon+1, Sat→Mon+2
-    dt.setDate(dt.getDate() + diff);
-    return toLocalISO(dt);
+    d.setDate(d.getDate() + (day === 0 ? 1 : 2));
   }
-  return mondayOf(today);
+  return toLocalISO(d);
 }
 
 export default function EscalaPage() {
-  const [semana, setSemana] = useState(getMondayISO());
+  const [semana, setSemana] = useState(getInitialISO());
   const [equipeId, setEquipeId] = useState("");
   const [equipes, setEquipes] = useState<Equipe[]>([]);
   const [colaboradores, setColaboradores] = useState<ColaboradorEscala[]>([]);
@@ -138,13 +134,13 @@ export default function EscalaPage() {
         <h2 className="text-xl font-semibold text-white">Escala Semanal</h2>
         <div className="flex flex-wrap gap-2 items-center">
           <button onClick={() => {
-              const [y, m, d] = semana.split("-").map(Number);
+              const [y, m, d] = mondayOf(semana).split("-").map(Number);
               setSemana(toLocalISO(new Date(y, m - 1, d - 7)));
             }} className="bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg px-3 py-2 text-sm transition">‹</button>
-          <input type="date" value={semana} onChange={e => setSemana(mondayOf(e.target.value))}
+          <input type="date" value={semana} onChange={e => setSemana(e.target.value)}
             className="bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
           <button onClick={() => {
-              const [y, m, d] = semana.split("-").map(Number);
+              const [y, m, d] = mondayOf(semana).split("-").map(Number);
               setSemana(toLocalISO(new Date(y, m - 1, d + 7)));
             }} className="bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg px-3 py-2 text-sm transition">›</button>
           <select value={equipeId} onChange={e => setEquipeId(e.target.value)}

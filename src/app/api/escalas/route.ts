@@ -2,9 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { calcularSinal } from "@/lib/eligibility";
 
+function snapToMonday(dateStr: string): string {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  const day = dt.getUTCDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  dt.setUTCDate(dt.getUTCDate() + diff);
+  return dt.toISOString().slice(0, 10);
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const semana = searchParams.get("semana");
+  const semanaRaw = searchParams.get("semana");
+  const semana = semanaRaw ? snapToMonday(semanaRaw) : null;
   const equipeId = searchParams.get("equipeId");
 
   const colaboradores = await prisma.colaborador.findMany({

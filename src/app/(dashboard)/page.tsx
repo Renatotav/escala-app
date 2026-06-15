@@ -27,8 +27,8 @@ export default async function DashboardPage() {
   // Compute dates using Brazil time (UTC-3) so server UTC doesn't shift the day
   const brazilNow = new Date(Date.now() - 3 * 60 * 60 * 1000);
   const [by, bm, bd] = brazilNow.toISOString().slice(0, 10).split("-").map(Number);
-  const amanha   = new Date(Date.UTC(by, bm - 1, bd + 1));   // tomorrow  00:00 UTC
-  const em14dias = new Date(Date.UTC(by, bm - 1, bd + 15));  // +14 days  00:00 UTC
+  const hojeUTC  = new Date(Date.UTC(by, bm - 1, bd));       // today 00:00 UTC
+  const em14dias = new Date(Date.UTC(by, bm - 1, bd + 14));  // +14 days  00:00 UTC
 
   const [colaboradores, plantoesPendentes, plantoesRecentes] = await Promise.all([
     prisma.colaborador.findMany({
@@ -36,12 +36,12 @@ export default async function DashboardPage() {
       include: { equipe: true, escalas: { where: { semana: { lte: hoje } }, orderBy: { semana: "desc" }, take: 10 }, plantoes: true },
     }),
     prisma.plantao.findMany({
-      where: { OR: [{ folga1: { gte: amanha, lte: em14dias } }, { folga2: { gte: amanha, lte: em14dias } }] },
+      where: { OR: [{ folga1: { gte: hojeUTC, lte: em14dias } }, { folga2: { gte: hojeUTC, lte: em14dias } }] },
       include: { colaborador: { select: { nome: true, equipe: { select: { nome: true } } } } },
     }),
     prisma.plantao.findMany({
       orderBy: { data: "desc" },
-      take: 8,
+      take: 12,
       include: { colaborador: { select: { nome: true, equipe: { select: { nome: true } } } } },
     }),
   ]);

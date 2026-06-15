@@ -8,11 +8,16 @@ function fmt(iso: string) {
   return iso.split("-").reverse().join("/");
 }
 
+function brazilDateStr(offsetDays = 0): string {
+  // UTC-3 (Brasília) — avoids server UTC shifting the label
+  const d = new Date(Date.now() - 3 * 60 * 60 * 1000 + offsetDays * 86400000);
+  return d.toISOString().slice(0, 10);
+}
+
 function fmtRelativo(iso: string) {
-  const hojeStr = new Date().toISOString().slice(0, 10);
-  const ontemStr = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-  if (iso === hojeStr) return "Hoje";
-  if (iso === ontemStr) return "Ontem";
+  if (iso === brazilDateStr(0))  return "Hoje";
+  if (iso === brazilDateStr(-1)) return "Ontem";
+  if (iso === brazilDateStr(1))  return "Amanhã";
   return iso.split("-").reverse().join("/");
 }
 
@@ -117,7 +122,11 @@ export default async function DashboardPage() {
                     <p className="text-xs text-gray-500">{f.equipe}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm text-green-400 font-medium">{fmtRelativo(f.data)}</p>
+                    {(() => {
+                      const label = fmtRelativo(f.data);
+                      const color = label === "Hoje" ? "text-green-400" : label === "Amanhã" ? "text-blue-400" : "text-gray-300";
+                      return <p className={`text-sm font-medium ${color}`}>{label}</p>;
+                    })()}
                     <p className="text-xs text-gray-500">
                       {new Date(f.data + "T12:00:00").toLocaleDateString("pt-BR", { weekday: "long" })}
                     </p>

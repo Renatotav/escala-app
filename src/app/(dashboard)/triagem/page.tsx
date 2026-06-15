@@ -613,9 +613,9 @@ export default function TriagemPage() {
                           </button>
                         </>
                       ) : folgasHoje.has(c.id) ? (
-                        <span className="text-xs text-amber-500/50 px-2 py-1">Folga automática</span>
+                        <span className="px-2 py-1"></span>
                       ) : plantaoHoje.has(c.id) ? (
-                        <span className="text-xs text-teal-500/50 px-2 py-1">Plantão</span>
+                        <span className="px-2 py-1"></span>
                       ) : (
                         <button onClick={() => {
                           setModal({ colaboradorId: c.id, nome: c.nome });

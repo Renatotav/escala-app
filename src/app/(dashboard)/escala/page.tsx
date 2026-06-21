@@ -115,6 +115,9 @@ export default function EscalaPage() {
   function sortMembros(list: ColaboradorEscala[]) {
     const order: Record<Sinal, number> = { VERDE: 0, AMARELO: 1, VERMELHO: 2 };
     return [...list].sort((a, b) => {
+      // 0 semanas sempre vai para o final
+      if (a.semanasPresencial === 0 && b.semanasPresencial !== 0) return 1;
+      if (b.semanasPresencial === 0 && a.semanasPresencial !== 0) return -1;
       const sOrd = order[a.sinal] - order[b.sinal];
       if (sOrd !== 0) return sOrd;
       return b.semanasPresencial - a.semanasPresencial;

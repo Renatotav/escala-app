@@ -74,24 +74,35 @@ const HEADER_MAP: Record<string, string> = {
   "nome da ultima acao realizada": "ultimaAcao",
 };
 
-function parseCsvLine(line: string, delim: string): string[] {
-  if (delim === "\t") return line.split("\t").map((v) => v.trim());
-  const result: string[] = [];
+// Parser de CSV completo — processa caracter a caracter para suportar
+// quebras de linha dentro de campos entre aspas (RFC 4180).
+function parseCsvFull(text: string, delim: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
   let cur = "";
   let inQ = false;
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
+
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
     if (ch === '"') {
-      if (inQ && line[i + 1] === '"') { cur += '"'; i++; }
+      if (inQ && text[i + 1] === '"') { cur += '"'; i++; }
       else inQ = !inQ;
     } else if (ch === delim && !inQ) {
-      result.push(cur.trim()); cur = "";
+      row.push(cur.trim()); cur = "";
+    } else if (ch === '\r' && text[i + 1] === '\n' && !inQ) {
+      i++;
+      row.push(cur.trim()); rows.push(row); row = []; cur = "";
+    } else if ((ch === '\n' || ch === '\r') && !inQ) {
+      row.push(cur.trim()); rows.push(row); row = []; cur = "";
     } else {
       cur += ch;
     }
   }
-  result.push(cur.trim());
-  return result;
+  if (row.length > 0 || cur.trim()) {
+    row.push(cur.trim());
+    if (row.some(c => c !== "")) rows.push(row);
+  }
+  return rows;
 }
 
 function parseDateBR(s: string): string | null {
@@ -104,20 +115,24 @@ function parseDateBR(s: string): string | null {
 type ChamadoParsed = Record<string, string | number | null>;
 
 function parsePaste(text: string): ChamadoParsed[] {
-  const clean = text.replace(/^﻿/, "");
-  const lines = clean.replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim().split("\n");
-  if (lines.length < 2) return [];
+  const clean = text.replace(/^﻿/, ""); // remove BOM
+  if (!clean.trim()) return [];
 
-  const firstLine = lines[0];
+  // detecta delimitador pela primeira linha
+  const firstNl = clean.indexOf('\n');
+  const firstLine = (firstNl >= 0 ? clean.slice(0, firstNl) : clean).replace(/\r$/, "");
   const delim = firstLine.includes("\t") ? "\t" : firstLine.includes(";") ? ";" : ",";
 
-  const rawHeaders = parseCsvLine(firstLine, delim);
+  const rows = parseCsvFull(clean, delim);
+  if (rows.length < 2) return [];
+
+  const rawHeaders = rows[0];
   const fieldMap = rawHeaders.map((h) => HEADER_MAP[normalize(h)] ?? null);
 
   const result: ChamadoParsed[] = [];
-  for (let i = 1; i < lines.length; i++) {
-    if (!lines[i].trim()) continue;
-    const cols = parseCsvLine(lines[i], delim);
+  for (let i = 1; i < rows.length; i++) {
+    const cols = rows[i];
+    if (cols.every(c => !c)) continue;
     const obj: ChamadoParsed = {};
     for (let j = 0; j < fieldMap.length; j++) {
       const field = fieldMap[j];
@@ -184,7 +199,7 @@ export default function ChamadosPage() {
   const [substituir, setSubstituir] = useState(true);
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState("");
-  const [importResult, setImportResult] = useState<{ count: number; skipped: number } | null>(null);
+  const [importResult, setImportResult] = useState<{ count: number; skipped: number; parsed: number } | null>(null);
 
   const [clearing, setClearing] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
@@ -245,6 +260,7 @@ export default function ChamadosPage() {
 
   async function handleImport() {
     if (parsed.length === 0) return;
+    const parsedCount = parsed.length;
     setImporting(true);
     try {
       const res = await fetch("/api/chamados/import", {
@@ -254,7 +270,7 @@ export default function ChamadosPage() {
       });
       const data = await res.json();
       if (data.ok) {
-        setImportResult({ count: data.count, skipped: data.skipped ?? 0 });
+        setImportResult({ count: data.count, skipped: data.skipped ?? 0, parsed: parsedCount });
         setFileName("");
         setParsed([]);
         load();
@@ -607,6 +623,7 @@ export default function ChamadosPage() {
 
             {importResult && (
               <div className="mt-3 px-3 py-2 rounded-lg bg-blue-500/10 border border-blue-500/20 text-xs text-blue-300 space-y-0.5">
+                <p className="text-gray-400">{importResult.parsed.toLocaleString("pt-BR")} linha{importResult.parsed !== 1 ? "s" : ""} lida{importResult.parsed !== 1 ? "s" : ""} do arquivo</p>
                 <p>{importResult.count.toLocaleString("pt-BR")} chamado{importResult.count !== 1 ? "s" : ""} importado{importResult.count !== 1 ? "s" : ""}</p>
                 {importResult.skipped > 0 && (
                   <p className="text-gray-500">{importResult.skipped.toLocaleString("pt-BR")} ignorado{importResult.skipped !== 1 ? "s" : ""} (referência já existia)</p>

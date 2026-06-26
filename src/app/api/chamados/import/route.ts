@@ -33,19 +33,21 @@ export async function POST(request: NextRequest) {
     return true;
   });
 
+  const trim = (s?: string | null) => s?.trim() || null;
+
   const data = dedupedInput.map((c) => ({
     referencia: c.referencia ?? "",
-    alerta: c.alerta ?? null,
+    alerta: trim(c.alerta),
     nivelEscalacao: c.nivelEscalacao != null ? Number(c.nivelEscalacao) : null,
-    estado: c.estado ?? null,
+    estado: trim(c.estado),
     dataRegistro: c.dataRegistro ? new Date(c.dataRegistro) : null,
-    nomeAfetado: c.nomeAfetado ?? null,
-    nomeSecao: c.nomeSecao ?? null,
-    nomeItem: c.nomeItem ?? null,
-    nomeCategoria: c.nomeCategoria ?? null,
-    nomeDpsAtribuido: c.nomeDpsAtribuido ?? null,
-    nomeUsuarioAtribuido: c.nomeUsuarioAtribuido ?? null,
-    ultimaAcao: c.ultimaAcao ?? null,
+    nomeAfetado: trim(c.nomeAfetado),
+    nomeSecao: trim(c.nomeSecao),
+    nomeItem: trim(c.nomeItem),
+    nomeCategoria: trim(c.nomeCategoria),
+    nomeDpsAtribuido: trim(c.nomeDpsAtribuido),
+    nomeUsuarioAtribuido: trim(c.nomeUsuarioAtribuido),
+    ultimaAcao: trim(c.ultimaAcao),
   }));
 
   // 2. Se estiver adicionando (não substituindo), ignorar referências já existentes no banco

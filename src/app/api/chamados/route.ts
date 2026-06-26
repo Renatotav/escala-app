@@ -4,44 +4,47 @@ import { prisma } from "@/lib/prisma";
 const PAGE_SIZE = 50;
 
 async function handleStats() {
-  const [total, rows, range] = await Promise.all([
+  const [total, rows, range, colaboradores] = await Promise.all([
     prisma.chamado.count(),
     prisma.chamado.groupBy({
-      by: ["nomeUsuarioAtribuido", "nomeDpsAtribuido"],
+      by: ["nomeUsuarioAtribuido"],
       _count: { id: true },
     }),
     prisma.chamado.aggregate({
       _min: { dataRegistro: true },
       _max: { dataRegistro: true },
     }),
+    prisma.colaborador.findMany({
+      select: { nome: true, equipe: { select: { nome: true } } },
+    }),
   ]);
 
-  // Collect distinct DPS names
-  const dpsSet = new Set<string>();
-  for (const row of rows) {
-    dpsSet.add(row.nomeDpsAtribuido ?? "(Sem DPS)");
-  }
-  const dpsList = Array.from(dpsSet).sort();
-
-  // Build pivot: user → { total, byDps }
-  const userMap = new Map<string, { total: number; byDps: Record<string, number> }>();
-  for (const row of rows) {
-    const user = row.nomeUsuarioAtribuido ?? "(Triagem)";
-    const dps = row.nomeDpsAtribuido ?? "(Sem DPS)";
-    if (!userMap.has(user)) userMap.set(user, { total: 0, byDps: {} });
-    const entry = userMap.get(user)!;
-    entry.total += row._count.id;
-    entry.byDps[dps] = (entry.byDps[dps] ?? 0) + row._count.id;
+  // nome (lowercase) → equipe
+  const equipeMap = new Map<string, string>();
+  for (const c of colaboradores) {
+    if (c.equipe) equipeMap.set(c.nome.toLowerCase().trim(), c.equipe.nome);
   }
 
-  const porColaborador = Array.from(userMap.entries())
-    .map(([nome, data]) => ({ nome, total: data.total, byDps: data.byDps }))
+  // agrupa por equipe → usuários
+  const byEquipe = new Map<string, { nome: string; total: number }[]>();
+  for (const row of rows) {
+    const nome = row.nomeUsuarioAtribuido ?? "(Triagem)";
+    const equipe = equipeMap.get(nome.toLowerCase().trim()) ?? "Sem equipe";
+    if (!byEquipe.has(equipe)) byEquipe.set(equipe, []);
+    byEquipe.get(equipe)!.push({ nome, total: row._count.id });
+  }
+
+  const porEquipe = Array.from(byEquipe.entries())
+    .map(([equipe, usuarios]) => ({
+      equipe,
+      total: usuarios.reduce((s, u) => s + u.total, 0),
+      usuarios: usuarios.sort((a, b) => b.total - a.total),
+    }))
     .sort((a, b) => b.total - a.total);
 
   return NextResponse.json({
     total,
-    porColaborador,
-    dpsList,
+    porEquipe,
     dataMin: range._min.dataRegistro?.toISOString() ?? null,
     dataMax: range._max.dataRegistro?.toISOString() ?? null,
   });

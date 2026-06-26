@@ -28,16 +28,20 @@ type DadosChamados = {
   totalUrgentes: number;
 };
 
-type ColabStats = {
+type UsuarioStats = {
   nome: string;
   total: number;
-  byDps: Record<string, number>;
+};
+
+type EquipeStats = {
+  equipe: string;
+  total: number;
+  usuarios: UsuarioStats[];
 };
 
 type DadosStats = {
   total: number;
-  porColaborador: ColabStats[];
-  dpsList: string[];
+  porEquipe: EquipeStats[];
   dataMin: string | null;
   dataMax: string | null;
 };
@@ -500,72 +504,47 @@ export default function ChamadosPage() {
               <p className="text-gray-500 text-sm">Nenhum dado importado ainda.</p>
             </div>
           ) : (
-            <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-700 text-gray-400 text-xs uppercase tracking-wide">
-                    <th className="text-center px-3 py-3 w-9">#</th>
-                    <th className="text-left px-4 py-3">Usuário Atribuído</th>
-                    <th className="text-right px-4 py-3 w-20">Total</th>
-                    {stats.dpsList.map((dps) => (
-                      <th key={dps} className="text-right px-4 py-3 text-blue-400 whitespace-nowrap">
-                        {dps}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {stats.porColaborador.map((c, i) => {
-                    const pct = stats.total > 0 ? (c.total / stats.total) * 100 : 0;
-                    return (
-                      <tr key={c.nome} className="border-b border-gray-800/60 hover:bg-gray-800/40 transition">
-                        <td className="px-3 py-2.5 text-center">
-                          <span className="text-xs font-mono text-gray-600">{i + 1}</span>
-                        </td>
-                        <td className="px-4 py-2.5">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm text-gray-200">{c.nome}</span>
-                            <div className="flex-1 h-1.5 bg-gray-800 rounded-full overflow-hidden min-w-[30px] max-w-[60px]">
-                              <div className="h-full rounded-full bg-blue-600/60" style={{ width: `${pct}%` }} />
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-2.5 text-right">
-                          <span className="font-mono font-bold tabular-nums text-white">{c.total}</span>
-                        </td>
-                        {stats.dpsList.map((dps) => {
-                          const v = c.byDps[dps] ?? 0;
-                          return (
-                            <td key={dps} className="px-4 py-2.5 text-right">
-                              <span className={`font-mono tabular-nums ${v > 0 ? "text-blue-300" : "text-gray-700"}`}>
-                                {v > 0 ? v : "—"}
-                              </span>
+            <div className="space-y-4">
+              {stats.porEquipe.map((eq) => (
+                <div key={eq.equipe} className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
+                  {/* Cabeçalho da equipe */}
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700 bg-gray-800/40">
+                    <span className="text-sm font-semibold text-white">{eq.equipe}</span>
+                    <span className="text-xs text-gray-400 tabular-nums">
+                      {eq.total.toLocaleString("pt-BR")} chamado{eq.total !== 1 ? "s" : ""}
+                      <span className="ml-2 text-gray-600">
+                        ({((eq.total / stats.total) * 100).toFixed(1)}%)
+                      </span>
+                    </span>
+                  </div>
+                  {/* Usuários */}
+                  <table className="w-full text-sm">
+                    <tbody>
+                      {eq.usuarios.map((u, i) => {
+                        const pct = eq.total > 0 ? (u.total / eq.total) * 100 : 0;
+                        return (
+                          <tr key={u.nome} className="border-b border-gray-800/60 last:border-0 hover:bg-gray-800/40 transition">
+                            <td className="px-3 py-2.5 text-center w-9">
+                              <span className="text-xs font-mono text-gray-600">{i + 1}</span>
                             </td>
-                          );
-                        })}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-                <tfoot>
-                  <tr className="border-t border-gray-700 bg-gray-800/40 text-xs font-semibold uppercase tracking-wide">
-                    <td colSpan={2} className="px-4 py-3 text-gray-400">
-                      Total — {stats.porColaborador.length} colaborador{stats.porColaborador.length !== 1 ? "es" : ""}
-                    </td>
-                    <td className="px-4 py-3 text-right font-mono font-bold text-white tabular-nums">
-                      {stats.total.toLocaleString("pt-BR")}
-                    </td>
-                    {stats.dpsList.map((dps) => {
-                      const tot = stats.porColaborador.reduce((s, c) => s + (c.byDps[dps] ?? 0), 0);
-                      return (
-                        <td key={dps} className="px-4 py-3 text-right font-mono text-blue-300 tabular-nums">
-                          {tot > 0 ? tot.toLocaleString("pt-BR") : "—"}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                </tfoot>
-              </table>
+                            <td className="px-4 py-2.5">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm text-gray-200">{u.nome}</span>
+                                <div className="flex-1 h-1.5 bg-gray-800 rounded-full overflow-hidden min-w-[40px] max-w-[80px]">
+                                  <div className="h-full rounded-full bg-blue-600/60" style={{ width: `${pct}%` }} />
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-4 py-2.5 text-right w-24">
+                              <span className="font-mono font-bold tabular-nums text-white">{u.total}</span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              ))}
             </div>
           )}
         </>

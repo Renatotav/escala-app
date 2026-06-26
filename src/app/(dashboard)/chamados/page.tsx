@@ -142,17 +142,11 @@ function fmtDateShort(iso: string) {
   });
 }
 
-function alertaCfg(alerta: string | null) {
-  if (alerta === "Alerta vermelho") return { dot: "bg-red-400", rowClass: "bg-red-950/30 border-l-2 border-red-500/60", badge: true };
-  if (alerta === "Alerta verde") return { dot: "bg-green-400", rowClass: "", badge: false };
-  return { dot: "bg-gray-700", rowClass: "", badge: false };
-}
-
-function ultimaAcaoColor(acao: string | null) {
-  if (!acao) return "text-gray-600";
-  const a = acao.toLowerCase();
-  if (a.includes("escala")) return "text-amber-400";
-  return "text-gray-400";
+function urgenciaCfg(ultimaAcao: string | null) {
+  if (ultimaAcao === "Solicitação de Urgência") {
+    return { rowClass: "bg-red-950/30 border-l-2 border-red-500/60", badge: true, acaoClass: "text-red-400 font-medium" };
+  }
+  return { rowClass: "", badge: false, acaoClass: "text-gray-400" };
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -299,7 +293,7 @@ export default function ChamadosPage() {
           <div
             onClick={toggleUrgentes}
             className={`rounded-xl border p-4 cursor-pointer transition ${urgentes ? "bg-red-900/30 border-red-500/50" : "bg-gray-900 border-gray-800 hover:border-red-500/30"}`}>
-            <p className="text-xs text-gray-500 mb-1">Urgentes (alerta vermelho)</p>
+            <p className="text-xs text-gray-500 mb-1">Solicitação de Urgência</p>
             <p className={`text-3xl font-bold tabular-nums ${dados.totalUrgentes > 0 ? "text-red-400" : "text-gray-600"}`}>
               {dados.totalUrgentes.toLocaleString("pt-BR")}
             </p>
@@ -393,15 +387,15 @@ export default function ChamadosPage() {
               </thead>
               <tbody>
                 {dados.chamados.map((c) => {
-                  const al = alertaCfg(c.alerta);
+                  const urg = urgenciaCfg(c.ultimaAcao);
                   return (
                     <tr
                       key={c.id}
-                      className={`border-b border-gray-800/60 last:border-0 hover:bg-gray-800/40 transition ${al.rowClass}`}>
+                      className={`border-b border-gray-800/60 last:border-0 hover:bg-gray-800/40 transition ${urg.rowClass}`}>
                       <td className="px-4 py-2.5">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="font-mono text-xs text-gray-200">{c.referencia}</span>
-                          {al.badge && (
+                          {urg.badge && (
                             <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30 leading-none">
                               URGENTE
                             </span>
@@ -420,7 +414,7 @@ export default function ChamadosPage() {
                         <span className="text-xs text-gray-200">{c.nomeUsuarioAtribuido ?? "—"}</span>
                       </td>
                       <td className="px-4 py-2.5">
-                        <span className={`text-xs ${ultimaAcaoColor(c.ultimaAcao)}`}>
+                        <span className={`text-xs ${urg.acaoClass}`}>
                           {c.ultimaAcao ?? "—"}
                         </span>
                       </td>

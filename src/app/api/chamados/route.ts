@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
   const where: Record<string, unknown> = {};
   if (usuario) where.nomeUsuarioAtribuido = usuario;
   if (ultimaAcao) where.ultimaAcao = ultimaAcao;
-  if (apenasUrgentes) where.alerta = "Alerta vermelho";
+  if (apenasUrgentes) where.ultimaAcao = "Solicitação de Urgência";
   if (dataInicio || dataFim) {
     where.dataRegistro = {
       ...(dataInicio && { gte: new Date(dataInicio + "T00:00:00.000Z") }),
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     prisma.chamado.count({ where }),
     prisma.chamado.findMany({
       where,
-      orderBy: [{ alerta: "asc" }, { dataRegistro: "desc" }],
+      orderBy: { dataRegistro: "desc" },
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
       select: {
@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
     }),
   ]);
 
-  const totalUrgentes = await prisma.chamado.count({ where: { alerta: "Alerta vermelho" } });
+  const totalUrgentes = await prisma.chamado.count({ where: { ultimaAcao: "Solicitação de Urgência" } });
 
   return NextResponse.json({
     total,

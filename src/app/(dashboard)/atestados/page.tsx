@@ -176,7 +176,7 @@ export default function AtestadosPage() {
                       {ativo && <span className="text-xs px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400 border border-orange-500/30">Afastado</span>}
                     </div>
                   </td>
-                  <td className="px-4 py-3"><span className="text-xs px-2 py-0.5 rounded bg-gray-700 text-gray-300">{a.colaborador.equipe.nome}</span></td>
+                  <td className="px-4 py-3 whitespace-nowrap"><span className="text-xs px-2 py-0.5 rounded bg-gray-700 text-gray-300">{a.colaborador.equipe.nome}</span></td>
                   <td className="px-4 py-3 text-center text-gray-300 font-mono text-xs">{fmt(a.dataInicio)}</td>
                   <td className="px-4 py-3 text-center text-gray-300 font-mono text-xs">{fmt(a.dataFim)}</td>
                   <td className="px-4 py-3 text-center">

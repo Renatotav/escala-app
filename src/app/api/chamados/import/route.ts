@@ -24,7 +24,16 @@ export async function POST(request: NextRequest) {
     await prisma.chamado.deleteMany();
   }
 
-  const data = chamados.map((c) => ({
+  // 1. Deduplicar dentro do próprio lote por referencia
+  const seenRefs = new Set<string>();
+  const dedupedInput = chamados.filter((c) => {
+    const ref = c.referencia?.trim();
+    if (!ref || seenRefs.has(ref)) return false;
+    seenRefs.add(ref);
+    return true;
+  });
+
+  const data = dedupedInput.map((c) => ({
     referencia: c.referencia ?? "",
     alerta: c.alerta ?? null,
     nivelEscalacao: c.nivelEscalacao != null ? Number(c.nivelEscalacao) : null,
@@ -39,6 +48,23 @@ export async function POST(request: NextRequest) {
     ultimaAcao: c.ultimaAcao ?? null,
   }));
 
-  const result = await prisma.chamado.createMany({ data });
-  return NextResponse.json({ ok: true, count: result.count });
+  // 2. Se estiver adicionando (não substituindo), ignorar referências já existentes no banco
+  let insertData = data;
+  let skipped = chamados.length - dedupedInput.length;
+
+  if (!substituir && data.length > 0) {
+    const existingRefs = await prisma.chamado.findMany({
+      select: { referencia: true },
+    });
+    const existingSet = new Set(existingRefs.map((r) => r.referencia));
+    const filtered = data.filter((d) => !existingSet.has(d.referencia));
+    skipped += data.length - filtered.length;
+    insertData = filtered;
+  }
+
+  const result = insertData.length > 0
+    ? await prisma.chamado.createMany({ data: insertData })
+    : { count: 0 };
+
+  return NextResponse.json({ ok: true, count: result.count, skipped });
 }

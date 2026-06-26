@@ -184,6 +184,7 @@ export default function ChamadosPage() {
   const [substituir, setSubstituir] = useState(true);
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState("");
+  const [importResult, setImportResult] = useState<{ count: number; skipped: number } | null>(null);
 
   const [clearing, setClearing] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
@@ -253,7 +254,7 @@ export default function ChamadosPage() {
       });
       const data = await res.json();
       if (data.ok) {
-        setImportModal(false);
+        setImportResult({ count: data.count, skipped: data.skipped ?? 0 });
         setFileName("");
         setParsed([]);
         load();
@@ -292,7 +293,7 @@ export default function ChamadosPage() {
             </button>
           )}
           <button
-            onClick={() => { setImportModal(true); setFileName(""); setParsed([]); setImportError(""); }}
+            onClick={() => { setImportModal(true); setFileName(""); setParsed([]); setImportError(""); setImportResult(null); }}
             className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
             Importar chamados
           </button>
@@ -604,17 +605,28 @@ export default function ChamadosPage() {
               </p>
             )}
 
+            {importResult && (
+              <div className="mt-3 px-3 py-2 rounded-lg bg-blue-500/10 border border-blue-500/20 text-xs text-blue-300 space-y-0.5">
+                <p>{importResult.count.toLocaleString("pt-BR")} chamado{importResult.count !== 1 ? "s" : ""} importado{importResult.count !== 1 ? "s" : ""}</p>
+                {importResult.skipped > 0 && (
+                  <p className="text-gray-500">{importResult.skipped.toLocaleString("pt-BR")} ignorado{importResult.skipped !== 1 ? "s" : ""} (referência já existia)</p>
+                )}
+              </div>
+            )}
+
             <div className="flex gap-2 mt-4">
               <button onClick={() => setImportModal(false)}
                 className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-lg py-2 transition">
-                Cancelar
+                {importResult ? "Fechar" : "Cancelar"}
               </button>
-              <button
-                onClick={handleImport}
-                disabled={parsed.length === 0 || importing}
-                className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg py-2 transition">
-                {importing ? "Importando..." : `Importar ${parsed.length > 0 ? parsed.length.toLocaleString("pt-BR") : ""} chamados`}
-              </button>
+              {!importResult && (
+                <button
+                  onClick={handleImport}
+                  disabled={parsed.length === 0 || importing}
+                  className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg py-2 transition">
+                  {importing ? "Importando..." : `Importar ${parsed.length > 0 ? parsed.length.toLocaleString("pt-BR") : ""} chamados`}
+                </button>
+              )}
             </div>
           </div>
         </div>

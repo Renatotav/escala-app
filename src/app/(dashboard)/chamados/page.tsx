@@ -31,18 +31,13 @@ type DadosChamados = {
 type ColabStats = {
   nome: string;
   total: number;
-  categoria: string;
-  cadastro: number;
-  erroFalha1G: number;
-  erroFalha2G: number;
-  migracao: number;
-  supervisao: number;
-  outros: number;
+  byDps: Record<string, number>;
 };
 
 type DadosStats = {
   total: number;
   porColaborador: ColabStats[];
+  dpsList: string[];
   dataMin: string | null;
   dataMax: string | null;
 };
@@ -504,107 +499,75 @@ export default function ChamadosPage() {
             <div className="bg-gray-900 rounded-xl border border-gray-800 p-12 text-center">
               <p className="text-gray-500 text-sm">Nenhum dado importado ainda.</p>
             </div>
-          ) : (() => {
-            const hasSupervisao = stats.porColaborador.some((c) => c.supervisao > 0);
-            const hasOutros = stats.porColaborador.some((c) => c.outros > 0);
-            const totCadastro = stats.porColaborador.reduce((s, c) => s + c.cadastro, 0);
-            const tot1G = stats.porColaborador.reduce((s, c) => s + c.erroFalha1G, 0);
-            const tot2G = stats.porColaborador.reduce((s, c) => s + c.erroFalha2G, 0);
-            const totMigracao = stats.porColaborador.reduce((s, c) => s + c.migracao, 0);
-            const totSupervisao = stats.porColaborador.reduce((s, c) => s + c.supervisao, 0);
-            const totOutros = stats.porColaborador.reduce((s, c) => s + c.outros, 0);
-            return (
-              <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto">
-                <table className="w-full text-sm min-w-[640px]">
-                  <thead>
-                    <tr className="border-b border-gray-700 text-gray-400 text-xs uppercase tracking-wide">
-                      <th className="text-center px-3 py-3 w-9">#</th>
-                      <th className="text-left px-4 py-3">Colaborador</th>
-                      <th className="text-right px-4 py-3 w-20">Total</th>
-                      <th className="text-right px-4 py-3 w-24 text-blue-400">Cadastro</th>
-                      <th className="text-right px-4 py-3 w-28 text-amber-400">Erro/Falha 1G</th>
-                      <th className="text-right px-4 py-3 w-28 text-orange-400">Erro/Falha 2G</th>
-                      <th className="text-right px-4 py-3 w-24 text-purple-400">Migração</th>
-                      {hasSupervisao && <th className="text-right px-4 py-3 w-24 text-green-400">Supervisão</th>}
-                      {hasOutros && <th className="text-right px-4 py-3 w-20 text-gray-400">Outros</th>}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {stats.porColaborador.map((c, i) => {
-                      const pct = stats.total > 0 ? (c.total / stats.total) * 100 : 0;
-                      return (
-                        <tr key={c.nome} className="border-b border-gray-800/60 hover:bg-gray-800/40 transition">
-                          <td className="px-3 py-2.5 text-center">
-                            <span className="text-xs font-mono text-gray-600">{i + 1}</span>
-                          </td>
-                          <td className="px-4 py-2.5">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm text-gray-200">{c.nome}</span>
-                              <span className="text-xs px-1.5 py-0.5 rounded bg-gray-800 text-gray-500 shrink-0">{c.categoria}</span>
-                              <div className="flex-1 h-1.5 bg-gray-800 rounded-full overflow-hidden min-w-[30px] max-w-[60px]">
-                                <div className="h-full rounded-full bg-blue-600/60" style={{ width: `${pct}%` }} />
-                              </div>
+          ) : (
+            <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-700 text-gray-400 text-xs uppercase tracking-wide">
+                    <th className="text-center px-3 py-3 w-9">#</th>
+                    <th className="text-left px-4 py-3">Usuário Atribuído</th>
+                    <th className="text-right px-4 py-3 w-20">Total</th>
+                    {stats.dpsList.map((dps) => (
+                      <th key={dps} className="text-right px-4 py-3 text-blue-400 whitespace-nowrap">
+                        {dps}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {stats.porColaborador.map((c, i) => {
+                    const pct = stats.total > 0 ? (c.total / stats.total) * 100 : 0;
+                    return (
+                      <tr key={c.nome} className="border-b border-gray-800/60 hover:bg-gray-800/40 transition">
+                        <td className="px-3 py-2.5 text-center">
+                          <span className="text-xs font-mono text-gray-600">{i + 1}</span>
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-gray-200">{c.nome}</span>
+                            <div className="flex-1 h-1.5 bg-gray-800 rounded-full overflow-hidden min-w-[30px] max-w-[60px]">
+                              <div className="h-full rounded-full bg-blue-600/60" style={{ width: `${pct}%` }} />
                             </div>
-                          </td>
-                          <td className="px-4 py-2.5 text-right">
-                            <span className="font-mono font-bold tabular-nums text-white">{c.total}</span>
-                          </td>
-                          <td className="px-4 py-2.5 text-right">
-                            <span className={`font-mono tabular-nums ${c.cadastro > 0 ? "text-blue-300" : "text-gray-700"}`}>
-                              {c.cadastro > 0 ? c.cadastro : "—"}
-                            </span>
-                          </td>
-                          <td className="px-4 py-2.5 text-right">
-                            <span className={`font-mono tabular-nums ${c.erroFalha1G > 0 ? "text-amber-300" : "text-gray-700"}`}>
-                              {c.erroFalha1G > 0 ? c.erroFalha1G : "—"}
-                            </span>
-                          </td>
-                          <td className="px-4 py-2.5 text-right">
-                            <span className={`font-mono tabular-nums ${c.erroFalha2G > 0 ? "text-orange-300" : "text-gray-700"}`}>
-                              {c.erroFalha2G > 0 ? c.erroFalha2G : "—"}
-                            </span>
-                          </td>
-                          <td className="px-4 py-2.5 text-right">
-                            <span className={`font-mono tabular-nums ${c.migracao > 0 ? "text-purple-300" : "text-gray-700"}`}>
-                              {c.migracao > 0 ? c.migracao : "—"}
-                            </span>
-                          </td>
-                          {hasSupervisao && (
-                            <td className="px-4 py-2.5 text-right">
-                              <span className={`font-mono tabular-nums ${c.supervisao > 0 ? "text-green-300" : "text-gray-700"}`}>
-                                {c.supervisao > 0 ? c.supervisao : "—"}
+                          </div>
+                        </td>
+                        <td className="px-4 py-2.5 text-right">
+                          <span className="font-mono font-bold tabular-nums text-white">{c.total}</span>
+                        </td>
+                        {stats.dpsList.map((dps) => {
+                          const v = c.byDps[dps] ?? 0;
+                          return (
+                            <td key={dps} className="px-4 py-2.5 text-right">
+                              <span className={`font-mono tabular-nums ${v > 0 ? "text-blue-300" : "text-gray-700"}`}>
+                                {v > 0 ? v : "—"}
                               </span>
                             </td>
-                          )}
-                          {hasOutros && (
-                            <td className="px-4 py-2.5 text-right">
-                              <span className={`font-mono tabular-nums ${c.outros > 0 ? "text-gray-400" : "text-gray-700"}`}>
-                                {c.outros > 0 ? c.outros : "—"}
-                              </span>
-                            </td>
-                          )}
-                        </tr>
+                          );
+                        })}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t border-gray-700 bg-gray-800/40 text-xs font-semibold uppercase tracking-wide">
+                    <td colSpan={2} className="px-4 py-3 text-gray-400">
+                      Total — {stats.porColaborador.length} colaborador{stats.porColaborador.length !== 1 ? "es" : ""}
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono font-bold text-white tabular-nums">
+                      {stats.total.toLocaleString("pt-BR")}
+                    </td>
+                    {stats.dpsList.map((dps) => {
+                      const tot = stats.porColaborador.reduce((s, c) => s + (c.byDps[dps] ?? 0), 0);
+                      return (
+                        <td key={dps} className="px-4 py-3 text-right font-mono text-blue-300 tabular-nums">
+                          {tot > 0 ? tot.toLocaleString("pt-BR") : "—"}
+                        </td>
                       );
                     })}
-                  </tbody>
-                  <tfoot>
-                    <tr className="border-t border-gray-700 bg-gray-800/40 text-xs font-semibold uppercase tracking-wide">
-                      <td colSpan={2} className="px-4 py-3 text-gray-400">
-                        Total — {stats.porColaborador.length} colaborador{stats.porColaborador.length !== 1 ? "es" : ""}
-                      </td>
-                      <td className="px-4 py-3 text-right font-mono font-bold text-white tabular-nums">{stats.total.toLocaleString("pt-BR")}</td>
-                      <td className="px-4 py-3 text-right font-mono text-blue-300 tabular-nums">{totCadastro > 0 ? totCadastro : "—"}</td>
-                      <td className="px-4 py-3 text-right font-mono text-amber-300 tabular-nums">{tot1G > 0 ? tot1G : "—"}</td>
-                      <td className="px-4 py-3 text-right font-mono text-orange-300 tabular-nums">{tot2G > 0 ? tot2G : "—"}</td>
-                      <td className="px-4 py-3 text-right font-mono text-purple-300 tabular-nums">{totMigracao > 0 ? totMigracao : "—"}</td>
-                      {hasSupervisao && <td className="px-4 py-3 text-right font-mono text-green-300 tabular-nums">{totSupervisao > 0 ? totSupervisao : "—"}</td>}
-                      {hasOutros && <td className="px-4 py-3 text-right font-mono text-gray-400 tabular-nums">{totOutros > 0 ? totOutros : "—"}</td>}
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-            );
-          })()}
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          )}
         </>
       )}
 

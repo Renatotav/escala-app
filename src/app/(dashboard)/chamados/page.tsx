@@ -377,15 +377,6 @@ export default function ChamadosPage() {
               <option key={u} value={u}>{u}</option>
             ))}
           </select>
-          <button
-            onClick={toggleUrgentes}
-            className={`text-xs px-3 py-2 rounded-lg border transition ${
-              urgentes
-                ? "bg-red-600/30 border-red-500/60 text-red-400"
-                : "bg-gray-900 border-gray-700 text-gray-400 hover:text-white hover:border-gray-500"
-            }`}>
-            Solicitação de Urgência
-          </button>
           {temFiltro && (
             <button
               onClick={clearFilters}

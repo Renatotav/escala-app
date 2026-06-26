@@ -182,6 +182,40 @@ function urgenciaCfg(ultimaAcao: string | null) {
   return { rowClass: "", badge: false, acaoClass: "text-gray-400" };
 }
 
+const SLA_REGRAS: { match: string; dias: number }[] = [
+  { match: "cadastro", dias: 2 },
+  { match: "migracao", dias: 15 },
+  { match: "orientacao tecnica", dias: 5 },
+  { match: "erro", dias: 5 },
+  { match: "falha", dias: 5 },
+];
+
+function normSimples(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/[àáâãä]/g, "a")
+    .replace(/[èéêë]/g, "e")
+    .replace(/[ìíîï]/g, "i")
+    .replace(/[òóôõö]/g, "o")
+    .replace(/[ùúûü]/g, "u")
+    .replace(/[ç]/g, "c")
+    .replace(/[^a-z0-9 ]/g, "");
+}
+
+function getSLADias(nomeDps: string | null): number | null {
+  if (!nomeDps) return null;
+  const norm = normSimples(nomeDps);
+  for (const r of SLA_REGRAS) {
+    if (norm.includes(r.match)) return r.dias;
+  }
+  return null;
+}
+
+function diasDesde(dataRegistro: string | null): number | null {
+  if (!dataRegistro) return null;
+  return Math.floor((Date.now() - new Date(dataRegistro).getTime()) / 86_400_000);
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function ChamadosPage() {
@@ -415,16 +449,25 @@ export default function ChamadosPage() {
               <tbody>
                 {dados.chamados.map((c) => {
                   const urg = urgenciaCfg(c.ultimaAcao);
+                  const sla = getSLADias(c.nomeDpsAtribuido);
+                  const dias = diasDesde(c.dataRegistro);
+                  const atrasado = sla !== null && dias !== null && dias >= sla;
+                  const rowExtra = !urg.badge && atrasado ? "bg-orange-950/20 border-l-2 border-orange-500/50" : "";
                   return (
                     <tr
                       key={c.id}
-                      className={`border-b border-gray-800/60 last:border-0 hover:bg-gray-800/40 transition ${urg.rowClass}`}>
+                      className={`border-b border-gray-800/60 last:border-0 hover:bg-gray-800/40 transition ${urg.rowClass} ${rowExtra}`}>
                       <td className="px-4 py-2.5">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="font-mono text-xs text-gray-200">{c.referencia}</span>
                           {urg.badge && (
                             <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30 leading-none">
                               URGENTE
+                            </span>
+                          )}
+                          {atrasado && dias !== null && (
+                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400 border border-orange-500/30 leading-none">
+                              {dias}d
                             </span>
                           )}
                         </div>

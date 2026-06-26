@@ -2,23 +2,28 @@
 
 import { useEffect, useState, useCallback } from "react";
 
-type ColabStats = {
-  nome: string;
-  total: number;
-  categoria: string;
-  cadastro: number;
-  erroFalha1G: number;
-  erroFalha2G: number;
-  migracao: number;
-  supervisao: number;
-  outros: number;
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type Chamado = {
+  id: number;
+  referencia: string;
+  dataRegistro: string | null;
+  nomeDpsAtribuido: string | null;
+  nomeUsuarioAtribuido: string | null;
+  ultimaAcao: string | null;
+  alerta: string | null;
+  nivelEscalacao: number | null;
 };
 
 type DadosChamados = {
   total: number;
-  porColaborador: ColabStats[];
+  chamados: Chamado[];
+  page: number;
+  pageSize: number;
+  totalPages: number;
   dataMin: string | null;
   dataMax: string | null;
+  usuarios: string[];
 };
 
 // ─── CSV parser ───────────────────────────────────────────────────────────────
@@ -113,18 +118,39 @@ function parsePaste(text: string): ChamadoParsed[] {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString("pt-BR", { timeZone: "UTC" });
+function fmtDateTime(iso: string | null) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  return d.toLocaleString("pt-BR", {
+    timeZone: "UTC",
+    day: "2-digit",
+    month: "2-digit",
+    year: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
-function currentMonth() {
-  return new Date().toISOString().slice(0, 7);
+function fmtDateShort(iso: string) {
+  return new Date(iso).toLocaleDateString("pt-BR", {
+    timeZone: "UTC",
+    day: "2-digit",
+    month: "2-digit",
+    year: "2-digit",
+  });
 }
 
-function monthRange(mes: string): { dataInicio: string; dataFim: string } {
-  const [y, m] = mes.split("-").map(Number);
-  const last = new Date(y, m, 0).getDate();
-  return { dataInicio: `${mes}-01`, dataFim: `${mes}-${String(last).padStart(2, "0")}` };
+function alertaCfg(alerta: string | null) {
+  if (alerta === "Alerta vermelho") return { dot: "bg-red-400", rowClass: "border-l-2 border-red-500/50" };
+  if (alerta === "Alerta verde") return { dot: "bg-green-400", rowClass: "" };
+  return { dot: "bg-gray-700", rowClass: "" };
+}
+
+function ultimaAcaoColor(acao: string | null) {
+  if (!acao) return "text-gray-600";
+  const a = acao.toLowerCase();
+  if (a.includes("escala")) return "text-amber-400";
+  return "text-gray-400";
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -132,10 +158,10 @@ function monthRange(mes: string): { dataInicio: string; dataFim: string } {
 export default function ChamadosPage() {
   const [dados, setDados] = useState<DadosChamados | null>(null);
   const [loading, setLoading] = useState(false);
-  const [filtro, setFiltro] = useState<"tudo" | "mes" | "custom">("tudo");
-  const [mes, setMes] = useState(currentMonth());
-  const [customInicio, setCustomInicio] = useState("");
-  const [customFim, setCustomFim] = useState("");
+  const [page, setPage] = useState(1);
+  const [usuario, setUsuario] = useState("");
+  const [dataInicio, setDataInicio] = useState("");
+  const [dataFim, setDataFim] = useState("");
 
   const [importModal, setImportModal] = useState(false);
   const [fileName, setFileName] = useState("");
@@ -149,22 +175,31 @@ export default function ChamadosPage() {
 
   const load = useCallback(() => {
     setLoading(true);
-    const params = new URLSearchParams();
-    if (filtro === "mes") {
-      const r = monthRange(mes);
-      params.set("dataInicio", r.dataInicio);
-      params.set("dataFim", r.dataFim);
-    } else if (filtro === "custom" && customInicio && customFim) {
-      params.set("dataInicio", customInicio);
-      params.set("dataFim", customFim);
-    }
+    const params = new URLSearchParams({ page: String(page) });
+    if (usuario) params.set("usuario", usuario);
+    if (dataInicio) params.set("dataInicio", dataInicio);
+    if (dataFim) params.set("dataFim", dataFim);
     fetch(`/api/chamados?${params}`)
       .then((r) => r.json())
       .then(setDados)
       .finally(() => setLoading(false));
-  }, [filtro, mes, customInicio, customFim]);
+  }, [page, usuario, dataInicio, dataFim]);
 
   useEffect(() => { load(); }, [load]);
+
+  function setFilter(key: "usuario" | "dataInicio" | "dataFim", value: string) {
+    if (key === "usuario") setUsuario(value);
+    if (key === "dataInicio") setDataInicio(value);
+    if (key === "dataFim") setDataFim(value);
+    setPage(1);
+  }
+
+  function clearFilters() {
+    setUsuario("");
+    setDataInicio("");
+    setDataFim("");
+    setPage(1);
+  }
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -212,17 +247,7 @@ export default function ChamadosPage() {
     load();
   }
 
-  const totalAtendentes = dados?.porColaborador.length ?? 0;
-
-  // Column totals
-  const totCadastro = dados?.porColaborador.reduce((s, c) => s + c.cadastro, 0) ?? 0;
-  const tot1G = dados?.porColaborador.reduce((s, c) => s + c.erroFalha1G, 0) ?? 0;
-  const tot2G = dados?.porColaborador.reduce((s, c) => s + c.erroFalha2G, 0) ?? 0;
-  const totMigracao = dados?.porColaborador.reduce((s, c) => s + c.migracao, 0) ?? 0;
-  const totSupervisao = dados?.porColaborador.reduce((s, c) => s + c.supervisao, 0) ?? 0;
-  const totOutros = dados?.porColaborador.reduce((s, c) => s + c.outros, 0) ?? 0;
-  const hasSupervisao = (dados?.porColaborador.some((c) => c.supervisao > 0)) ?? false;
-  const hasOutros = (dados?.porColaborador.some((c) => c.outros > 0)) ?? false;
+  const temFiltro = !!(usuario || dataInicio || dataFim);
 
   return (
     <div>
@@ -230,7 +255,7 @@ export default function ChamadosPage() {
       <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
         <div>
           <h2 className="text-xl font-semibold text-white">Chamados</h2>
-          <p className="text-sm text-gray-400 mt-0.5">Quantitativo por colaborador e categoria</p>
+          <p className="text-sm text-gray-400 mt-0.5">Listagem de chamados por atendente</p>
         </div>
         <div className="flex gap-2 flex-wrap">
           {dados && dados.total > 0 && (
@@ -249,27 +274,25 @@ export default function ChamadosPage() {
       </div>
 
       {/* Summary cards */}
-      {dados && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 col-span-2 md:col-span-1">
-            <p className="text-xs text-gray-500 mb-1">Total de Chamados</p>
+      {dados && dados.total > 0 && (
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+          <div className="bg-gray-900 rounded-xl border border-gray-800 p-4">
+            <p className="text-xs text-gray-500 mb-1">Total de chamados</p>
             <p className="text-3xl font-bold text-white tabular-nums">
               {dados.total.toLocaleString("pt-BR")}
             </p>
           </div>
           <div className="bg-gray-900 rounded-xl border border-gray-800 p-4">
-            <p className="text-xs text-gray-500 mb-1">Colaboradores</p>
-            <p className="text-3xl font-bold text-white tabular-nums">{totalAtendentes}</p>
-          </div>
-          <div className="bg-gray-900 rounded-xl border border-gray-800 p-4">
-            <p className="text-xs text-gray-500 mb-1">Cadastro</p>
-            <p className="text-3xl font-bold text-blue-400 tabular-nums">{totCadastro.toLocaleString("pt-BR")}</p>
+            <p className="text-xs text-gray-500 mb-1">Atendentes</p>
+            <p className="text-3xl font-bold text-white tabular-nums">
+              {dados.usuarios.length}
+            </p>
           </div>
           {dados.dataMin && dados.dataMax && (
             <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 col-span-2 md:col-span-1">
               <p className="text-xs text-gray-500 mb-1">Período dos dados</p>
               <p className="text-sm font-medium text-gray-300">
-                {fmtDate(dados.dataMin)} → {fmtDate(dados.dataMax)}
+                {fmtDateShort(dados.dataMin)} → {fmtDateShort(dados.dataMax)}
               </p>
             </div>
           )}
@@ -277,45 +300,39 @@ export default function ChamadosPage() {
       )}
 
       {/* Filtros */}
-      <div className="flex flex-wrap items-center gap-2 mb-6">
-        <span className="text-xs text-gray-500 font-medium uppercase tracking-wide mr-1">Período:</span>
-        <button
-          onClick={() => setFiltro("tudo")}
-          className={`text-xs px-3 py-1.5 rounded-lg border transition ${filtro === "tudo" ? "bg-blue-600 text-white border-blue-600" : "bg-gray-900 text-gray-400 border-gray-700 hover:text-white"}`}>
-          Todo o período
-        </button>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => setFiltro("mes")}
-            className={`text-xs px-3 py-1.5 rounded-lg border transition ${filtro === "mes" ? "bg-blue-600 text-white border-blue-600" : "bg-gray-900 text-gray-400 border-gray-700 hover:text-white"}`}>
-            Por mês
-          </button>
-          {filtro === "mes" && (
-            <input
-              type="month"
-              value={mes}
-              onChange={(e) => setMes(e.target.value)}
-              className="bg-gray-900 border border-gray-700 text-white text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+      {dados && dados.usuarios.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          <select
+            value={usuario}
+            onChange={(e) => setFilter("usuario", e.target.value)}
+            className="bg-gray-900 border border-gray-700 text-white text-xs rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[180px]">
+            <option value="">Todos os atendentes</option>
+            {dados.usuarios.map((u) => (
+              <option key={u} value={u}>{u}</option>
+            ))}
+          </select>
+          <input
+            type="date"
+            value={dataInicio}
+            onChange={(e) => setFilter("dataInicio", e.target.value)}
+            className="bg-gray-900 border border-gray-700 text-white text-xs rounded-lg px-2 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <span className="text-gray-500 text-xs">até</span>
+          <input
+            type="date"
+            value={dataFim}
+            onChange={(e) => setFilter("dataFim", e.target.value)}
+            className="bg-gray-900 border border-gray-700 text-white text-xs rounded-lg px-2 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          {temFiltro && (
+            <button
+              onClick={clearFilters}
+              className="text-xs px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white border border-gray-700 transition">
+              Limpar filtros
+            </button>
           )}
         </div>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => setFiltro("custom")}
-            className={`text-xs px-3 py-1.5 rounded-lg border transition ${filtro === "custom" ? "bg-blue-600 text-white border-blue-600" : "bg-gray-900 text-gray-400 border-gray-700 hover:text-white"}`}>
-            Personalizado
-          </button>
-          {filtro === "custom" && (
-            <>
-              <input type="date" value={customInicio} onChange={(e) => setCustomInicio(e.target.value)}
-                className="bg-gray-900 border border-gray-700 text-white text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              <span className="text-gray-500 text-xs">até</span>
-              <input type="date" value={customFim} onChange={(e) => setCustomFim(e.target.value)}
-                className="bg-gray-900 border border-gray-700 text-white text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-            </>
-          )}
-        </div>
-      </div>
+      )}
 
       {/* Table */}
       {loading ? (
@@ -325,118 +342,99 @@ export default function ChamadosPage() {
           <p className="text-gray-500 text-sm mb-1">Nenhum dado importado ainda.</p>
           <p className="text-gray-600 text-xs">Clique em "Importar chamados" e selecione o arquivo CSV exportado do sistema.</p>
         </div>
-      ) : (
-        <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto">
-          <table className="w-full text-sm min-w-[640px]">
-            <thead>
-              <tr className="border-b border-gray-700 text-gray-400 text-xs uppercase tracking-wide">
-                <th className="text-center px-3 py-3 w-9">#</th>
-                <th className="text-left px-4 py-3">Colaborador</th>
-                <th className="text-right px-4 py-3 w-20">Total</th>
-                <th className="text-right px-4 py-3 w-24 text-blue-400">Cadastro</th>
-                <th className="text-right px-4 py-3 w-28 text-amber-400">Erro/Falha 1G</th>
-                <th className="text-right px-4 py-3 w-28 text-orange-400">Erro/Falha 2G</th>
-                <th className="text-right px-4 py-3 w-24 text-purple-400">Migração</th>
-                {hasSupervisao && (
-                  <th className="text-right px-4 py-3 w-24 text-green-400">Supervisão</th>
-                )}
-                {hasOutros && (
-                  <th className="text-right px-4 py-3 w-20 text-gray-400">Outros</th>
-                )}
-              </tr>
-            </thead>
-            <tbody>
-              {dados.porColaborador.map((c, i) => {
-                const pct = dados.total > 0 ? (c.total / dados.total) * 100 : 0;
-                return (
-                  <tr key={c.nome} className="border-b border-gray-800/60 hover:bg-gray-800/40 transition">
-                    <td className="px-3 py-2.5 text-center">
-                      <span className="text-xs font-mono text-gray-600">{i + 1}</span>
-                    </td>
-                    <td className="px-4 py-2.5">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-gray-200">{c.nome}</span>
-                        <span className="text-xs px-1.5 py-0.5 rounded bg-gray-800 text-gray-500 shrink-0">{c.categoria}</span>
-                        <div className="flex-1 h-1.5 bg-gray-800 rounded-full overflow-hidden min-w-[30px] max-w-[60px]">
-                          <div className="h-full rounded-full bg-blue-600/60" style={{ width: `${pct}%` }} />
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-2.5 text-right">
-                      <span className="font-mono font-bold tabular-nums text-white">{c.total}</span>
-                    </td>
-                    <td className="px-4 py-2.5 text-right">
-                      <span className={`font-mono tabular-nums ${c.cadastro > 0 ? "text-blue-300" : "text-gray-700"}`}>
-                        {c.cadastro > 0 ? c.cadastro : "—"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2.5 text-right">
-                      <span className={`font-mono tabular-nums ${c.erroFalha1G > 0 ? "text-amber-300" : "text-gray-700"}`}>
-                        {c.erroFalha1G > 0 ? c.erroFalha1G : "—"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2.5 text-right">
-                      <span className={`font-mono tabular-nums ${c.erroFalha2G > 0 ? "text-orange-300" : "text-gray-700"}`}>
-                        {c.erroFalha2G > 0 ? c.erroFalha2G : "—"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2.5 text-right">
-                      <span className={`font-mono tabular-nums ${c.migracao > 0 ? "text-purple-300" : "text-gray-700"}`}>
-                        {c.migracao > 0 ? c.migracao : "—"}
-                      </span>
-                    </td>
-                    {hasSupervisao && (
-                      <td className="px-4 py-2.5 text-right">
-                        <span className={`font-mono tabular-nums ${c.supervisao > 0 ? "text-green-300" : "text-gray-700"}`}>
-                          {c.supervisao > 0 ? c.supervisao : "—"}
-                        </span>
-                      </td>
-                    )}
-                    {hasOutros && (
-                      <td className="px-4 py-2.5 text-right">
-                        <span className={`font-mono tabular-nums ${c.outros > 0 ? "text-gray-400" : "text-gray-700"}`}>
-                          {c.outros > 0 ? c.outros : "—"}
-                        </span>
-                      </td>
-                    )}
-                  </tr>
-                );
-              })}
-            </tbody>
-            <tfoot>
-              <tr className="border-t border-gray-700 bg-gray-800/40 text-xs font-semibold uppercase tracking-wide">
-                <td colSpan={2} className="px-4 py-3 text-gray-400">
-                  Total — {totalAtendentes} colaborador{totalAtendentes !== 1 ? "es" : ""}
-                </td>
-                <td className="px-4 py-3 text-right font-mono font-bold text-white tabular-nums">
-                  {dados.total.toLocaleString("pt-BR")}
-                </td>
-                <td className="px-4 py-3 text-right font-mono text-blue-300 tabular-nums">
-                  {totCadastro > 0 ? totCadastro.toLocaleString("pt-BR") : "—"}
-                </td>
-                <td className="px-4 py-3 text-right font-mono text-amber-300 tabular-nums">
-                  {tot1G > 0 ? tot1G.toLocaleString("pt-BR") : "—"}
-                </td>
-                <td className="px-4 py-3 text-right font-mono text-orange-300 tabular-nums">
-                  {tot2G > 0 ? tot2G.toLocaleString("pt-BR") : "—"}
-                </td>
-                <td className="px-4 py-3 text-right font-mono text-purple-300 tabular-nums">
-                  {totMigracao > 0 ? totMigracao.toLocaleString("pt-BR") : "—"}
-                </td>
-                {hasSupervisao && (
-                  <td className="px-4 py-3 text-right font-mono text-green-300 tabular-nums">
-                    {totSupervisao > 0 ? totSupervisao.toLocaleString("pt-BR") : "—"}
-                  </td>
-                )}
-                {hasOutros && (
-                  <td className="px-4 py-3 text-right font-mono text-gray-400 tabular-nums">
-                    {totOutros > 0 ? totOutros.toLocaleString("pt-BR") : "—"}
-                  </td>
-                )}
-              </tr>
-            </tfoot>
-          </table>
+      ) : dados.chamados.length === 0 ? (
+        <div className="bg-gray-900 rounded-xl border border-gray-800 p-8 text-center">
+          <p className="text-gray-500 text-sm">Nenhum chamado encontrado com os filtros aplicados.</p>
         </div>
+      ) : (
+        <>
+          <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto">
+            <table className="w-full text-sm min-w-[800px]">
+              <thead>
+                <tr className="border-b border-gray-700 text-gray-400 text-xs uppercase tracking-wide">
+                  <th className="text-left px-4 py-3 w-32">Referência</th>
+                  <th className="text-left px-4 py-3 w-36">Data/hora</th>
+                  <th className="text-left px-4 py-3">Nome do DPS Atribuído</th>
+                  <th className="text-left px-4 py-3 w-44">Usuário Atribuído</th>
+                  <th className="text-left px-4 py-3">Última ação</th>
+                </tr>
+              </thead>
+              <tbody>
+                {dados.chamados.map((c) => {
+                  const al = alertaCfg(c.alerta);
+                  return (
+                    <tr
+                      key={c.id}
+                      className={`border-b border-gray-800/60 last:border-0 hover:bg-gray-800/40 transition ${al.rowClass}`}>
+                      <td className="px-4 py-2.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${al.dot}`} title={c.alerta ?? undefined} />
+                          <span className="font-mono text-xs text-gray-200">{c.referencia}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <span className="text-xs text-gray-400 tabular-nums whitespace-nowrap">
+                          {fmtDateTime(c.dataRegistro)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <span className="text-xs text-gray-300">{c.nomeDpsAtribuido ?? "—"}</span>
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <span className="text-xs text-gray-200">{c.nomeUsuarioAtribuido ?? "—"}</span>
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <span className={`text-xs ${ultimaAcaoColor(c.ultimaAcao)}`}>
+                          {c.ultimaAcao ?? "—"}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          {dados.totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4">
+              <p className="text-xs text-gray-500">
+                {((page - 1) * dados.pageSize + 1).toLocaleString("pt-BR")}–
+                {Math.min(page * dados.pageSize, dados.total).toLocaleString("pt-BR")} de{" "}
+                {dados.total.toLocaleString("pt-BR")} chamados
+              </p>
+              <div className="flex gap-1">
+                <button
+                  onClick={() => setPage(1)}
+                  disabled={page === 1}
+                  className="text-xs px-2 py-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-400 disabled:opacity-30 transition">
+                  «
+                </button>
+                <button
+                  onClick={() => setPage((p) => p - 1)}
+                  disabled={page === 1}
+                  className="text-xs px-3 py-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-400 disabled:opacity-30 transition">
+                  ‹ Anterior
+                </button>
+                <span className="text-xs px-3 py-1 text-gray-300 tabular-nums">
+                  {page} / {dados.totalPages}
+                </span>
+                <button
+                  onClick={() => setPage((p) => p + 1)}
+                  disabled={page === dados.totalPages}
+                  className="text-xs px-3 py-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-400 disabled:opacity-30 transition">
+                  Próximo ›
+                </button>
+                <button
+                  onClick={() => setPage(dados.totalPages)}
+                  disabled={page === dados.totalPages}
+                  className="text-xs px-2 py-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-400 disabled:opacity-30 transition">
+                  »
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* Modal de importação */}

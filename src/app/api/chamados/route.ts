@@ -1,88 +1,62 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-function normalizeEquipe(nome: string): string {
-  const n = nome.toLowerCase();
-  if (n.includes("1g")) return "Erro/Falha 1G";
-  if (n.includes("2g")) return "Erro/Falha 2G";
-  if (n.includes("cadastro")) return "Cadastro";
-  if (n.includes("migra")) return "Migração";
-  if (n.includes("supervis")) return "Supervisão";
-  if (n.includes("coordena")) return "Coordenação";
-  if (n.includes("triagem")) return "Triagem";
-  if (n.includes("balc")) return "Balcão Virtual";
-  return nome;
-}
+const PAGE_SIZE = 50;
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const dataInicio = searchParams.get("dataInicio");
-  const dataFim = searchParams.get("dataFim");
+  const page = Math.max(1, Number(searchParams.get("page") ?? "1"));
+  const usuario = searchParams.get("usuario") || null;
+  const dataInicio = searchParams.get("dataInicio") || null;
+  const dataFim = searchParams.get("dataFim") || null;
 
-  const where =
-    dataInicio || dataFim
-      ? {
-          dataRegistro: {
-            ...(dataInicio && { gte: new Date(dataInicio + "T00:00:00.000Z") }),
-            ...(dataFim && { lte: new Date(dataFim + "T23:59:59.999Z") }),
-          },
-        }
-      : {};
+  const where: Record<string, unknown> = {};
+  if (usuario) where.nomeUsuarioAtribuido = usuario;
+  if (dataInicio || dataFim) {
+    where.dataRegistro = {
+      ...(dataInicio && { gte: new Date(dataInicio + "T00:00:00.000Z") }),
+      ...(dataFim && { lte: new Date(dataFim + "T23:59:59.999Z") }),
+    };
+  }
 
-  const [total, rows, range, colaboradores] = await Promise.all([
+  const [total, chamados, range, usuariosRaw] = await Promise.all([
     prisma.chamado.count({ where }),
-    prisma.chamado.groupBy({
-      by: ["nomeUsuarioAtribuido"],
+    prisma.chamado.findMany({
       where,
-      _count: { id: true },
+      orderBy: { dataRegistro: "desc" },
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
+      select: {
+        id: true,
+        referencia: true,
+        dataRegistro: true,
+        nomeDpsAtribuido: true,
+        nomeUsuarioAtribuido: true,
+        ultimaAcao: true,
+        alerta: true,
+        nivelEscalacao: true,
+      },
     }),
     prisma.chamado.aggregate({
-      where,
       _min: { dataRegistro: true },
       _max: { dataRegistro: true },
     }),
-    prisma.colaborador.findMany({
-      select: { nome: true, equipe: { select: { nome: true } } },
+    prisma.chamado.findMany({
+      select: { nomeUsuarioAtribuido: true },
+      distinct: ["nomeUsuarioAtribuido"],
+      orderBy: { nomeUsuarioAtribuido: "asc" },
     }),
   ]);
 
-  // nome colaborador (lowercase) → categoria normalizada
-  const equipeMap: Record<string, string> = {};
-  for (const c of colaboradores) {
-    if (c.equipe) {
-      equipeMap[c.nome.toLowerCase().trim()] = normalizeEquipe(c.equipe.nome);
-    }
-  }
-
-  const porColaborador = rows
-    .map((row) => {
-      const nome = row.nomeUsuarioAtribuido ?? "(sem atendente)";
-      const cat = equipeMap[nome.toLowerCase().trim()] ?? "Sem equipe";
-      return { nome, total: row._count.id, categoria: cat };
-    })
-    .sort((a, b) => b.total - a.total)
-    .map((c) => ({
-      nome: c.nome,
-      total: c.total,
-      categoria: c.categoria,
-      cadastro: c.categoria === "Cadastro" ? c.total : 0,
-      erroFalha1G: c.categoria === "Erro/Falha 1G" ? c.total : 0,
-      erroFalha2G: c.categoria === "Erro/Falha 2G" ? c.total : 0,
-      migracao: c.categoria === "Migração" ? c.total : 0,
-      supervisao: c.categoria === "Supervisão" ? c.total : 0,
-      outros:
-        !["Cadastro", "Erro/Falha 1G", "Erro/Falha 2G", "Migração", "Supervisão"].includes(
-          c.categoria,
-        )
-          ? c.total
-          : 0,
-    }));
-
   return NextResponse.json({
     total,
-    porColaborador,
+    chamados,
+    page,
+    pageSize: PAGE_SIZE,
+    totalPages: Math.ceil(total / PAGE_SIZE),
     dataMin: range._min.dataRegistro?.toISOString() ?? null,
     dataMax: range._max.dataRegistro?.toISOString() ?? null,
+    usuarios: usuariosRaw.map((u) => u.nomeUsuarioAtribuido).filter(Boolean) as string[],
   });
 }
 

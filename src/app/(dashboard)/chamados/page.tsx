@@ -390,7 +390,13 @@ export default function ChamadosPage() {
                         <span className="text-xs text-gray-300">{c.nomeDpsAtribuido ?? "—"}</span>
                       </td>
                       <td className="px-4 py-2.5">
-                        <span className="text-xs text-gray-200">{c.nomeUsuarioAtribuido ?? "—"}</span>
+                        {c.nomeUsuarioAtribuido ? (
+                          <span className="text-xs text-gray-200">{c.nomeUsuarioAtribuido}</span>
+                        ) : (
+                          <span className="text-xs px-2 py-0.5 rounded bg-blue-500/15 text-blue-400 border border-blue-500/25">
+                            Triagem
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-2.5">
                         <span className={`text-xs ${urg.acaoClass}`}>

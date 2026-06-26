@@ -6,8 +6,12 @@ const PAGE_SIZE = 50;
 function normName(s: string): string {
   return s
     .toLowerCase()
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
+    .replace(/[àáâãä]/g, "a")
+    .replace(/[èéêë]/g, "e")
+    .replace(/[ìíîï]/g, "i")
+    .replace(/[òóôõö]/g, "o")
+    .replace(/[ùúûü]/g, "u")
+    .replace(/[ç]/g, "c")
     .replace(/[^a-z0-9 ]/g, "")
     .replace(/\s+/g, " ")
     .trim();

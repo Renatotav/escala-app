@@ -115,7 +115,7 @@ export async function GET(request: NextRequest) {
     prisma.chamado.count({ where }),
     prisma.chamado.findMany({
       where,
-      orderBy: { dataRegistro: "desc" },
+      orderBy: { dataRegistro: "asc" },
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
       select: {

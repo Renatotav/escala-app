@@ -13,6 +13,7 @@ type Chamado = {
   ultimaAcao: string | null;
   alerta: string | null;
   nivelEscalacao: number | null;
+  equipe: string | null;
 };
 
 type DadosChamados = {
@@ -482,7 +483,14 @@ export default function ChamadosPage() {
                       </td>
                       <td className="px-4 py-2.5">
                         {c.nomeUsuarioAtribuido ? (
-                          <span className="text-xs text-gray-200">{c.nomeUsuarioAtribuido}</span>
+                          <div className="flex flex-col gap-0.5">
+                            <span className="text-xs text-gray-200">{c.nomeUsuarioAtribuido}</span>
+                            {c.equipe && c.equipe !== "Sem equipe" && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-700/60 text-gray-400 border border-gray-700 w-fit whitespace-nowrap">
+                                {c.equipe}
+                              </span>
+                            )}
+                          </div>
                         ) : (
                           <span className="text-xs px-2 py-0.5 rounded bg-blue-500/15 text-blue-400 border border-blue-500/25">
                             Triagem

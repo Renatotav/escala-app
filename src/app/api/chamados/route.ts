@@ -111,7 +111,7 @@ export async function GET(request: NextRequest) {
     where.ultimaAcao = ultimaAcao;
   }
 
-  const [total, chamados, range, usuariosRaw, acoesRaw] = await Promise.all([
+  const [total, chamados, range, usuariosRaw, acoesRaw, colaboradores] = await Promise.all([
     prisma.chamado.count({ where }),
     prisma.chamado.findMany({
       where,
@@ -143,13 +143,25 @@ export async function GET(request: NextRequest) {
       distinct: ["ultimaAcao"],
       orderBy: { ultimaAcao: "asc" },
     }),
+    prisma.colaborador.findMany({
+      select: { nome: true, equipe: { select: { nome: true } } },
+    }),
   ]);
+
+  const equipeEntries = colaboradores
+    .filter((c) => c.equipe)
+    .map((c) => ({ key: normName(c.nome), equipe: c.equipe!.nome }));
+
+  const chamadosComEquipe = chamados.map((c) => ({
+    ...c,
+    equipe: c.nomeUsuarioAtribuido ? findEquipe(c.nomeUsuarioAtribuido, equipeEntries) : null,
+  }));
 
   const totalUrgentes = await prisma.chamado.count({ where: { ultimaAcao: "Solicitação de Urgência" } });
 
   return NextResponse.json({
     total,
-    chamados,
+    chamados: chamadosComEquipe,
     page,
     pageSize: PAGE_SIZE,
     totalPages: Math.ceil(total / PAGE_SIZE),

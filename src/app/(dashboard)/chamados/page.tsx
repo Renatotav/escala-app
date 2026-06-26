@@ -607,7 +607,11 @@ export default function ChamadosPage() {
                                       ↑ alto
                                     </span>
                                   )}
-                                  <span className={`text-sm ${sobrecarregado ? "text-red-200" : "text-gray-200"}`}>{u.nome}</span>
+                                  <button
+                                    onClick={() => { setUsuario(u.nome); setEquipe(""); setPage(1); setView("lista"); }}
+                                    className={`text-sm text-left hover:underline ${sobrecarregado ? "text-red-200" : "text-gray-200"}`}>
+                                    {u.nome}
+                                  </button>
                                   <div className="flex-1 h-1.5 bg-gray-800 rounded-full overflow-hidden min-w-[40px] max-w-[80px]">
                                     <div className={`h-full rounded-full ${sobrecarregado ? "bg-red-500/60" : "bg-blue-600/60"}`} style={{ width: `${pct}%` }} />
                                   </div>

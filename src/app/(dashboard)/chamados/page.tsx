@@ -158,8 +158,6 @@ export default function ChamadosPage() {
   const [usuario, setUsuario] = useState("");
   const [ultimaAcao, setUltimaAcao] = useState("");
   const [urgentes, setUrgentes] = useState(false);
-  const [dataInicio, setDataInicio] = useState("");
-  const [dataFim, setDataFim] = useState("");
 
   const [importModal, setImportModal] = useState(false);
   const [fileName, setFileName] = useState("");
@@ -177,21 +175,17 @@ export default function ChamadosPage() {
     if (usuario) params.set("usuario", usuario);
     if (ultimaAcao) params.set("ultimaAcao", ultimaAcao);
     if (urgentes) params.set("urgentes", "1");
-    if (dataInicio) params.set("dataInicio", dataInicio);
-    if (dataFim) params.set("dataFim", dataFim);
     fetch(`/api/chamados?${params}`)
       .then((r) => r.json())
       .then(setDados)
       .finally(() => setLoading(false));
-  }, [page, usuario, ultimaAcao, urgentes, dataInicio, dataFim]);
+  }, [page, usuario, ultimaAcao, urgentes]);
 
   useEffect(() => { load(); }, [load]);
 
-  function setFilter(key: "usuario" | "ultimaAcao" | "dataInicio" | "dataFim", value: string) {
+  function setFilter(key: "usuario" | "ultimaAcao", value: string) {
     if (key === "usuario") setUsuario(value);
     if (key === "ultimaAcao") setUltimaAcao(value);
-    if (key === "dataInicio") setDataInicio(value);
-    if (key === "dataFim") setDataFim(value);
     setPage(1);
   }
 
@@ -204,8 +198,6 @@ export default function ChamadosPage() {
     setUsuario("");
     setUltimaAcao("");
     setUrgentes(false);
-    setDataInicio("");
-    setDataFim("");
     setPage(1);
   }
 
@@ -255,7 +247,7 @@ export default function ChamadosPage() {
     load();
   }
 
-  const temFiltro = !!(usuario || ultimaAcao || urgentes || dataInicio || dataFim);
+  const temFiltro = !!(usuario || ultimaAcao || urgentes);
 
   return (
     <div>
@@ -337,19 +329,6 @@ export default function ChamadosPage() {
               <option key={a} value={a}>{a}</option>
             ))}
           </select>
-          <input
-            type="date"
-            value={dataInicio}
-            onChange={(e) => setFilter("dataInicio", e.target.value)}
-            className="bg-gray-900 border border-gray-700 text-white text-xs rounded-lg px-2 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <span className="text-gray-500 text-xs">até</span>
-          <input
-            type="date"
-            value={dataFim}
-            onChange={(e) => setFilter("dataFim", e.target.value)}
-            className="bg-gray-900 border border-gray-700 text-white text-xs rounded-lg px-2 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
           {temFiltro && (
             <button
               onClick={clearFilters}

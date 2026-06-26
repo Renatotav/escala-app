@@ -8,19 +8,14 @@ export async function GET(request: NextRequest) {
   const page = Math.max(1, Number(searchParams.get("page") ?? "1"));
   const usuario = searchParams.get("usuario") || null;
   const ultimaAcao = searchParams.get("ultimaAcao") || null;
-  const dataInicio = searchParams.get("dataInicio") || null;
-  const dataFim = searchParams.get("dataFim") || null;
   const apenasUrgentes = searchParams.get("urgentes") === "1";
 
   const where: Record<string, unknown> = {};
   if (usuario) where.nomeUsuarioAtribuido = usuario;
-  if (ultimaAcao) where.ultimaAcao = ultimaAcao;
-  if (apenasUrgentes) where.ultimaAcao = "Solicitação de Urgência";
-  if (dataInicio || dataFim) {
-    where.dataRegistro = {
-      ...(dataInicio && { gte: new Date(dataInicio + "T00:00:00.000Z") }),
-      ...(dataFim && { lte: new Date(dataFim + "T23:59:59.999Z") }),
-    };
+  if (apenasUrgentes) {
+    where.ultimaAcao = "Solicitação de Urgência";
+  } else if (ultimaAcao) {
+    where.ultimaAcao = ultimaAcao;
   }
 
   const [total, chamados, range, usuariosRaw, acoesRaw] = await Promise.all([

@@ -176,7 +176,6 @@ export default function ChamadosPage() {
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [usuario, setUsuario] = useState("");
-  const [ultimaAcao, setUltimaAcao] = useState("");
   const [urgentes, setUrgentes] = useState(false);
 
   const [importModal, setImportModal] = useState(false);
@@ -193,13 +192,12 @@ export default function ChamadosPage() {
     setLoading(true);
     const params = new URLSearchParams({ page: String(page) });
     if (usuario) params.set("usuario", usuario);
-    if (ultimaAcao) params.set("ultimaAcao", ultimaAcao);
     if (urgentes) params.set("urgentes", "1");
     fetch(`/api/chamados?${params}`)
       .then((r) => r.json())
       .then(setDados)
       .finally(() => setLoading(false));
-  }, [page, usuario, ultimaAcao, urgentes]);
+  }, [page, usuario, urgentes]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -211,9 +209,8 @@ export default function ChamadosPage() {
 
   useEffect(() => { loadStats(); }, [loadStats]);
 
-  function setFilter(key: "usuario" | "ultimaAcao", value: string) {
+  function setFilter(key: "usuario", value: string) {
     if (key === "usuario") setUsuario(value);
-    if (key === "ultimaAcao") setUltimaAcao(value);
     setPage(1);
   }
 
@@ -224,7 +221,6 @@ export default function ChamadosPage() {
 
   function clearFilters() {
     setUsuario("");
-    setUltimaAcao("");
     setUrgentes(false);
     setPage(1);
   }
@@ -277,7 +273,7 @@ export default function ChamadosPage() {
     loadStats();
   }
 
-  const temFiltro = !!(usuario || ultimaAcao || urgentes);
+  const temFiltro = !!(usuario || urgentes);
 
   return (
     <div>
@@ -364,15 +360,15 @@ export default function ChamadosPage() {
               <option key={u} value={u}>{u}</option>
             ))}
           </select>
-          <select
-            value={ultimaAcao}
-            onChange={(e) => setFilter("ultimaAcao", e.target.value)}
-            className="bg-gray-900 border border-gray-700 text-white text-xs rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[200px]">
-            <option value="">Todas as ações</option>
-            {dados.ultimaAcoes.map((a) => (
-              <option key={a} value={a}>{a}</option>
-            ))}
-          </select>
+          <button
+            onClick={toggleUrgentes}
+            className={`text-xs px-3 py-2 rounded-lg border transition ${
+              urgentes
+                ? "bg-red-600/30 border-red-500/60 text-red-400"
+                : "bg-gray-900 border-gray-700 text-gray-400 hover:text-white hover:border-gray-500"
+            }`}>
+            Solicitação de Urgência
+          </button>
           {temFiltro && (
             <button
               onClick={clearFilters}

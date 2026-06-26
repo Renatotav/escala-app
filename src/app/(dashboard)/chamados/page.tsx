@@ -524,27 +524,37 @@ export default function ChamadosPage() {
                   {/* Usuários */}
                   <table className="w-full text-sm">
                     <tbody>
-                      {eq.usuarios.map((u, i) => {
-                        const pct = eq.total > 0 ? (u.total / eq.total) * 100 : 0;
-                        return (
-                          <tr key={u.nome} className="border-b border-gray-800/60 last:border-0 hover:bg-gray-800/40 transition">
-                            <td className="px-3 py-2.5 text-center w-9">
-                              <span className="text-xs font-mono text-gray-600">{i + 1}</span>
-                            </td>
-                            <td className="px-4 py-2.5">
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm text-gray-200">{u.nome}</span>
-                                <div className="flex-1 h-1.5 bg-gray-800 rounded-full overflow-hidden min-w-[40px] max-w-[80px]">
-                                  <div className="h-full rounded-full bg-blue-600/60" style={{ width: `${pct}%` }} />
+                      {(() => {
+                        const ativos = eq.usuarios.filter(u => u.nome !== "(Triagem)");
+                        const media = ativos.length > 0 ? ativos.reduce((s, u) => s + u.total, 0) / ativos.length : 0;
+                        return eq.usuarios.map((u, i) => {
+                          const pct = eq.total > 0 ? (u.total / eq.total) * 100 : 0;
+                          const sobrecarregado = media > 0 && u.nome !== "(Triagem)" && u.total > media * 1.5;
+                          return (
+                            <tr key={u.nome} className={`border-b border-gray-800/60 last:border-0 hover:bg-gray-800/40 transition ${sobrecarregado ? "bg-red-950/20" : ""}`}>
+                              <td className="px-3 py-2.5 text-center w-9">
+                                <span className="text-xs font-mono text-gray-600">{i + 1}</span>
+                              </td>
+                              <td className="px-4 py-2.5">
+                                <div className="flex items-center gap-2">
+                                  {sobrecarregado && (
+                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs bg-red-500/20 text-red-400 border border-red-500/30 shrink-0">
+                                      ↑ alto
+                                    </span>
+                                  )}
+                                  <span className={`text-sm ${sobrecarregado ? "text-red-200" : "text-gray-200"}`}>{u.nome}</span>
+                                  <div className="flex-1 h-1.5 bg-gray-800 rounded-full overflow-hidden min-w-[40px] max-w-[80px]">
+                                    <div className={`h-full rounded-full ${sobrecarregado ? "bg-red-500/60" : "bg-blue-600/60"}`} style={{ width: `${pct}%` }} />
+                                  </div>
                                 </div>
-                              </div>
-                            </td>
-                            <td className="px-4 py-2.5 text-right w-24">
-                              <span className="font-mono font-bold tabular-nums text-white">{u.total}</span>
-                            </td>
-                          </tr>
-                        );
-                      })}
+                              </td>
+                              <td className="px-4 py-2.5 text-right w-24">
+                                <span className={`font-mono font-bold tabular-nums ${sobrecarregado ? "text-red-400" : "text-white"}`}>{u.total}</span>
+                              </td>
+                            </tr>
+                          );
+                        });
+                      })()}
                     </tbody>
                   </table>
                 </div>

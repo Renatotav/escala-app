@@ -24,6 +24,8 @@ type DadosChamados = {
   dataMin: string | null;
   dataMax: string | null;
   usuarios: string[];
+  ultimaAcoes: string[];
+  totalUrgentes: number;
 };
 
 // ─── CSV parser ───────────────────────────────────────────────────────────────
@@ -141,9 +143,9 @@ function fmtDateShort(iso: string) {
 }
 
 function alertaCfg(alerta: string | null) {
-  if (alerta === "Alerta vermelho") return { dot: "bg-red-400", rowClass: "border-l-2 border-red-500/50" };
-  if (alerta === "Alerta verde") return { dot: "bg-green-400", rowClass: "" };
-  return { dot: "bg-gray-700", rowClass: "" };
+  if (alerta === "Alerta vermelho") return { dot: "bg-red-400", rowClass: "bg-red-950/30 border-l-2 border-red-500/60", badge: true };
+  if (alerta === "Alerta verde") return { dot: "bg-green-400", rowClass: "", badge: false };
+  return { dot: "bg-gray-700", rowClass: "", badge: false };
 }
 
 function ultimaAcaoColor(acao: string | null) {
@@ -160,6 +162,8 @@ export default function ChamadosPage() {
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [usuario, setUsuario] = useState("");
+  const [ultimaAcao, setUltimaAcao] = useState("");
+  const [urgentes, setUrgentes] = useState(false);
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
 
@@ -177,25 +181,35 @@ export default function ChamadosPage() {
     setLoading(true);
     const params = new URLSearchParams({ page: String(page) });
     if (usuario) params.set("usuario", usuario);
+    if (ultimaAcao) params.set("ultimaAcao", ultimaAcao);
+    if (urgentes) params.set("urgentes", "1");
     if (dataInicio) params.set("dataInicio", dataInicio);
     if (dataFim) params.set("dataFim", dataFim);
     fetch(`/api/chamados?${params}`)
       .then((r) => r.json())
       .then(setDados)
       .finally(() => setLoading(false));
-  }, [page, usuario, dataInicio, dataFim]);
+  }, [page, usuario, ultimaAcao, urgentes, dataInicio, dataFim]);
 
   useEffect(() => { load(); }, [load]);
 
-  function setFilter(key: "usuario" | "dataInicio" | "dataFim", value: string) {
+  function setFilter(key: "usuario" | "ultimaAcao" | "dataInicio" | "dataFim", value: string) {
     if (key === "usuario") setUsuario(value);
+    if (key === "ultimaAcao") setUltimaAcao(value);
     if (key === "dataInicio") setDataInicio(value);
     if (key === "dataFim") setDataFim(value);
     setPage(1);
   }
 
+  function toggleUrgentes() {
+    setUrgentes((v) => !v);
+    setPage(1);
+  }
+
   function clearFilters() {
     setUsuario("");
+    setUltimaAcao("");
+    setUrgentes(false);
     setDataInicio("");
     setDataFim("");
     setPage(1);
@@ -247,7 +261,7 @@ export default function ChamadosPage() {
     load();
   }
 
-  const temFiltro = !!(usuario || dataInicio || dataFim);
+  const temFiltro = !!(usuario || ultimaAcao || urgentes || dataInicio || dataFim);
 
   return (
     <div>
@@ -275,12 +289,21 @@ export default function ChamadosPage() {
 
       {/* Summary cards */}
       {dados && dados.total > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <div className="bg-gray-900 rounded-xl border border-gray-800 p-4">
             <p className="text-xs text-gray-500 mb-1">Total de chamados</p>
             <p className="text-3xl font-bold text-white tabular-nums">
               {dados.total.toLocaleString("pt-BR")}
             </p>
+          </div>
+          <div
+            onClick={toggleUrgentes}
+            className={`rounded-xl border p-4 cursor-pointer transition ${urgentes ? "bg-red-900/30 border-red-500/50" : "bg-gray-900 border-gray-800 hover:border-red-500/30"}`}>
+            <p className="text-xs text-gray-500 mb-1">Urgentes (alerta vermelho)</p>
+            <p className={`text-3xl font-bold tabular-nums ${dados.totalUrgentes > 0 ? "text-red-400" : "text-gray-600"}`}>
+              {dados.totalUrgentes.toLocaleString("pt-BR")}
+            </p>
+            {urgentes && <p className="text-xs text-red-400 mt-1">Filtro ativo</p>}
           </div>
           <div className="bg-gray-900 rounded-xl border border-gray-800 p-4">
             <p className="text-xs text-gray-500 mb-1">Atendentes</p>
@@ -289,7 +312,7 @@ export default function ChamadosPage() {
             </p>
           </div>
           {dados.dataMin && dados.dataMax && (
-            <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 col-span-2 md:col-span-1">
+            <div className="bg-gray-900 rounded-xl border border-gray-800 p-4">
               <p className="text-xs text-gray-500 mb-1">Período dos dados</p>
               <p className="text-sm font-medium text-gray-300">
                 {fmtDateShort(dados.dataMin)} → {fmtDateShort(dados.dataMax)}
@@ -309,6 +332,15 @@ export default function ChamadosPage() {
             <option value="">Todos os atendentes</option>
             {dados.usuarios.map((u) => (
               <option key={u} value={u}>{u}</option>
+            ))}
+          </select>
+          <select
+            value={ultimaAcao}
+            onChange={(e) => setFilter("ultimaAcao", e.target.value)}
+            className="bg-gray-900 border border-gray-700 text-white text-xs rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[200px]">
+            <option value="">Todas as ações</option>
+            {dados.ultimaAcoes.map((a) => (
+              <option key={a} value={a}>{a}</option>
             ))}
           </select>
           <input
@@ -367,9 +399,13 @@ export default function ChamadosPage() {
                       key={c.id}
                       className={`border-b border-gray-800/60 last:border-0 hover:bg-gray-800/40 transition ${al.rowClass}`}>
                       <td className="px-4 py-2.5">
-                        <div className="flex items-center gap-1.5">
-                          <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${al.dot}`} title={c.alerta ?? undefined} />
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="font-mono text-xs text-gray-200">{c.referencia}</span>
+                          {al.badge && (
+                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30 leading-none">
+                              URGENTE
+                            </span>
+                          )}
                         </div>
                       </td>
                       <td className="px-4 py-2.5">

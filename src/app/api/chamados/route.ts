@@ -7,11 +7,15 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const page = Math.max(1, Number(searchParams.get("page") ?? "1"));
   const usuario = searchParams.get("usuario") || null;
+  const ultimaAcao = searchParams.get("ultimaAcao") || null;
   const dataInicio = searchParams.get("dataInicio") || null;
   const dataFim = searchParams.get("dataFim") || null;
+  const apenasUrgentes = searchParams.get("urgentes") === "1";
 
   const where: Record<string, unknown> = {};
   if (usuario) where.nomeUsuarioAtribuido = usuario;
+  if (ultimaAcao) where.ultimaAcao = ultimaAcao;
+  if (apenasUrgentes) where.alerta = "Alerta vermelho";
   if (dataInicio || dataFim) {
     where.dataRegistro = {
       ...(dataInicio && { gte: new Date(dataInicio + "T00:00:00.000Z") }),
@@ -19,11 +23,11 @@ export async function GET(request: NextRequest) {
     };
   }
 
-  const [total, chamados, range, usuariosRaw] = await Promise.all([
+  const [total, chamados, range, usuariosRaw, acoesRaw] = await Promise.all([
     prisma.chamado.count({ where }),
     prisma.chamado.findMany({
       where,
-      orderBy: { dataRegistro: "desc" },
+      orderBy: [{ alerta: "asc" }, { dataRegistro: "desc" }],
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
       select: {
@@ -46,7 +50,14 @@ export async function GET(request: NextRequest) {
       distinct: ["nomeUsuarioAtribuido"],
       orderBy: { nomeUsuarioAtribuido: "asc" },
     }),
+    prisma.chamado.findMany({
+      select: { ultimaAcao: true },
+      distinct: ["ultimaAcao"],
+      orderBy: { ultimaAcao: "asc" },
+    }),
   ]);
+
+  const totalUrgentes = await prisma.chamado.count({ where: { alerta: "Alerta vermelho" } });
 
   return NextResponse.json({
     total,
@@ -57,6 +68,8 @@ export async function GET(request: NextRequest) {
     dataMin: range._min.dataRegistro?.toISOString() ?? null,
     dataMax: range._max.dataRegistro?.toISOString() ?? null,
     usuarios: usuariosRaw.map((u) => u.nomeUsuarioAtribuido).filter(Boolean) as string[],
+    ultimaAcoes: acoesRaw.map((a) => a.ultimaAcao).filter(Boolean) as string[],
+    totalUrgentes,
   });
 }
 

@@ -26,6 +26,7 @@ type DadosChamados = {
   dataMax: string | null;
   usuarios: string[];
   ultimaAcoes: string[];
+  equipes: string[];
   totalUrgentes: number;
 };
 
@@ -226,6 +227,7 @@ export default function ChamadosPage() {
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [usuario, setUsuario] = useState("");
+  const [equipe, setEquipe] = useState("");
   const [urgentes, setUrgentes] = useState(false);
 
   const [importModal, setImportModal] = useState(false);
@@ -243,12 +245,13 @@ export default function ChamadosPage() {
     setLoading(true);
     const params = new URLSearchParams({ page: String(page) });
     if (usuario) params.set("usuario", usuario);
+    if (equipe) params.set("equipe", equipe);
     if (urgentes) params.set("urgentes", "1");
     fetch(`/api/chamados?${params}`)
       .then((r) => r.json())
       .then(setDados)
       .finally(() => setLoading(false));
-  }, [page, usuario, urgentes]);
+  }, [page, usuario, equipe, urgentes]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -260,8 +263,9 @@ export default function ChamadosPage() {
 
   useEffect(() => { loadStats(); }, [loadStats]);
 
-  function setFilter(key: "usuario", value: string) {
-    if (key === "usuario") setUsuario(value);
+  function setFilter(key: "usuario" | "equipe", value: string) {
+    if (key === "usuario") { setUsuario(value); }
+    if (key === "equipe") { setEquipe(value); setUsuario(""); }
     setPage(1);
   }
 
@@ -272,6 +276,7 @@ export default function ChamadosPage() {
 
   function clearFilters() {
     setUsuario("");
+    setEquipe("");
     setUrgentes(false);
     setPage(1);
   }
@@ -325,7 +330,7 @@ export default function ChamadosPage() {
     loadStats();
   }
 
-  const temFiltro = !!(usuario || urgentes);
+  const temFiltro = !!(usuario || equipe || urgentes);
 
   return (
     <div>
@@ -403,6 +408,17 @@ export default function ChamadosPage() {
       {/* Lista e filtros — apenas na aba Lista */}
       {view === "lista" && dados && dados.usuarios.length > 0 && (
         <div className="flex flex-wrap items-center gap-2 mb-4">
+          {dados.equipes && dados.equipes.length > 0 && (
+            <select
+              value={equipe}
+              onChange={(e) => setFilter("equipe", e.target.value)}
+              className="bg-gray-900 border border-gray-700 text-white text-xs rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[160px]">
+              <option value="">Todas as equipes</option>
+              {dados.equipes.map((eq) => (
+                <option key={eq} value={eq}>{eq}</option>
+              ))}
+            </select>
+          )}
           <select
             value={usuario}
             onChange={(e) => setFilter("usuario", e.target.value)}

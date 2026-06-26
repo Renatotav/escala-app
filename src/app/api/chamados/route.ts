@@ -102,16 +102,37 @@ export async function GET(request: NextRequest) {
   const usuario = searchParams.get("usuario") || null;
   const ultimaAcao = searchParams.get("ultimaAcao") || null;
   const apenasUrgentes = searchParams.get("urgentes") === "1";
+  const equipeParam = searchParams.get("equipe") || null;
+
+  // Resolve colaboradores first so we can use equipeEntries in the filter
+  const colaboradores = await prisma.colaborador.findMany({
+    select: { nome: true, equipe: { select: { nome: true } } },
+  });
+  const equipeEntries = colaboradores
+    .filter((c) => c.equipe)
+    .map((c) => ({ key: normName(c.nome), equipe: c.equipe!.nome }));
 
   const where: Record<string, unknown> = {};
-  if (usuario) where.nomeUsuarioAtribuido = usuario;
   if (apenasUrgentes) {
     where.ultimaAcao = "Solicitação de Urgência";
   } else if (ultimaAcao) {
     where.ultimaAcao = ultimaAcao;
   }
 
-  const [total, chamados, range, usuariosRaw, acoesRaw, colaboradores] = await Promise.all([
+  if (usuario) {
+    where.nomeUsuarioAtribuido = usuario;
+  } else if (equipeParam) {
+    const allUsers = await prisma.chamado.findMany({
+      select: { nomeUsuarioAtribuido: true },
+      distinct: ["nomeUsuarioAtribuido"],
+    });
+    const matching = allUsers
+      .filter((u) => u.nomeUsuarioAtribuido && findEquipe(u.nomeUsuarioAtribuido, equipeEntries) === equipeParam)
+      .map((u) => u.nomeUsuarioAtribuido as string);
+    where.nomeUsuarioAtribuido = matching.length > 0 ? { in: matching } : "__NO_MATCH__";
+  }
+
+  const [total, chamados, range, usuariosRaw, acoesRaw] = await Promise.all([
     prisma.chamado.count({ where }),
     prisma.chamado.findMany({
       where,
@@ -143,19 +164,22 @@ export async function GET(request: NextRequest) {
       distinct: ["ultimaAcao"],
       orderBy: { ultimaAcao: "asc" },
     }),
-    prisma.colaborador.findMany({
-      select: { nome: true, equipe: { select: { nome: true } } },
-    }),
   ]);
-
-  const equipeEntries = colaboradores
-    .filter((c) => c.equipe)
-    .map((c) => ({ key: normName(c.nome), equipe: c.equipe!.nome }));
 
   const chamadosComEquipe = chamados.map((c) => ({
     ...c,
     equipe: c.nomeUsuarioAtribuido ? findEquipe(c.nomeUsuarioAtribuido, equipeEntries) : null,
   }));
+
+  // Build equipes list from all users (no filter applied to usuariosRaw)
+  const equipesSet = new Set<string>();
+  for (const u of usuariosRaw) {
+    if (u.nomeUsuarioAtribuido) {
+      const eq = findEquipe(u.nomeUsuarioAtribuido, equipeEntries);
+      if (eq !== "Sem equipe") equipesSet.add(eq);
+    }
+  }
+  const equipes = Array.from(equipesSet).sort();
 
   const totalUrgentes = await prisma.chamado.count({ where: { ultimaAcao: "Solicitação de Urgência" } });
 
@@ -169,6 +193,7 @@ export async function GET(request: NextRequest) {
     dataMax: range._max.dataRegistro?.toISOString() ?? null,
     usuarios: usuariosRaw.map((u) => u.nomeUsuarioAtribuido).filter(Boolean) as string[],
     ultimaAcoes: acoesRaw.map((a) => a.ultimaAcao).filter(Boolean) as string[],
+    equipes,
     totalUrgentes,
   });
 }

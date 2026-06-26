@@ -568,11 +568,9 @@ export default function ChamadosPage() {
                   <table className="w-full text-sm">
                     <tbody>
                       {(() => {
-                        const ativos = eq.usuarios.filter(u => u.nome !== "(Triagem)");
-                        const media = ativos.length > 0 ? ativos.reduce((s, u) => s + u.total, 0) / ativos.length : 0;
                         return eq.usuarios.map((u, i) => {
                           const pct = eq.total > 0 ? (u.total / eq.total) * 100 : 0;
-                          const sobrecarregado = media > 0 && u.nome !== "(Triagem)" && u.total > media * 1.5;
+                          const sobrecarregado = eq.equipe !== "Supervisão" && u.nome !== "(Triagem)" && u.total > 50;
                           return (
                             <tr key={u.nome} className={`border-b border-gray-800/60 last:border-0 hover:bg-gray-800/40 transition ${sobrecarregado ? "bg-red-950/20" : ""}`}>
                               <td className="px-3 py-2.5 text-center w-9">

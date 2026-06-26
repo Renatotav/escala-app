@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -332,6 +334,50 @@ export default function ChamadosPage() {
 
   const temFiltro = !!(usuario || equipe || urgentes);
 
+  function gerarPDF() {
+    if (!stats) return;
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    const geradoEm = new Date().toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+
+    doc.setFontSize(16);
+    doc.setTextColor(30, 30, 30);
+    doc.text("Chamados — Quantitativo", 14, 18);
+
+    doc.setFontSize(9);
+    doc.setTextColor(100, 100, 100);
+    const periodo = stats.dataMin && stats.dataMax
+      ? `Período: ${new Date(stats.dataMin).toLocaleDateString("pt-BR")} → ${new Date(stats.dataMax).toLocaleDateString("pt-BR")}`
+      : "";
+    doc.text(`Total: ${stats.total.toLocaleString("pt-BR")} chamados   ${periodo}   Gerado em: ${geradoEm}`, 14, 26);
+
+    let y = 32;
+
+    for (const eq of stats.porEquipe) {
+      const pct = ((eq.total / stats.total) * 100).toFixed(1);
+      autoTable(doc, {
+        startY: y,
+        head: [[{ content: `${eq.equipe}  —  ${eq.total.toLocaleString("pt-BR")} chamados (${pct}%)`, colSpan: 3 }]],
+        body: eq.usuarios.map((u, i) => {
+          const over = eq.equipe !== "Supervisão" && u.nome !== "(Triagem)" && u.total > 50;
+          return [
+            `${i + 1}`,
+            over ? `▲ ${u.nome}` : u.nome,
+            u.total.toLocaleString("pt-BR"),
+          ];
+        }),
+        columnStyles: { 0: { cellWidth: 10, halign: "center" }, 2: { cellWidth: 22, halign: "right" } },
+        headStyles: { fillColor: [30, 41, 59], textColor: [200, 200, 220], fontStyle: "bold", fontSize: 9 },
+        bodyStyles: { fontSize: 8.5, textColor: [40, 40, 40] },
+        alternateRowStyles: { fillColor: [248, 250, 252] },
+        margin: { left: 14, right: 14 },
+        didDrawPage: () => { y = 14; },
+      });
+      y = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 6;
+    }
+
+    doc.save(`chamados-quantitativo-${new Date().toISOString().slice(0, 10)}.pdf`);
+  }
+
   return (
     <div>
       {/* Header */}
@@ -341,6 +387,13 @@ export default function ChamadosPage() {
           <p className="text-sm text-gray-400 mt-0.5">Listagem de chamados por atendente</p>
         </div>
         <div className="flex gap-2 flex-wrap">
+          {view === "quantitativo" && stats && stats.total > 0 && (
+            <button
+              onClick={gerarPDF}
+              className="text-xs px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white border border-gray-700 transition flex items-center gap-1.5">
+              ↓ Gerar PDF
+            </button>
+          )}
           {dados && dados.total > 0 && (
             <button
               onClick={() => setConfirmClear(true)}

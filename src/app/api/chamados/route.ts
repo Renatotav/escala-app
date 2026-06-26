@@ -191,7 +191,10 @@ export async function GET(request: NextRequest) {
     totalPages: Math.ceil(total / PAGE_SIZE),
     dataMin: range._min.dataRegistro?.toISOString() ?? null,
     dataMax: range._max.dataRegistro?.toISOString() ?? null,
-    usuarios: usuariosRaw.map((u) => u.nomeUsuarioAtribuido).filter(Boolean) as string[],
+    usuarios: usuariosRaw
+      .map((u) => u.nomeUsuarioAtribuido)
+      .filter((n): n is string => !!n)
+      .filter((n) => !equipeParam || findEquipe(n, equipeEntries) === equipeParam),
     ultimaAcoes: acoesRaw.map((a) => a.ultimaAcao).filter(Boolean) as string[],
     equipes,
     totalUrgentes,

@@ -3,6 +3,44 @@ import { prisma } from "@/lib/prisma";
 
 const PAGE_SIZE = 50;
 
+function normName(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9 ]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function findEquipe(
+  csvName: string,
+  entries: { key: string; equipe: string }[]
+): string {
+  const norm = normName(csvName);
+
+  // 1. exact match
+  const exact = entries.find((e) => e.key === norm);
+  if (exact) return exact.equipe;
+
+  // 2. one name contains the other
+  const contains = entries.find((e) => norm.includes(e.key) || e.key.includes(norm));
+  if (contains) return contains.equipe;
+
+  // 3. word overlap — at least 2 significant words in common
+  const words = norm.split(" ").filter((w) => w.length > 2);
+  const best = entries
+    .map((e) => {
+      const ew = e.key.split(" ").filter((w) => w.length > 2);
+      const common = words.filter((w) => ew.includes(w)).length;
+      return { equipe: e.equipe, common };
+    })
+    .filter((x) => x.common >= 2)
+    .sort((a, b) => b.common - a.common)[0];
+
+  return best?.equipe ?? "Sem equipe";
+}
+
 async function handleStats() {
   const [total, rows, range, colaboradores] = await Promise.all([
     prisma.chamado.count(),
@@ -19,17 +57,16 @@ async function handleStats() {
     }),
   ]);
 
-  // nome (lowercase) → equipe
-  const equipeMap = new Map<string, string>();
-  for (const c of colaboradores) {
-    if (c.equipe) equipeMap.set(c.nome.toLowerCase().trim(), c.equipe.nome);
-  }
+  // pré-computa chaves normalizadas
+  const equipeEntries = colaboradores
+    .filter((c) => c.equipe)
+    .map((c) => ({ key: normName(c.nome), equipe: c.equipe!.nome }));
 
   // agrupa por equipe → usuários
   const byEquipe = new Map<string, { nome: string; total: number }[]>();
   for (const row of rows) {
     const nome = row.nomeUsuarioAtribuido ?? "(Triagem)";
-    const equipe = equipeMap.get(nome.toLowerCase().trim()) ?? "Sem equipe";
+    const equipe = findEquipe(nome, equipeEntries);
     if (!byEquipe.has(equipe)) byEquipe.set(equipe, []);
     byEquipe.get(equipe)!.push({ nome, total: row._count.id });
   }

@@ -353,15 +353,10 @@ export default function ChamadosPage() {
 
     doc.setFontSize(9);
     doc.setTextColor(100, 100, 100);
-    const fmtData = (iso: string) => new Date(iso).toLocaleDateString("pt-BR");
-    const periodo = stats.dataMin && stats.dataMax
-      ? `Periodo: ${fmtData(stats.dataMin)} a ${fmtData(stats.dataMax)}`
-      : "";
     doc.text(`Total: ${stats.total.toLocaleString("pt-BR")} chamados`, 14, 26);
-    if (periodo) doc.text(periodo, 14, 31);
-    doc.text(`Gerado em: ${geradoEm}`, 14, 36);
+    doc.text(`Gerado em: ${geradoEm}`, 14, 31);
 
-    let y = 41;
+    let y = 37;
 
     for (const eq of stats.porEquipe) {
       const pct = ((eq.total / stats.total) * 100).toFixed(1);

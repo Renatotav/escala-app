@@ -365,22 +365,33 @@ export default function ChamadosPage() {
 
     for (const eq of stats.porEquipe) {
       const pct = ((eq.total / stats.total) * 100).toFixed(1);
+      const rows = eq.usuarios.map((u, i) => {
+        const over = eq.equipe !== "Supervisao" && u.nome !== "(Triagem)" && u.total > 50;
+        return { cells: [`${i + 1}`, u.nome, over ? "ALTO" : "", u.total.toLocaleString("pt-BR")], over };
+      });
       autoTable(doc, {
         startY: y,
-        head: [[{ content: `${eq.equipe}  -  ${eq.total.toLocaleString("pt-BR")} chamados (${pct}%)`, colSpan: 3 }]],
-        body: eq.usuarios.map((u, i) => {
-          const over = eq.equipe !== "Supervisao" && u.nome !== "(Triagem)" && u.total > 50;
-          return [
-            `${i + 1}`,
-            over ? `! ${u.nome}` : u.nome,
-            u.total.toLocaleString("pt-BR"),
-          ];
-        }),
-        columnStyles: { 0: { cellWidth: 10, halign: "center" }, 2: { cellWidth: 22, halign: "right" } },
+        head: [[{ content: `${eq.equipe}  -  ${eq.total.toLocaleString("pt-BR")} chamados (${pct}%)`, colSpan: 4 }]],
+        body: rows.map((r) => r.cells),
+        columnStyles: {
+          0: { cellWidth: 10, halign: "center" },
+          2: { cellWidth: 20, halign: "center" },
+          3: { cellWidth: 22, halign: "right" },
+        },
         headStyles: { fillColor: [30, 41, 59], textColor: [200, 200, 220], fontStyle: "bold", fontSize: 9 },
         bodyStyles: { fontSize: 8.5, textColor: [40, 40, 40] },
         alternateRowStyles: { fillColor: [248, 250, 252] },
         margin: { left: 14, right: 14 },
+        didParseCell: (data) => {
+          if (data.section !== "body") return;
+          const row = rows[data.row.index];
+          if (!row?.over) return;
+          data.cell.styles.textColor = [180, 30, 30];
+          if (data.column.index === 2) {
+            data.cell.styles.fontStyle = "bold";
+            data.cell.styles.fillColor = [255, 235, 235];
+          }
+        },
         didDrawPage: () => { y = 14; },
       });
       y = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 6;

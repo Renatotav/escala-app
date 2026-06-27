@@ -521,6 +521,13 @@ export default function ChamadosPage() {
                 className="text-xs px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white border border-gray-700 transition">
                 ↓ JPEG
               </button>
+              {equipeQuant && (
+                <button
+                  onClick={() => setEquipeQuant("")}
+                  className="text-xs px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white border border-gray-700 transition">
+                  Limpar filtro
+                </button>
+              )}
             </>
           )}
           {dados && dados.total > 0 && (

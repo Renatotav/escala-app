@@ -29,6 +29,11 @@ const motivoBadge: Record<string, string> = {
 
 const MOTIVOS_MANUAL = ["DECLARACAO", "ATENDIMENTO_PRESENCIAL", "QUANTIDADE_CHAMADOS", "OUTRAS_ATIVIDADES"];
 
+function localDateStr(d?: Date): string {
+  const dt = d ?? new Date();
+  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+}
+
 function fmt(iso: string | null) {
   if (!iso) return "—";
   return iso.slice(0, 10).split("-").reverse().join("/");
@@ -36,7 +41,7 @@ function fmt(iso: string | null) {
 
 function diasFora(dataInicio: string, feriadosSet: Set<string>) {
   const startStr = dataInicio.slice(0, 10);
-  const hojeStr = new Date().toISOString().slice(0, 10);
+  const hojeStr = localDateStr();
   if (startStr > hojeStr) {
     const diffMs = new Date(startStr + "T00:00:00").getTime() - new Date(hojeStr + "T00:00:00").getTime();
     const dias = Math.round(diffMs / (1000 * 60 * 60 * 24));
@@ -77,7 +82,7 @@ function calcHoras(
 }
 
 function registroAtivo(registros: Registro[], colaboradorId: number): Registro | null {
-  const hoje = new Date().toISOString().slice(0, 10);
+  const hoje = localDateStr();
   return registros.find(r =>
     r.colaboradorId === colaboradorId &&
     !r.horaFim &&
@@ -87,7 +92,7 @@ function registroAtivo(registros: Registro[], colaboradorId: number): Registro |
 }
 
 function registrosAgendados(registros: Registro[], colaboradorId: number): Registro[] {
-  const hoje = new Date().toISOString().slice(0, 10);
+  const hoje = localDateStr();
   return registros
     .filter(r => r.colaboradorId === colaboradorId && !r.horaFim && r.dataInicio > hoje)
     .sort((a, b) => a.dataInicio.localeCompare(b.dataInicio));
@@ -104,7 +109,7 @@ function registroEfetivo(registros: Registro[], colaboradorId: number, isNonWork
 function ultimoRetornado(registros: Registro[], colaboradorId: number): Registro | null {
   const limite = new Date();
   limite.setDate(limite.getDate() - 7);
-  const limiteStr = limite.toISOString().slice(0, 10);
+  const limiteStr = localDateStr(limite);
   return (
     registros
       .filter(r => r.colaboradorId === colaboradorId && !!r.horaFim && !!r.dataFim && r.dataFim >= limiteStr)
@@ -165,7 +170,7 @@ export default function TriagemPage() {
     fetch("/api/feriados").then(r => r.json()).then((data: { data: string }[]) =>
       setFeriados(new Set(data.map(f => f.data.slice(0, 10))))
     );
-    const hoje = new Date().toISOString().slice(0, 10);
+    const hoje = localDateStr();
     const mes = hoje.slice(0, 7);
     
     Promise.all([
@@ -210,7 +215,7 @@ export default function TriagemPage() {
 
   function abrirRetorno(id: number, nome: string) {
     setRetornoModal({ id, nome });
-    setRetornoForm({ dataFim: new Date().toISOString().slice(0, 10), horaFim: horaAgora() });
+    setRetornoForm({ dataFim: localDateStr(), horaFim: horaAgora() });
     setPopup(null);
   }
 
@@ -278,7 +283,7 @@ export default function TriagemPage() {
     setColaboradores(prev => prev.map(c => c.id === id ? { ...c, grupoListagem } : c));
   }
 
-  const hojeStr = new Date().toISOString().slice(0, 10);
+  const hojeStr = localDateStr();
   const isWeekend = new Date().getDay() === 0 || new Date().getDay() === 6;
   const isFeriadoHoje = feriados.has(hojeStr);
   const isNonWorking = isWeekend || isFeriadoHoje;
@@ -310,7 +315,7 @@ export default function TriagemPage() {
   const popupAtivo = popup ? registroAtivo(registros, popup.id) : null;
 
   function exportarCSV() {
-    const hoje = new Date().toISOString().slice(0, 10);
+    const hoje = localDateStr();
 
     function getAtivo(cid: number): Registro | null {
       return registros.find(r => r.colaboradorId === cid && (!r.dataFim || r.dataFim >= hoje)) ?? null;
@@ -619,7 +624,7 @@ export default function TriagemPage() {
                       ) : (
                         <button onClick={() => {
                           setModal({ colaboradorId: c.id, nome: c.nome });
-                          setForm({ motivo: "DECLARACAO", dataInicio: new Date().toISOString().slice(0, 10), horaInicio: horaAgora(), dataFim: "", observacao: "" });
+                          setForm({ motivo: "DECLARACAO", dataInicio: localDateStr(), horaInicio: horaAgora(), dataFim: "", observacao: "" });
                         }} className="text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 px-2 py-1 rounded transition">
                           Registrar saída
                         </button>
@@ -664,7 +669,7 @@ export default function TriagemPage() {
                 <button onClick={() => {
                   setPopup(null);
                   setModal({ colaboradorId: popup.id, nome: popup.nome });
-                  setForm({ motivo: "DECLARACAO", dataInicio: new Date().toISOString().slice(0, 10), horaInicio: horaAgora(), dataFim: "", observacao: "" });
+                  setForm({ motivo: "DECLARACAO", dataInicio: localDateStr(), horaInicio: horaAgora(), dataFim: "", observacao: "" });
                 }} className="flex-1 bg-red-600 hover:bg-red-500 text-white text-sm font-medium py-2 rounded-lg transition">
                   Registrar saída
                 </button>
@@ -677,7 +682,7 @@ export default function TriagemPage() {
             ) : (
               <div className="space-y-2">
                 {popupRegistros.map(r => {
-                  const hoje = new Date().toISOString().slice(0, 10);
+                  const hoje = localDateStr();
                   const ativo = !r.dataFim || r.dataFim >= hoje;
                   const horas = calcHoras(r.dataInicio, r.horaInicio, r.dataFim, r.horaFim);
                   return (

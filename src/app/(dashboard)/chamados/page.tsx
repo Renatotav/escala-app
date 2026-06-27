@@ -557,8 +557,8 @@ export default function ChamadosPage() {
                 <tr className="border-b border-gray-700 text-gray-400 text-xs uppercase tracking-wide">
                   <th className="text-left px-4 py-3 w-32">Referência</th>
                   <th className="text-left px-4 py-3 w-36">Data/hora</th>
-                  <th className="text-left px-4 py-3">Nome do DPS Atribuído</th>
-                  <th className="text-left px-4 py-3 w-44">Usuário Atribuído</th>
+                  <th className="text-left px-4 py-3 w-64">Nome do DPS Atribuído</th>
+                  <th className="text-left px-4 py-3 w-48">Usuário Atribuído</th>
                   <th className="text-left px-4 py-3">Última ação</th>
                 </tr>
               </thead>

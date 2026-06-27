@@ -558,7 +558,7 @@ export default function ChamadosPage() {
                   <th className="text-left px-4 py-3 w-32">Referência</th>
                   <th className="text-left px-4 py-3 w-36">Data/hora</th>
                   <th className="text-left px-4 py-3 w-64">Nome do DPS Atribuído</th>
-                  <th className="text-left px-4 py-3 w-48">Usuário Atribuído</th>
+                  <th className="text-left px-4 py-3 w-60">Usuário Atribuído</th>
                   <th className="text-left px-4 py-3">Última ação</th>
                 </tr>
               </thead>
@@ -601,7 +601,7 @@ export default function ChamadosPage() {
                       <td className="px-4 py-2.5">
                         {c.nomeUsuarioAtribuido ? (
                           <div className="flex flex-col gap-0.5">
-                            <span className="text-xs text-gray-200">{c.nomeUsuarioAtribuido}</span>
+                            <span className="text-xs text-gray-200 whitespace-nowrap">{c.nomeUsuarioAtribuido}</span>
                             {c.equipe && c.equipe !== "Sem equipe" && (
                               <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-700/60 text-gray-400 border border-gray-700 w-fit whitespace-nowrap">
                                 {c.equipe}

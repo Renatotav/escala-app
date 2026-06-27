@@ -555,7 +555,7 @@ export default function ChamadosPage() {
             <table className="w-full text-sm min-w-[800px]">
               <thead>
                 <tr className="border-b border-gray-700 text-gray-400 text-xs uppercase tracking-wide">
-                  <th className="text-left px-4 py-3 w-32">Referência</th>
+                  <th className="text-left px-4 py-3 w-44">Referência</th>
                   <th className="text-left px-4 py-3 w-36">Data/hora</th>
                   <th className="text-left px-4 py-3 w-64">Nome do DPS Atribuído</th>
                   <th className="text-left px-4 py-3 w-60">Usuário Atribuído</th>
@@ -574,7 +574,7 @@ export default function ChamadosPage() {
                       key={c.id}
                       className={`border-b border-gray-800/60 last:border-0 hover:bg-gray-800/40 transition ${urg.rowClass} ${rowExtra}`}>
                       <td className="px-4 py-2.5">
-                        <div className="flex items-center gap-1.5 flex-wrap">
+                        <div className="flex items-center gap-1.5 flex-nowrap">
                           <span className="font-mono text-xs text-gray-200">{c.referencia}</span>
                           {urg.badge && (
                             <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30 leading-none">

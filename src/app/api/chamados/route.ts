@@ -19,9 +19,14 @@ function normName(s: string): string {
 
 function findEquipe(
   csvName: string,
-  entries: { key: string; equipe: string }[]
+  entries: { key: string; equipe: string }[],
+  equipeNomes: string[] = []
 ): string {
   const norm = normName(csvName);
+
+  // 0. nome do usuário bate diretamente com o nome de uma equipe (ex: "(Triagem)" → "Triagem")
+  const directEquipe = equipeNomes.find((e) => normName(e) === norm);
+  if (directEquipe) return directEquipe;
 
   // 1. exact match
   const exact = entries.find((e) => e.key === norm);
@@ -65,12 +70,13 @@ async function handleStats() {
   const equipeEntries = colaboradores
     .filter((c) => c.equipe)
     .map((c) => ({ key: normName(c.nome), equipe: c.equipe!.nome }));
+  const equipeNomesStats = Array.from(new Set(equipeEntries.map((e) => e.equipe)));
 
   // agrupa por equipe → usuários
   const byEquipe = new Map<string, { nome: string; total: number }[]>();
   for (const row of rows) {
     const nome = row.nomeUsuarioAtribuido ?? "(Triagem)";
-    const equipe = findEquipe(nome, equipeEntries);
+    const equipe = findEquipe(nome, equipeEntries, equipeNomesStats);
     if (!byEquipe.has(equipe)) byEquipe.set(equipe, []);
     byEquipe.get(equipe)!.push({ nome, total: row._count.id });
   }
@@ -111,6 +117,7 @@ export async function GET(request: NextRequest) {
   const equipeEntries = colaboradores
     .filter((c) => c.equipe)
     .map((c) => ({ key: normName(c.nome), equipe: c.equipe!.nome }));
+  const equipeNomes = Array.from(new Set(equipeEntries.map((e) => e.equipe)));
 
   const where: Record<string, unknown> = {};
   if (apenasUrgentes) {
@@ -127,7 +134,7 @@ export async function GET(request: NextRequest) {
       distinct: ["nomeUsuarioAtribuido"],
     });
     const matching = allUsers
-      .filter((u) => u.nomeUsuarioAtribuido && findEquipe(u.nomeUsuarioAtribuido, equipeEntries) === equipeParam)
+      .filter((u) => u.nomeUsuarioAtribuido && findEquipe(u.nomeUsuarioAtribuido, equipeEntries, equipeNomes) === equipeParam)
       .map((u) => u.nomeUsuarioAtribuido as string);
     where.nomeUsuarioAtribuido = matching.length > 0 ? { in: matching } : "__NO_MATCH__";
   }
@@ -168,7 +175,7 @@ export async function GET(request: NextRequest) {
 
   const chamadosComEquipe = chamados.map((c) => ({
     ...c,
-    equipe: c.nomeUsuarioAtribuido ? findEquipe(c.nomeUsuarioAtribuido, equipeEntries) : null,
+    equipe: c.nomeUsuarioAtribuido ? findEquipe(c.nomeUsuarioAtribuido, equipeEntries, equipeNomes) : null,
   }));
 
   // Build equipes list and usuario→equipe map from all users (no filter applied to usuariosRaw)
@@ -176,7 +183,7 @@ export async function GET(request: NextRequest) {
   const usuarioEquipeMap: Record<string, string> = {};
   for (const u of usuariosRaw) {
     if (u.nomeUsuarioAtribuido) {
-      const eq = findEquipe(u.nomeUsuarioAtribuido, equipeEntries);
+      const eq = findEquipe(u.nomeUsuarioAtribuido, equipeEntries, equipeNomes);
       if (eq !== "Sem equipe") {
         equipesSet.add(eq);
         usuarioEquipeMap[u.nomeUsuarioAtribuido] = eq;
@@ -198,7 +205,7 @@ export async function GET(request: NextRequest) {
     usuarios: usuariosRaw
       .map((u) => u.nomeUsuarioAtribuido)
       .filter((n): n is string => !!n)
-      .filter((n) => !equipeParam || findEquipe(n, equipeEntries) === equipeParam),
+      .filter((n) => !equipeParam || findEquipe(n, equipeEntries, equipeNomes) === equipeParam),
     ultimaAcoes: acoesRaw.map((a) => a.ultimaAcao).filter(Boolean) as string[],
     equipes,
     usuarioEquipeMap,

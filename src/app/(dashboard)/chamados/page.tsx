@@ -398,13 +398,19 @@ export default function ChamadosPage() {
     doc.save(`chamados-quantitativo-${new Date().toISOString().slice(0, 10)}.pdf`);
   }
 
-  async function baixarPNG() {
+  async function baixarJPEG() {
     if (!quantRef.current) return;
     const { default: html2canvas } = await import("html2canvas");
-    const canvas = await html2canvas(quantRef.current, { backgroundColor: "#111827", scale: 2 });
+    const canvas = await html2canvas(quantRef.current, {
+      backgroundColor: "#111827",
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      logging: false,
+    });
     const a = document.createElement("a");
-    a.href = canvas.toDataURL("image/png");
-    a.download = `chamados-quantitativo-${new Date().toISOString().slice(0, 10)}.png`;
+    a.href = canvas.toDataURL("image/jpeg", 0.95);
+    a.download = `chamados-quantitativo-${new Date().toISOString().slice(0, 10)}.jpg`;
     a.click();
   }
 
@@ -434,9 +440,9 @@ export default function ChamadosPage() {
                 ↓ PDF
               </button>
               <button
-                onClick={baixarPNG}
+                onClick={baixarJPEG}
                 className="text-xs px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white border border-gray-700 transition">
-                ↓ PNG
+                ↓ JPEG
               </button>
             </>
           )}

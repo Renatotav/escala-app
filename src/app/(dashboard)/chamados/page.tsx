@@ -349,27 +349,30 @@ export default function ChamadosPage() {
 
     doc.setFontSize(16);
     doc.setTextColor(30, 30, 30);
-    doc.text("Chamados — Quantitativo", 14, 18);
+    doc.text("Chamados - Quantitativo", 14, 18);
 
     doc.setFontSize(9);
     doc.setTextColor(100, 100, 100);
+    const fmtData = (iso: string) => new Date(iso).toLocaleDateString("pt-BR");
     const periodo = stats.dataMin && stats.dataMax
-      ? `Período: ${new Date(stats.dataMin).toLocaleDateString("pt-BR")} → ${new Date(stats.dataMax).toLocaleDateString("pt-BR")}`
+      ? `Periodo: ${fmtData(stats.dataMin)} a ${fmtData(stats.dataMax)}`
       : "";
-    doc.text(`Total: ${stats.total.toLocaleString("pt-BR")} chamados   ${periodo}   Gerado em: ${geradoEm}`, 14, 26);
+    doc.text(`Total: ${stats.total.toLocaleString("pt-BR")} chamados`, 14, 26);
+    if (periodo) doc.text(periodo, 14, 31);
+    doc.text(`Gerado em: ${geradoEm}`, 14, 36);
 
-    let y = 32;
+    let y = 41;
 
     for (const eq of stats.porEquipe) {
       const pct = ((eq.total / stats.total) * 100).toFixed(1);
       autoTable(doc, {
         startY: y,
-        head: [[{ content: `${eq.equipe}  —  ${eq.total.toLocaleString("pt-BR")} chamados (${pct}%)`, colSpan: 3 }]],
+        head: [[{ content: `${eq.equipe}  -  ${eq.total.toLocaleString("pt-BR")} chamados (${pct}%)`, colSpan: 3 }]],
         body: eq.usuarios.map((u, i) => {
-          const over = eq.equipe !== "Supervisão" && u.nome !== "(Triagem)" && u.total > 50;
+          const over = eq.equipe !== "Supervisao" && u.nome !== "(Triagem)" && u.total > 50;
           return [
             `${i + 1}`,
-            over ? `▲ ${u.nome}` : u.nome,
+            over ? `! ${u.nome}` : u.nome,
             u.total.toLocaleString("pt-BR"),
           ];
         }),

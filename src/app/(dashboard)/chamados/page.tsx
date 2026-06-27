@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -232,6 +232,8 @@ export default function ChamadosPage() {
   const [usuario, setUsuario] = useState("");
   const [equipe, setEquipe] = useState("");
   const [urgentes, setUrgentes] = useState(false);
+  const [equipeQuant, setEquipeQuant] = useState("");
+  const quantRef = useRef<HTMLDivElement>(null);
 
   const [importModal, setImportModal] = useState(false);
   const [fileName, setFileName] = useState("");
@@ -358,7 +360,8 @@ export default function ChamadosPage() {
 
     let y = 37;
 
-    for (const eq of stats.porEquipe) {
+    const equipesFiltradas = equipeQuant ? stats.porEquipe.filter((eq) => eq.equipe === equipeQuant) : stats.porEquipe;
+    for (const eq of equipesFiltradas) {
       const pct = ((eq.total / stats.total) * 100).toFixed(1);
       const rows = eq.usuarios.map((u, i) => {
         const over = eq.equipe !== "Supervisao" && u.nome !== "(Triagem)" && u.total > 50;
@@ -395,6 +398,16 @@ export default function ChamadosPage() {
     doc.save(`chamados-quantitativo-${new Date().toISOString().slice(0, 10)}.pdf`);
   }
 
+  async function baixarPNG() {
+    if (!quantRef.current) return;
+    const { default: html2canvas } = await import("html2canvas");
+    const canvas = await html2canvas(quantRef.current, { backgroundColor: "#111827", scale: 2 });
+    const a = document.createElement("a");
+    a.href = canvas.toDataURL("image/png");
+    a.download = `chamados-quantitativo-${new Date().toISOString().slice(0, 10)}.png`;
+    a.click();
+  }
+
   return (
     <div>
       {/* Header */}
@@ -403,13 +416,29 @@ export default function ChamadosPage() {
           <h2 className="text-xl font-semibold text-white">Chamados</h2>
           <p className="text-sm text-gray-400 mt-0.5">Listagem de chamados por atendente</p>
         </div>
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 flex-wrap items-center">
           {view === "quantitativo" && stats && stats.total > 0 && (
-            <button
-              onClick={gerarPDF}
-              className="text-xs px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white border border-gray-700 transition flex items-center gap-1.5">
-              ↓ Gerar PDF
-            </button>
+            <>
+              <select
+                value={equipeQuant}
+                onChange={(e) => setEquipeQuant(e.target.value)}
+                className="bg-gray-900 border border-gray-700 text-white text-xs rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[160px]">
+                <option value="">Todas as equipes</option>
+                {stats.porEquipe.map((eq) => (
+                  <option key={eq.equipe} value={eq.equipe}>{eq.equipe}</option>
+                ))}
+              </select>
+              <button
+                onClick={gerarPDF}
+                className="text-xs px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white border border-gray-700 transition">
+                ↓ PDF
+              </button>
+              <button
+                onClick={baixarPNG}
+                className="text-xs px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white border border-gray-700 transition">
+                ↓ PNG
+              </button>
+            </>
           )}
           {dados && dados.total > 0 && (
             <button
@@ -645,8 +674,8 @@ export default function ChamadosPage() {
               <p className="text-gray-500 text-sm">Nenhum dado importado ainda.</p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {stats.porEquipe.map((eq) => (
+            <div className="space-y-4" ref={quantRef}>
+              {stats.porEquipe.filter((eq) => !equipeQuant || eq.equipe === equipeQuant).map((eq) => (
                 <div key={eq.equipe} className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
                   {/* Cabeçalho da equipe */}
                   <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700 bg-gray-800/40">

@@ -582,9 +582,14 @@ export default function ChamadosPage() {
                             </span>
                           )}
                           {atrasado && dias !== null && (
-                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400 border border-orange-500/30 leading-none">
-                              {dias}d
-                            </span>
+                            <>
+                              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400 border border-orange-500/30 leading-none">
+                                {dias}d
+                              </span>
+                              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-orange-500/30 text-orange-300 border border-orange-500/50 leading-none">
+                                VERIFICAR
+                              </span>
+                            </>
                           )}
                         </div>
                       </td>

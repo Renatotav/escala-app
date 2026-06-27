@@ -51,7 +51,7 @@ function findEquipe(
 }
 
 async function handleStats() {
-  const [total, rows, range, colaboradores] = await Promise.all([
+  const [total, rows, range, colaboradores, equipeRecordsStats] = await Promise.all([
     prisma.chamado.count(),
     prisma.chamado.groupBy({
       by: ["nomeUsuarioAtribuido"],
@@ -64,13 +64,14 @@ async function handleStats() {
     prisma.colaborador.findMany({
       select: { nome: true, equipe: { select: { nome: true } } },
     }),
+    prisma.equipe.findMany({ select: { nome: true } }),
   ]);
 
   // pré-computa chaves normalizadas
   const equipeEntries = colaboradores
     .filter((c) => c.equipe)
     .map((c) => ({ key: normName(c.nome), equipe: c.equipe!.nome }));
-  const equipeNomesStats = Array.from(new Set(equipeEntries.map((e) => e.equipe)));
+  const equipeNomesStats = equipeRecordsStats.map((e) => e.nome);
 
   // agrupa por equipe → usuários
   const byEquipe = new Map<string, { nome: string; total: number }[]>();
@@ -110,14 +111,18 @@ export async function GET(request: NextRequest) {
   const apenasUrgentes = searchParams.get("urgentes") === "1";
   const equipeParam = searchParams.get("equipe") || null;
 
-  // Resolve colaboradores first so we can use equipeEntries in the filter
-  const colaboradores = await prisma.colaborador.findMany({
-    select: { nome: true, equipe: { select: { nome: true } } },
-  });
+  // Resolve colaboradores e equipes para o mapeamento nome→equipe
+  const [colaboradores, equipeRecords] = await Promise.all([
+    prisma.colaborador.findMany({
+      select: { nome: true, equipe: { select: { nome: true } } },
+    }),
+    prisma.equipe.findMany({ select: { nome: true } }),
+  ]);
   const equipeEntries = colaboradores
     .filter((c) => c.equipe)
     .map((c) => ({ key: normName(c.nome), equipe: c.equipe!.nome }));
-  const equipeNomes = Array.from(new Set(equipeEntries.map((e) => e.equipe)));
+  // Usa todas as equipes cadastradas para o match direto (não depende de ter colaborador ativo)
+  const equipeNomes = equipeRecords.map((e) => e.nome);
 
   const where: Record<string, unknown> = {};
   if (apenasUrgentes) {
@@ -133,10 +138,21 @@ export async function GET(request: NextRequest) {
       select: { nomeUsuarioAtribuido: true },
       distinct: ["nomeUsuarioAtribuido"],
     });
+    // Chamados sem atendente (null) são tratados como "(Triagem)" no stats
+    const nullGroupEquipe = findEquipe("(Triagem)", equipeEntries, equipeNomes);
+    const includeNull = nullGroupEquipe === equipeParam;
     const matching = allUsers
       .filter((u) => u.nomeUsuarioAtribuido && findEquipe(u.nomeUsuarioAtribuido, equipeEntries, equipeNomes) === equipeParam)
       .map((u) => u.nomeUsuarioAtribuido as string);
-    where.nomeUsuarioAtribuido = matching.length > 0 ? { in: matching } : "__NO_MATCH__";
+    if (matching.length > 0 && includeNull) {
+      where.OR = [{ nomeUsuarioAtribuido: { in: matching } }, { nomeUsuarioAtribuido: null }];
+    } else if (matching.length > 0) {
+      where.nomeUsuarioAtribuido = { in: matching };
+    } else if (includeNull) {
+      where.nomeUsuarioAtribuido = null;
+    } else {
+      where.nomeUsuarioAtribuido = "__NO_MATCH__";
+    }
   }
 
   const [total, chamados, range, usuariosRaw, acoesRaw] = await Promise.all([
@@ -188,6 +204,10 @@ export async function GET(request: NextRequest) {
         equipesSet.add(eq);
         usuarioEquipeMap[u.nomeUsuarioAtribuido] = eq;
       }
+    } else {
+      // null nomeUsuarioAtribuido → grupo sem atribuição, mesmo tratamento do stats
+      const eq = findEquipe("(Triagem)", equipeEntries, equipeNomes);
+      if (eq !== "Sem equipe") equipesSet.add(eq);
     }
   }
   const equipes = Array.from(equipesSet).sort();

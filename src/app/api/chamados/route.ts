@@ -171,12 +171,16 @@ export async function GET(request: NextRequest) {
     equipe: c.nomeUsuarioAtribuido ? findEquipe(c.nomeUsuarioAtribuido, equipeEntries) : null,
   }));
 
-  // Build equipes list from all users (no filter applied to usuariosRaw)
+  // Build equipes list and usuario→equipe map from all users (no filter applied to usuariosRaw)
   const equipesSet = new Set<string>();
+  const usuarioEquipeMap: Record<string, string> = {};
   for (const u of usuariosRaw) {
     if (u.nomeUsuarioAtribuido) {
       const eq = findEquipe(u.nomeUsuarioAtribuido, equipeEntries);
-      if (eq !== "Sem equipe") equipesSet.add(eq);
+      if (eq !== "Sem equipe") {
+        equipesSet.add(eq);
+        usuarioEquipeMap[u.nomeUsuarioAtribuido] = eq;
+      }
     }
   }
   const equipes = Array.from(equipesSet).sort();
@@ -197,6 +201,7 @@ export async function GET(request: NextRequest) {
       .filter((n) => !equipeParam || findEquipe(n, equipeEntries) === equipeParam),
     ultimaAcoes: acoesRaw.map((a) => a.ultimaAcao).filter(Boolean) as string[],
     equipes,
+    usuarioEquipeMap,
     totalUrgentes,
   });
 }

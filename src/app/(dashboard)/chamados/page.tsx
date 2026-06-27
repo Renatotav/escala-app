@@ -29,6 +29,7 @@ type DadosChamados = {
   usuarios: string[];
   ultimaAcoes: string[];
   equipes: string[];
+  usuarioEquipeMap: Record<string, string>;
   totalUrgentes: number;
 };
 
@@ -266,7 +267,14 @@ export default function ChamadosPage() {
   useEffect(() => { loadStats(); }, [loadStats]);
 
   function setFilter(key: "usuario" | "equipe", value: string) {
-    if (key === "usuario") { setUsuario(value); }
+    if (key === "usuario") {
+      setUsuario(value);
+      if (value && dados?.usuarioEquipeMap?.[value]) {
+        setEquipe(dados.usuarioEquipeMap[value]);
+      } else if (!value) {
+        // não limpa equipe ao deselecionar usuário
+      }
+    }
     if (key === "equipe") { setEquipe(value); setUsuario(""); }
     setPage(1);
   }

@@ -132,7 +132,8 @@ export async function GET(request: NextRequest) {
   }
 
   if (usuario) {
-    where.nomeUsuarioAtribuido = usuario;
+    // "(Triagem)" é o nome sintético usado no stats para registros com null
+    where.nomeUsuarioAtribuido = usuario === "(Triagem)" ? null : usuario;
   } else if (equipeParam) {
     const allUsers = await prisma.chamado.findMany({
       select: { nomeUsuarioAtribuido: true },

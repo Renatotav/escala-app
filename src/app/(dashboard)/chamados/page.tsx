@@ -398,16 +398,93 @@ export default function ChamadosPage() {
     doc.save(`chamados-quantitativo-${new Date().toISOString().slice(0, 10)}.pdf`);
   }
 
-  async function baixarJPEG() {
-    if (!quantRef.current) return;
-    const { default: html2canvas } = await import("html2canvas");
-    const canvas = await html2canvas(quantRef.current, {
-      backgroundColor: "#111827",
-      scale: 2,
-      useCORS: true,
-      allowTaint: true,
-      logging: false,
-    });
+  function baixarJPEG() {
+    if (!stats) return;
+    const equipesParaExportar = equipeQuant
+      ? stats.porEquipe.filter((eq) => eq.equipe === equipeQuant)
+      : stats.porEquipe;
+
+    const W = 800;
+    const PAD = 24;
+    const ROW_H = 30;
+    const TEAM_H = 38;
+    const GAP = 10;
+    const HEADER_H = 70;
+
+    let totalH = HEADER_H;
+    for (const eq of equipesParaExportar) totalH += TEAM_H + eq.usuarios.length * ROW_H + GAP;
+    totalH += PAD;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = W * 2;
+    canvas.height = totalH * 2;
+    const ctx = canvas.getContext("2d")!;
+    ctx.scale(2, 2);
+
+    // fundo
+    ctx.fillStyle = "#0f172a";
+    ctx.fillRect(0, 0, W, totalH);
+
+    // título
+    ctx.fillStyle = "#f1f5f9";
+    ctx.font = "bold 18px system-ui, sans-serif";
+    ctx.fillText("Chamados - Quantitativo", PAD, 30);
+    ctx.fillStyle = "#64748b";
+    ctx.font = "12px system-ui, sans-serif";
+    const geradoEm = new Date().toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+    ctx.fillText(`Total: ${stats.total.toLocaleString("pt-BR")} chamados   Gerado em: ${geradoEm}`, PAD, 52);
+
+    let y = HEADER_H;
+
+    for (const eq of equipesParaExportar) {
+      const pct = ((eq.total / stats.total) * 100).toFixed(1);
+
+      // cabeçalho equipe
+      ctx.fillStyle = "#1e293b";
+      ctx.fillRect(PAD, y, W - PAD * 2, TEAM_H);
+      ctx.fillStyle = "#cbd5e1";
+      ctx.font = "bold 12px system-ui, sans-serif";
+      ctx.fillText(`${eq.equipe}   ${eq.total.toLocaleString("pt-BR")} chamados (${pct}%)`, PAD + 12, y + 24);
+      y += TEAM_H;
+
+      for (let i = 0; i < eq.usuarios.length; i++) {
+        const u = eq.usuarios[i];
+        const over = eq.equipe !== "Supervisão" && u.nome !== "(Triagem)" && u.total > 50;
+
+        ctx.fillStyle = i % 2 === 0 ? "#1e2d3d" : "#0f172a";
+        ctx.fillRect(PAD, y, W - PAD * 2, ROW_H);
+
+        // rank
+        ctx.fillStyle = "#475569";
+        ctx.font = "11px monospace";
+        ctx.fillText(`${i + 1}`, PAD + 8, y + 20);
+
+        // nome
+        ctx.fillStyle = over ? "#fca5a5" : "#e2e8f0";
+        ctx.font = over ? "bold 12px system-ui, sans-serif" : "12px system-ui, sans-serif";
+        ctx.fillText(u.nome, PAD + 36, y + 20);
+
+        // badge ALTO
+        if (over) {
+          ctx.fillStyle = "#7f1d1d";
+          const bx = W - PAD - 80;
+          ctx.fillRect(bx, y + 7, 34, 16);
+          ctx.fillStyle = "#fca5a5";
+          ctx.font = "bold 9px system-ui, sans-serif";
+          ctx.fillText("ALTO", bx + 5, y + 19);
+        }
+
+        // total
+        ctx.fillStyle = over ? "#f87171" : "#f1f5f9";
+        ctx.font = "bold 12px monospace";
+        const txt = u.total.toLocaleString("pt-BR");
+        ctx.fillText(txt, W - PAD - 10 - ctx.measureText(txt).width, y + 20);
+
+        y += ROW_H;
+      }
+      y += GAP;
+    }
+
     const a = document.createElement("a");
     a.href = canvas.toDataURL("image/jpeg", 0.95);
     a.download = `chamados-quantitativo-${new Date().toISOString().slice(0, 10)}.jpg`;

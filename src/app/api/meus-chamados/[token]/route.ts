@@ -42,7 +42,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
   const where = { nomeUsuarioAtribuido: { in: matching } };
 
-  const [total, chamados] = await Promise.all([
+  const [total, chamados, totalUrgentes] = await Promise.all([
     prisma.chamado.count({ where }),
     prisma.chamado.findMany({
       where,
@@ -53,10 +53,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         id: true,
         referencia: true,
         dataRegistro: true,
+        nomeDpsAtribuido: true,
         nomeSecao: true,
         ultimaAcao: true,
       },
     }),
+    prisma.chamado.count({ where: { ...where, ultimaAcao: "Solicitação de Urgência" } }),
   ]);
 
   if (page === 1) {
@@ -69,6 +71,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   return NextResponse.json({
     nome: colaborador.nome,
     total,
+    totalUrgentes,
     chamados,
     page,
     pageSize: PAGE_SIZE,

@@ -6,6 +6,7 @@ type Chamado = {
   id: number;
   referencia: string;
   dataRegistro: string | null;
+  nomeDpsAtribuido: string | null;
   nomeSecao: string | null;
   ultimaAcao: string | null;
 };
@@ -13,6 +14,7 @@ type Chamado = {
 type Dados = {
   nome: string;
   total: number;
+  totalUrgentes: number;
   chamados: Chamado[];
   page: number;
   pageSize: number;
@@ -29,6 +31,47 @@ function fmtDateTime(iso: string | null) {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function urgenciaCfg(ultimaAcao: string | null) {
+  if (ultimaAcao === "Solicitação de Urgência") {
+    return { rowClass: "bg-red-950/30 border-l-2 border-red-500/60", badge: true, acaoClass: "text-red-400 font-medium" };
+  }
+  return { rowClass: "", badge: false, acaoClass: "text-gray-400" };
+}
+
+const SLA_REGRAS: { match: string; dias: number }[] = [
+  { match: "cadastro", dias: 2 },
+  { match: "migracao", dias: 15 },
+  { match: "orientacao", dias: 5 },
+  { match: "erro", dias: 5 },
+  { match: "falha", dias: 5 },
+];
+
+function normSimples(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/[àáâãä]/g, "a")
+    .replace(/[èéêë]/g, "e")
+    .replace(/[ìíîï]/g, "i")
+    .replace(/[òóôõö]/g, "o")
+    .replace(/[ùúûü]/g, "u")
+    .replace(/[ç]/g, "c")
+    .replace(/[^a-z0-9 ]/g, "");
+}
+
+function getSLADias(nomeDps: string | null): number | null {
+  if (!nomeDps) return null;
+  const norm = normSimples(nomeDps);
+  for (const r of SLA_REGRAS) {
+    if (norm.includes(r.match)) return r.dias;
+  }
+  return null;
+}
+
+function diasDesde(dataRegistro: string | null): number | null {
+  if (!dataRegistro) return null;
+  return Math.floor((Date.now() - new Date(dataRegistro).getTime()) / 86_400_000);
 }
 
 export default function MeusChamadosPage({ params }: { params: Promise<{ token: string }> }) {
@@ -78,11 +121,26 @@ export default function MeusChamadosPage({ params }: { params: Promise<{ token: 
 
   return (
     <div className="min-h-dvh bg-gray-950 p-4 md:p-8">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-5xl mx-auto">
         <div className="mb-6">
           <h1 className="text-xl font-semibold text-white">Meus chamados</h1>
-          <p className="text-sm text-gray-400 mt-0.5">{dados.nome} · {dados.total.toLocaleString("pt-BR")} chamado{dados.total !== 1 ? "s" : ""}</p>
+          <p className="text-sm text-gray-400 mt-0.5">{dados.nome}</p>
         </div>
+
+        {dados.total > 0 && (
+          <div className="grid grid-cols-2 gap-4 mb-6 max-w-md">
+            <div className="bg-gray-900 rounded-xl border border-gray-800 p-4">
+              <p className="text-xs text-gray-500 mb-1">Total de chamados</p>
+              <p className="text-3xl font-bold text-white tabular-nums">{dados.total.toLocaleString("pt-BR")}</p>
+            </div>
+            <div className="bg-gray-900 rounded-xl border border-gray-800 p-4">
+              <p className="text-xs text-gray-500 mb-1">Solicitação de Urgência</p>
+              <p className={`text-3xl font-bold tabular-nums ${dados.totalUrgentes > 0 ? "text-red-400" : "text-gray-600"}`}>
+                {dados.totalUrgentes.toLocaleString("pt-BR")}
+              </p>
+            </div>
+          </div>
+        )}
 
         {dados.total === 0 ? (
           <div className="bg-gray-900 rounded-xl border border-gray-800 p-12 text-center">
@@ -91,24 +149,58 @@ export default function MeusChamadosPage({ params }: { params: Promise<{ token: 
         ) : (
           <>
             <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto">
-              <table className="w-full text-sm min-w-[600px]">
+              <table className="w-full text-sm min-w-[700px]">
                 <thead>
                   <tr className="border-b border-gray-700 text-gray-400 text-xs uppercase tracking-wide">
                     <th className="text-left px-4 py-3 w-44">Referência</th>
                     <th className="text-left px-4 py-3 w-36">Data/hora</th>
-                    <th className="text-left px-4 py-3">Seção</th>
+                    <th className="text-left px-4 py-3 w-64">Categoria</th>
                     <th className="text-left px-4 py-3">Última ação</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {dados.chamados.map((c) => (
-                    <tr key={c.id} className="border-b border-gray-800/60 last:border-0 hover:bg-gray-800/40 transition">
-                      <td className="px-4 py-2.5 font-mono text-xs text-gray-200">{c.referencia}</td>
-                      <td className="px-4 py-2.5 text-xs text-gray-400 tabular-nums whitespace-nowrap">{fmtDateTime(c.dataRegistro)}</td>
-                      <td className="px-4 py-2.5 text-xs text-gray-300">{c.nomeSecao ?? "—"}</td>
-                      <td className="px-4 py-2.5 text-xs text-gray-400">{c.ultimaAcao ?? "—"}</td>
-                    </tr>
-                  ))}
+                  {dados.chamados.map((c) => {
+                    const urg = urgenciaCfg(c.ultimaAcao);
+                    const sla = getSLADias(c.nomeDpsAtribuido);
+                    const dias = diasDesde(c.dataRegistro);
+                    const atrasado = sla !== null && dias !== null && dias >= sla;
+                    const rowExtra = !urg.badge && atrasado ? "bg-orange-950/20 border-l-2 border-orange-500/50" : "";
+                    return (
+                      <tr
+                        key={c.id}
+                        className={`border-b border-gray-800/60 last:border-0 hover:bg-gray-800/40 transition ${urg.rowClass} ${rowExtra}`}>
+                        <td className="px-4 py-2.5">
+                          <div className="flex items-center gap-1.5 flex-nowrap">
+                            <span className="font-mono text-xs text-gray-200">{c.referencia}</span>
+                            {urg.badge && (
+                              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30 leading-none">
+                                URGENTE
+                              </span>
+                            )}
+                            {atrasado && dias !== null && (
+                              <span
+                                title="Urgente"
+                                className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400 border border-orange-500/30 leading-none cursor-help">
+                                {dias}d
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <span className="text-xs text-gray-400 tabular-nums whitespace-nowrap">{fmtDateTime(c.dataRegistro)}</span>
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <span className="text-xs text-gray-300">{c.nomeDpsAtribuido ?? "—"}</span>
+                          {c.nomeSecao && (
+                            <p className="text-[10px] text-gray-500 mt-0.5 truncate max-w-[240px]">{c.nomeSecao}</p>
+                          )}
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <span className={`text-xs ${urg.acaoClass}`}>{c.ultimaAcao ?? "—"}</span>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

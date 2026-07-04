@@ -22,8 +22,8 @@ function brazilDateStr(offsetDays = 0): string {
 function fmtRelativo(iso: string | null) {
   if (!iso) return "—";
   const date = iso.slice(0, 10);
-  if (date === brazilDateStr(0)) return "Hoje";
-  if (date === brazilDateStr(-1)) return "Ontem";
+  if (date === brazilDateStr(0))  return "Hoje";
+  if (date === brazilDateStr(1))  return "Amanhã";
   return date.split("-").reverse().join("/");
 }
 
@@ -50,9 +50,9 @@ export default function PlantaoRecentesCard({ items }: { items: Item[] }) {
   return (
     <>
       <div className="bg-gray-900 rounded-xl border border-gray-800 p-5">
-        <h3 className="text-sm font-medium text-gray-300 mb-4">Plantões recentes</h3>
+        <h3 className="text-sm font-medium text-gray-300 mb-4">Próximos plantões</h3>
         {items.length === 0 ? (
-          <p className="text-gray-600 text-sm">Nenhum plantão registrado.</p>
+          <p className="text-gray-600 text-sm">Nenhum plantão registrado para os próximos dias.</p>
         ) : (
           <div className="divide-y divide-gray-800">
             {items.map(p => (
@@ -67,7 +67,7 @@ export default function PlantaoRecentesCard({ items }: { items: Item[] }) {
                 <div className="text-right">
                   {(() => {
                     const label = fmtRelativo(p.data);
-                    const color = label === "Hoje" ? "text-blue-400" : "text-gray-300";
+                    const color = label === "Hoje" ? "text-blue-400" : label === "Amanhã" ? "text-teal-400" : "text-gray-300";
                     return <p className={`text-sm font-medium ${color}`}>{label}</p>;
                   })()}
                   <p className="text-xs text-gray-500">{tipoLabel[p.tipo] ?? p.tipo}</p>

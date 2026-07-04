@@ -40,7 +40,8 @@ export default async function DashboardPage() {
       include: { colaborador: { select: { nome: true, equipe: { select: { nome: true } } } } },
     }),
     prisma.plantao.findMany({
-      orderBy: { data: "desc" },
+      where: { data: { gte: hojeUTC } },
+      orderBy: { data: "asc" },
       take: 12,
       include: { colaborador: { select: { nome: true, equipe: { select: { nome: true } } } } },
     }),

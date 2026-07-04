@@ -687,10 +687,11 @@ export default function ChamadosPage() {
                         </span>
                       </td>
                       <td className="px-4 py-2.5">
-                        <span className="text-xs text-gray-300">{c.nomeDpsAtribuido ?? "—"}</span>
-                        {c.nomeSecao && (
-                          <p className="text-[10px] text-gray-500 mt-0.5 truncate max-w-[240px]">{c.nomeSecao}</p>
-                        )}
+                        <span
+                          className="text-xs text-gray-300 cursor-default"
+                          title={c.nomeSecao ?? undefined}>
+                          {c.nomeDpsAtribuido ?? "—"}
+                        </span>
                       </td>
                       <td className="px-4 py-2.5">
                         {c.nomeUsuarioAtribuido ? (

@@ -9,7 +9,9 @@ const tipoLabel: Record<string, string> = { SABADO: "Sábado", DOMINGO: "Domingo
 
 function fmt(iso: string | null) {
   if (!iso) return "—";
-  return iso.slice(0, 10).split("-").reverse().join("/");
+  const date = iso.slice(0, 10);
+  if (date <= "1970-01-01") return "Banco";
+  return date.split("-").reverse().join("/");
 }
 
 function brazilDateStr(offsetDays = 0): string {
@@ -63,7 +65,11 @@ export default function PlantaoRecentesCard({ items }: { items: Item[] }) {
                   <p className="text-xs text-gray-500">{p.colaborador.equipe.nome}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm text-gray-300">{fmtRelativo(p.data)}</p>
+                  {(() => {
+                    const label = fmtRelativo(p.data);
+                    const color = label === "Hoje" ? "text-blue-400" : "text-gray-300";
+                    return <p className={`text-sm font-medium ${color}`}>{label}</p>;
+                  })()}
                   <p className="text-xs text-gray-500">{tipoLabel[p.tipo] ?? p.tipo}</p>
                 </div>
               </div>

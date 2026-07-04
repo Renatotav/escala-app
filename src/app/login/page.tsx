@@ -44,22 +44,22 @@ export default function LoginPage() {
       <div className="absolute inset-0 bg-black/50" />
 
       {/* Formulário centralizado */}
-      <div className="relative z-10 w-full max-w-sm">
-        <div className="mb-8 text-center">
-          <h1 className="text-2xl font-bold text-white tracking-tight drop-shadow">
+      <div className="relative z-10 w-full max-w-lg">
+        <div className="mb-10 text-center">
+          <h1 className="text-4xl font-bold text-white tracking-tight drop-shadow">
             Gestão de Escalas
           </h1>
-          <p className="mt-1 text-sm text-gray-300">Acesso restrito</p>
+          <p className="mt-2 text-base text-gray-300">Acesso restrito</p>
         </div>
 
         <form
           onSubmit={handleSubmit}
-          className="bg-gray-900/80 backdrop-blur-sm rounded-xl border border-gray-700 p-6 space-y-4"
+          className="bg-gray-900/80 backdrop-blur-sm rounded-2xl border border-gray-700 p-10 space-y-6"
         >
           <div>
             <label
               htmlFor="password"
-              className="block text-xs font-medium text-gray-400 mb-1.5"
+              className="block text-sm font-medium text-gray-400 mb-2"
             >
               Senha do administrador
             </label>
@@ -70,13 +70,13 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
               autoFocus
-              className="w-full bg-gray-800 text-white rounded-lg border border-gray-700 px-3 py-2.5 text-sm placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+              className="w-full bg-gray-800 text-white rounded-xl border border-gray-700 px-4 py-3.5 text-base placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
               placeholder="••••••••"
             />
           </div>
 
           {error && (
-            <p className="text-sm text-red-400 bg-red-500/10 rounded-lg px-3 py-2">
+            <p className="text-sm text-red-400 bg-red-500/10 rounded-lg px-4 py-3">
               {error}
             </p>
           )}
@@ -84,7 +84,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-lg py-2.5 text-sm transition"
+            className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-xl py-3.5 text-base transition"
           >
             {loading ? "Entrando..." : "Entrar"}
           </button>

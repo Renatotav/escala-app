@@ -59,6 +59,9 @@ export default function ConfiguracoesPage() {
   const [novoFeriado, setNovoFeriado] = useState({ data: "", descricao: "" });
   const [saving, setSaving] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [senha, setSenha] = useState({ atual: "", nova: "", confirma: "" });
+  const [senhaStatus, setSenhaStatus] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [salvandoSenha, setSalvandoSenha] = useState(false);
 
   async function downloadBackup() {
     setDownloading(true);
@@ -112,6 +115,29 @@ export default function ConfiguracoesPage() {
     setSaving(false);
     setNovoFeriado({ data: "", descricao: "" });
     loadFeriados();
+  }
+
+  async function handleAlterarSenha(e: { preventDefault(): void }) {
+    e.preventDefault();
+    if (senha.nova !== senha.confirma) {
+      setSenhaStatus({ ok: false, msg: "Nova senha e confirmação não coincidem" });
+      return;
+    }
+    setSalvandoSenha(true);
+    setSenhaStatus(null);
+    const res = await fetch("/api/auth/senha", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ senhaAtual: senha.atual, novaSenha: senha.nova }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      setSenhaStatus({ ok: true, msg: "Senha alterada com sucesso!" });
+      setSenha({ atual: "", nova: "", confirma: "" });
+    } else {
+      setSenhaStatus({ ok: false, msg: data.error ?? "Erro ao alterar senha" });
+    }
+    setSalvandoSenha(false);
   }
 
   async function handleDeleteFeriado(id: number) {
@@ -209,6 +235,39 @@ export default function ConfiguracoesPage() {
           </form>
         </div>
       </section>
+      {/* Alterar senha */}
+      <section>
+        <h3 className="text-sm font-medium text-gray-300 mb-3">Alterar senha de acesso</h3>
+        <div className="bg-gray-900 rounded-xl border border-gray-800 p-4">
+          <form onSubmit={handleAlterarSenha} className="space-y-3">
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Senha atual</label>
+              <input type="password" value={senha.atual} onChange={e => setSenha(s => ({ ...s, atual: e.target.value }))} required
+                className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Nova senha</label>
+              <input type="password" value={senha.nova} onChange={e => setSenha(s => ({ ...s, nova: e.target.value }))} required minLength={4}
+                className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Confirmar nova senha</label>
+              <input type="password" value={senha.confirma} onChange={e => setSenha(s => ({ ...s, confirma: e.target.value }))} required
+                className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            {senhaStatus && (
+              <p className={`text-xs px-3 py-2 rounded-lg ${senhaStatus.ok ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"}`}>
+                {senhaStatus.msg}
+              </p>
+            )}
+            <button type="submit" disabled={salvandoSenha}
+              className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
+              {salvandoSenha ? "Salvando..." : "Alterar senha"}
+            </button>
+          </form>
+        </div>
+      </section>
+
       {/* Backup */}
       <section>
         <h3 className="text-sm font-medium text-gray-300 mb-3">Backup do banco de dados</h3>

@@ -104,6 +104,13 @@ async function migrate() {
     \"createdAt\" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
   )\`);
 
+  // ConfiguracaoSistema — armazena senha personalizada e outras configs
+  await client.query(`CREATE TABLE IF NOT EXISTS "ConfiguracaoSistema" (
+    "chave" TEXT PRIMARY KEY,
+    "valor" TEXT NOT NULL,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+  )`);
+
   await client.end();
   console.log('Migration completed successfully.');
 }

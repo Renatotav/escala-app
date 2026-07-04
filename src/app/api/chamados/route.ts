@@ -168,6 +168,7 @@ export async function GET(request: NextRequest) {
         referencia: true,
         dataRegistro: true,
         nomeDpsAtribuido: true,
+        nomeSecao: true,
         nomeUsuarioAtribuido: true,
         ultimaAcao: true,
         alerta: true,

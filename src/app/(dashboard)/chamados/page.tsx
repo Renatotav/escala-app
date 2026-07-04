@@ -11,6 +11,7 @@ type Chamado = {
   referencia: string;
   dataRegistro: string | null;
   nomeDpsAtribuido: string | null;
+  nomeSecao: string | null;
   nomeUsuarioAtribuido: string | null;
   ultimaAcao: string | null;
   alerta: string | null;
@@ -687,6 +688,9 @@ export default function ChamadosPage() {
                       </td>
                       <td className="px-4 py-2.5">
                         <span className="text-xs text-gray-300">{c.nomeDpsAtribuido ?? "—"}</span>
+                        {c.nomeSecao && (
+                          <p className="text-[10px] text-gray-500 mt-0.5 truncate max-w-[240px]">{c.nomeSecao}</p>
+                        )}
                       </td>
                       <td className="px-4 py-2.5">
                         {c.nomeUsuarioAtribuido ? (

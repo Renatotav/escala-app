@@ -21,6 +21,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const { token } = await params;
   const { searchParams } = new URL(request.url);
   const page = Math.max(1, Number(searchParams.get("page") ?? "1"));
+  const apenasUrgentes = searchParams.get("urgentes") === "1";
+  const all = searchParams.get("all") === "1";
 
   const colaborador = await prisma.colaborador.findUnique({
     where: { tokenAtendimento: token },
@@ -40,15 +42,15 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     .map((d) => d.nomeUsuarioAtribuido)
     .filter((n): n is string => !!n && normName(n) === norm);
 
-  const where = { nomeUsuarioAtribuido: { in: matching } };
+  const baseWhere = { nomeUsuarioAtribuido: { in: matching } };
+  const where = apenasUrgentes ? { ...baseWhere, ultimaAcao: "Solicitação de Urgência" } : baseWhere;
 
   const [total, chamados, totalUrgentes] = await Promise.all([
     prisma.chamado.count({ where }),
     prisma.chamado.findMany({
       where,
       orderBy: { dataRegistro: "asc" },
-      skip: (page - 1) * PAGE_SIZE,
-      take: PAGE_SIZE,
+      ...(all ? {} : { skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE }),
       select: {
         id: true,
         referencia: true,
@@ -58,10 +60,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         ultimaAcao: true,
       },
     }),
-    prisma.chamado.count({ where: { ...where, ultimaAcao: "Solicitação de Urgência" } }),
+    prisma.chamado.count({ where: { ...baseWhere, ultimaAcao: "Solicitação de Urgência" } }),
   ]);
 
-  if (page === 1) {
+  if (page === 1 && !apenasUrgentes && !all) {
     await prisma.colaborador.update({
       where: { id: colaborador.id },
       data: { ultimoAcessoAtendimento: new Date(), acessosAtendimento: { increment: 1 } },

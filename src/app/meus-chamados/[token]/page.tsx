@@ -80,10 +80,14 @@ export default function MeusChamadosPage({ params }: { params: Promise<{ token: 
   const [erro, setErro] = useState("");
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
+  const [urgentes, setUrgentes] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const load = useCallback(() => {
     setLoading(true);
-    fetch(`/api/meus-chamados/${token}?page=${page}`)
+    const params = new URLSearchParams({ page: String(page) });
+    if (urgentes) params.set("urgentes", "1");
+    fetch(`/api/meus-chamados/${token}?${params}`)
       .then(async (r) => {
         if (!r.ok) {
           const body = await r.json().catch(() => ({}));
@@ -94,9 +98,37 @@ export default function MeusChamadosPage({ params }: { params: Promise<{ token: 
       .then((data) => { setDados(data); setErro(""); })
       .catch((e) => setErro(e.message))
       .finally(() => setLoading(false));
-  }, [token, page]);
+  }, [token, page, urgentes]);
 
   useEffect(() => { load(); }, [load]);
+
+  function toggleUrgentes() {
+    setUrgentes((v) => !v);
+    setPage(1);
+  }
+
+  async function exportarCSV() {
+    setExporting(true);
+    try {
+      const params = new URLSearchParams({ all: "1" });
+      if (urgentes) params.set("urgentes", "1");
+      const data: Dados = await fetch(`/api/meus-chamados/${token}?${params}`).then((r) => r.json());
+      const rows = [["Referência", "Data/hora", "Categoria", "Seção", "Última ação"]];
+      for (const c of data.chamados) {
+        rows.push([c.referencia, fmtDateTime(c.dataRegistro), c.nomeDpsAtribuido ?? "", c.nomeSecao ?? "", c.ultimaAcao ?? ""]);
+      }
+      const csv = rows.map((r) => r.map((v) => `"${v.replace(/"/g, '""')}"`).join(",")).join("\n");
+      const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `meus-chamados-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setExporting(false);
+    }
+  }
 
   if (loading && !dados) {
     return (
@@ -122,29 +154,44 @@ export default function MeusChamadosPage({ params }: { params: Promise<{ token: 
   return (
     <div className="min-h-dvh bg-gray-950 p-4 md:p-8">
       <div className="max-w-5xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-xl font-semibold text-white">Meus chamados</h1>
-          <p className="text-sm text-gray-400 mt-0.5">{dados.nome}</p>
+        <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
+          <div>
+            <h1 className="text-xl font-semibold text-white">Meus chamados</h1>
+            <p className="text-sm text-gray-400 mt-0.5">{dados.nome}</p>
+          </div>
+          {dados.total > 0 && (
+            <button
+              onClick={exportarCSV}
+              disabled={exporting}
+              className="text-xs px-3 py-2 rounded-lg bg-green-700 hover:bg-green-600 disabled:opacity-50 text-white font-medium transition">
+              {exporting ? "Exportando..." : "↓ Exportar CSV"}
+            </button>
+          )}
         </div>
 
-        {dados.total > 0 && (
+        {(dados.total > 0 || urgentes) && (
           <div className="grid grid-cols-2 gap-4 mb-6 max-w-md">
             <div className="bg-gray-900 rounded-xl border border-gray-800 p-4">
               <p className="text-xs text-gray-500 mb-1">Total de chamados</p>
               <p className="text-3xl font-bold text-white tabular-nums">{dados.total.toLocaleString("pt-BR")}</p>
             </div>
-            <div className="bg-gray-900 rounded-xl border border-gray-800 p-4">
+            <div
+              onClick={toggleUrgentes}
+              className={`rounded-xl border p-4 cursor-pointer transition ${urgentes ? "bg-red-900/30 border-red-500/50" : "bg-gray-900 border-gray-800 hover:border-red-500/30"}`}>
               <p className="text-xs text-gray-500 mb-1">Solicitação de Urgência</p>
               <p className={`text-3xl font-bold tabular-nums ${dados.totalUrgentes > 0 ? "text-red-400" : "text-gray-600"}`}>
                 {dados.totalUrgentes.toLocaleString("pt-BR")}
               </p>
+              {urgentes && <p className="text-xs text-red-400 mt-1">Filtro ativo</p>}
             </div>
           </div>
         )}
 
         {dados.total === 0 ? (
           <div className="bg-gray-900 rounded-xl border border-gray-800 p-12 text-center">
-            <p className="text-gray-500 text-sm">Nenhum chamado atribuído a você no momento.</p>
+            <p className="text-gray-500 text-sm">
+              {urgentes ? "Nenhum chamado urgente no momento." : "Nenhum chamado atribuído a você no momento."}
+            </p>
           </div>
         ) : (
           <>

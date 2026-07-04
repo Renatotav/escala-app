@@ -79,7 +79,7 @@ export default async function DashboardPage() {
     if (d2 && d2 >= hojeStr && d2 <= em14diasStr)
       proximasEntries.push({ data: d2, nome: p.colaborador.nome, equipe: p.colaborador.equipe.nome, tipo: p.tipo });
   }
-  proximasEntries.sort((a, b) => a.data.localeCompare(b.data));
+  proximasEntries.sort((a, b) => a.data.localeCompare(b.data) || a.nome.localeCompare(b.nome, "pt-BR"));
 
   const tipoLabel: Record<string, string> = { SABADO: "Sábado", DOMINGO: "Domingo", FERIADO: "Feriado", PONTO_FACULTATIVO: "Pto. Facultativo" };
 

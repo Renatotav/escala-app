@@ -64,8 +64,12 @@ export async function GET(request: NextRequest) {
     const entries: { id: string; colaboradorId: number; data: string; dataPlantao: string; colaborador: { nome: string; equipe: { nome: string } }; tipoPlantao: string }[] = [];
     for (const p of plantoes) {
       const dataPlantao = p.data.toISOString().slice(0, 10);
-      if (p.folga1) entries.push({ id: `${p.id}-1`, colaboradorId: p.colaboradorId, data: p.folga1.toISOString().slice(0, 10), dataPlantao, colaborador: p.colaborador, tipoPlantao: p.tipo });
-      if (p.folga2) entries.push({ id: `${p.id}-2`, colaboradorId: p.colaboradorId, data: p.folga2.toISOString().slice(0, 10), dataPlantao, colaborador: p.colaborador, tipoPlantao: p.tipo });
+      // Epoch (new Date(0) = "1970-01-01") is the sentinel used by converter-folga to mark
+      // banco-converted slots — skip those so they don't appear in the folgas list.
+      const d1 = p.folga1 ? p.folga1.toISOString().slice(0, 10) : null;
+      const d2 = p.folga2 ? p.folga2.toISOString().slice(0, 10) : null;
+      if (d1 && d1 > "1970-01-01") entries.push({ id: `${p.id}-1`, colaboradorId: p.colaboradorId, data: d1, dataPlantao, colaborador: p.colaborador, tipoPlantao: p.tipo });
+      if (d2 && d2 > "1970-01-01") entries.push({ id: `${p.id}-2`, colaboradorId: p.colaboradorId, data: d2, dataPlantao, colaborador: p.colaborador, tipoPlantao: p.tipo });
     }
 
     const filtered = mes

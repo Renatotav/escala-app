@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 type Equipe = { id: number; nome: string; thresholdAmarelo: number; thresholdVerde: number };
-type Colaborador = { id: number; nome: string; cargo: string | null; matricula: string | null; ativo: boolean; equipe: Equipe; dataNascimento: string | null; cpf: string | null; email: string | null; telefone: string | null; telefoneEmerg: string | null; nomeEmerg: string | null; endereco: string | null; tokenAtendimento: string | null; ultimoAcessoAtendimento: string | null; acessosAtendimento: number };
+type Colaborador = { id: number; nome: string; cargo: string | null; matricula: string | null; ativo: boolean; equipe: Equipe; dataNascimento: string | null; cpf: string | null; email: string | null; telefone: string | null; telefoneEmerg: string | null; nomeEmerg: string | null; endereco: string | null };
 
 const empty = { nome: "", cargo: "", matricula: "", equipeId: "" };
 
@@ -20,8 +20,6 @@ export default function ColaboradoresPage() {
   const [editing, setEditing] = useState<Colaborador | null>(null);
   const [form, setForm] = useState(empty);
   const [saving, setSaving] = useState(false);
-  const [tokenLoading, setTokenLoading] = useState(false);
-  const [copied, setCopied] = useState(false);
 
   async function load(pageOverride?: number) {
     const params = new URLSearchParams({ page: String(pageOverride ?? page), status: filtroStatus });
@@ -89,34 +87,6 @@ export default function ColaboradoresPage() {
     a.download = "colaboradores.csv";
     a.click();
     URL.revokeObjectURL(url);
-  }
-
-  async function gerarLink() {
-    if (!editing) return;
-    setTokenLoading(true);
-    const res = await fetch(`/api/colaboradores/${editing.id}/token`, { method: "POST" });
-    const data = await res.json();
-    setEditing((e) => (e ? { ...e, tokenAtendimento: data.token } : e));
-    setTokenLoading(false);
-    load();
-  }
-
-  async function revogarLink() {
-    if (!editing) return;
-    if (!confirm("Revogar o link de atendimento? Quem tiver o link atual perderá o acesso imediatamente.")) return;
-    setTokenLoading(true);
-    await fetch(`/api/colaboradores/${editing.id}/token`, { method: "DELETE" });
-    setEditing((e) => (e ? { ...e, tokenAtendimento: null } : e));
-    setTokenLoading(false);
-    load();
-  }
-
-  function copiarLink() {
-    if (!editing?.tokenAtendimento) return;
-    const url = `${window.location.origin}/meus-chamados/${editing.tokenAtendimento}`;
-    navigator.clipboard.writeText(url);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
   }
 
   async function handleDelete(id: number) {
@@ -259,45 +229,6 @@ export default function ColaboradoresPage() {
                   {equipes.map(eq => <option key={eq.id} value={eq.id}>{eq.nome}</option>)}
                 </select>
               </div>
-
-              {editing && (
-                <div className="pt-3 mt-1 border-t border-gray-800">
-                  <label className="block text-xs text-gray-400 mb-1.5">
-                    Link de atendimento <span className="text-gray-600">(acesso somente aos chamados deste colaborador, sem senha)</span>
-                  </label>
-                  {editing.tokenAtendimento ? (
-                    <div className="space-y-2">
-                      <div className="flex gap-2">
-                        <input
-                          readOnly
-                          value={`${typeof window !== "undefined" ? window.location.origin : ""}/meus-chamados/${editing.tokenAtendimento}`}
-                          className="flex-1 bg-gray-800 border border-gray-700 text-gray-300 rounded-lg px-3 py-2 text-xs"
-                        />
-                        <button type="button" onClick={copiarLink}
-                          className="text-xs px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 transition whitespace-nowrap">
-                          {copied ? "Copiado!" : "Copiar"}
-                        </button>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <p className="text-[11px] text-gray-500">
-                          {editing.acessosAtendimento > 0 && editing.ultimoAcessoAtendimento
-                            ? `Último acesso: ${new Date(editing.ultimoAcessoAtendimento).toLocaleString("pt-BR")} · ${editing.acessosAtendimento} acesso${editing.acessosAtendimento !== 1 ? "s" : ""}`
-                            : "Ainda não acessado"}
-                        </p>
-                        <button type="button" onClick={revogarLink} disabled={tokenLoading}
-                          className="text-xs text-red-400 hover:text-red-300 transition disabled:opacity-50">
-                          Revogar
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <button type="button" onClick={gerarLink} disabled={tokenLoading}
-                      className="text-xs px-3 py-2 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-600/30 transition disabled:opacity-50">
-                      {tokenLoading ? "Gerando..." : "Gerar link de atendimento"}
-                    </button>
-                  )}
-                </div>
-              )}
 
               <div className="flex gap-2 pt-2">
                 <button type="button" onClick={() => setModal(false)}

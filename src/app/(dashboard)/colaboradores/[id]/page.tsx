@@ -14,6 +14,7 @@ type Colaborador = {
   equipe: Equipe;
   dataNascimento: string | null; cpf: string | null; email: string | null;
   telefone: string | null; telefoneEmerg: string | null; nomeEmerg: string | null; endereco: string | null;
+  tokenAtendimento: string | null; ultimoAcessoAtendimento: string | null; acessosAtendimento: number;
   plantoes: Plantao[]; atestados: Atestado[]; feedbacks: Feedback[]; ocorrencias: Ocorrencia[];
 };
 
@@ -42,6 +43,8 @@ export default function FichaPage() {
   const [formFeedback, setFormFeedback] = useState(emptyFeedback);
   const [modalOcorrencia, setModalOcorrencia] = useState(false);
   const [formOcorrencia, setFormOcorrencia] = useState(emptyOcorrencia);
+  const [tokenLoading, setTokenLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
   function load() {
     fetch(`/api/colaboradores/${id}/ficha`).then(r => r.json()).then((data: Colaborador) => {
       setColab(data);
@@ -106,6 +109,29 @@ export default function FichaPage() {
     if (!confirm("Excluir ocorrência?")) return;
     await fetch(`/api/ocorrencias?id=${oid}`, { method: "DELETE" });
     load();
+  }
+
+  async function gerarLink() {
+    setTokenLoading(true);
+    const res = await fetch(`/api/colaboradores/${id}/token`, { method: "POST" });
+    const data = await res.json();
+    setColab((c) => (c ? { ...c, tokenAtendimento: data.token } : c));
+    setTokenLoading(false);
+  }
+
+  async function revogarLink() {
+    if (!confirm("Revogar o link de atendimento? Quem tiver o link atual perderá o acesso imediatamente.")) return;
+    setTokenLoading(true);
+    await fetch(`/api/colaboradores/${id}/token`, { method: "DELETE" });
+    setColab((c) => (c ? { ...c, tokenAtendimento: null } : c));
+    setTokenLoading(false);
+  }
+
+  function copiarLink() {
+    if (!colab?.tokenAtendimento) return;
+    navigator.clipboard.writeText(`${window.location.origin}/meus-chamados/${colab.tokenAtendimento}`);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   }
 
   if (!colab) return <div className="text-gray-500 text-sm p-6">Carregando...</div>;
@@ -176,6 +202,45 @@ export default function FichaPage() {
                 : <p className="text-sm text-gray-300">{dadosForm.endereco || "—"}</p>}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* LINK DE ATENDIMENTO */}
+      {tab === "dados" && (
+        <div className="bg-gray-900 rounded-xl border border-gray-800 p-6 mt-4">
+          <h3 className="text-sm font-medium text-gray-300 mb-1">Link de atendimento</h3>
+          <p className="text-xs text-gray-500 mb-4">Acesso somente aos chamados deste colaborador, sem senha.</p>
+          {colab.tokenAtendimento ? (
+            <div className="space-y-2">
+              <div className="flex flex-col sm:flex-row gap-2">
+                <input
+                  readOnly
+                  value={`${typeof window !== "undefined" ? window.location.origin : ""}/meus-chamados/${colab.tokenAtendimento}`}
+                  className="flex-1 bg-gray-800 border border-gray-700 text-gray-300 rounded-lg px-3 py-2 text-xs"
+                />
+                <button onClick={copiarLink}
+                  className="text-xs px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 transition whitespace-nowrap">
+                  {copied ? "Copiado!" : "Copiar"}
+                </button>
+              </div>
+              <div className="flex items-center justify-between">
+                <p className="text-[11px] text-gray-500">
+                  {colab.acessosAtendimento > 0 && colab.ultimoAcessoAtendimento
+                    ? `Último acesso: ${new Date(colab.ultimoAcessoAtendimento).toLocaleString("pt-BR")} · ${colab.acessosAtendimento} acesso${colab.acessosAtendimento !== 1 ? "s" : ""}`
+                    : "Ainda não acessado"}
+                </p>
+                <button onClick={revogarLink} disabled={tokenLoading}
+                  className="text-xs text-red-400 hover:text-red-300 transition disabled:opacity-50">
+                  Revogar
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button onClick={gerarLink} disabled={tokenLoading}
+              className="text-xs px-3 py-2 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-600/30 transition disabled:opacity-50">
+              {tokenLoading ? "Gerando..." : "Gerar link de atendimento"}
+            </button>
+          )}
         </div>
       )}
 

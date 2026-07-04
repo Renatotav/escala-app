@@ -85,6 +85,11 @@ async function migrate() {
   try { await client.query('ALTER TABLE \"Colaborador\" ADD COLUMN IF NOT EXISTS \"ajusteSemanasPresencial\" INTEGER NOT NULL DEFAULT 0'); } catch(e) {}
   // Add semRemoto to Colaborador
   try { await client.query('ALTER TABLE \"Colaborador\" ADD COLUMN IF NOT EXISTS \"semRemoto\" BOOLEAN NOT NULL DEFAULT false'); } catch(e) {}
+  // Add link de atendimento (token, contador e data de último acesso) ao Colaborador
+  try { await client.query('ALTER TABLE \"Colaborador\" ADD COLUMN IF NOT EXISTS \"tokenAtendimento\" TEXT'); } catch(e) {}
+  try { await client.query('ALTER TABLE \"Colaborador\" ADD COLUMN IF NOT EXISTS \"ultimoAcessoAtendimento\" TIMESTAMP(3)'); } catch(e) {}
+  try { await client.query('ALTER TABLE \"Colaborador\" ADD COLUMN IF NOT EXISTS \"acessosAtendimento\" INTEGER NOT NULL DEFAULT 0'); } catch(e) {}
+  try { await client.query('CREATE UNIQUE INDEX IF NOT EXISTS \"Colaborador_tokenAtendimento_key\" ON \"Colaborador\"(\"tokenAtendimento\")'); } catch(e) {}
 
   // Chamado table
   await client.query(\`CREATE TABLE IF NOT EXISTS \"Chamado\" (

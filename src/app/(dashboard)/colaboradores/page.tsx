@@ -113,7 +113,7 @@ export default function ColaboradoresPage() {
 
   function copiarLink() {
     if (!editing?.tokenAtendimento) return;
-    const url = `${window.location.origin}/chamados-atendente/${editing.tokenAtendimento}`;
+    const url = `${window.location.origin}/meus-chamados/${editing.tokenAtendimento}`;
     navigator.clipboard.writeText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -270,7 +270,7 @@ export default function ColaboradoresPage() {
                       <div className="flex gap-2">
                         <input
                           readOnly
-                          value={`${typeof window !== "undefined" ? window.location.origin : ""}/chamados-atendente/${editing.tokenAtendimento}`}
+                          value={`${typeof window !== "undefined" ? window.location.origin : ""}/meus-chamados/${editing.tokenAtendimento}`}
                           className="flex-1 bg-gray-800 border border-gray-700 text-gray-300 rounded-lg px-3 py-2 text-xs"
                         />
                         <button type="button" onClick={copiarLink}

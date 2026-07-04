@@ -4,7 +4,7 @@ import { jwtVerify } from "jose";
 const secret = new TextEncoder().encode(process.env.SESSION_SECRET!);
 const cookieName = process.env.SESSION_COOKIE ?? "agent_session";
 
-const publicPaths = ["/login", "/api/auth", "/chamados-atendente", "/api/chamados-atendente"];
+const publicPaths = ["/login", "/api/auth", "/meus-chamados", "/api/meus-chamados"];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;

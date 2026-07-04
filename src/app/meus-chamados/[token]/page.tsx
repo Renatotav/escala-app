@@ -31,7 +31,7 @@ function fmtDateTime(iso: string | null) {
   });
 }
 
-export default function ChamadosAtendentePage({ params }: { params: Promise<{ token: string }> }) {
+export default function MeusChamadosPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = use(params);
   const [dados, setDados] = useState<Dados | null>(null);
   const [erro, setErro] = useState("");
@@ -40,7 +40,7 @@ export default function ChamadosAtendentePage({ params }: { params: Promise<{ to
 
   const load = useCallback(() => {
     setLoading(true);
-    fetch(`/api/chamados-atendente/${token}?page=${page}`)
+    fetch(`/api/meus-chamados/${token}?page=${page}`)
       .then(async (r) => {
         if (!r.ok) {
           const body = await r.json().catch(() => ({}));

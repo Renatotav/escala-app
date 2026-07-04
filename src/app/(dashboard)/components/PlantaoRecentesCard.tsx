@@ -58,10 +58,7 @@ export default function PlantaoRecentesCard({ items }: { items: Item[] }) {
             {items.map(p => (
               <div key={p.id} className="flex items-center justify-between py-2.5">
                 <div>
-                  <button onClick={() => openFicha(p.colaboradorId, p.colaborador.nome, p.colaborador.equipe.nome)}
-                    className="text-white text-sm font-medium hover:text-blue-400 transition text-left">
-                    {p.colaborador.nome}
-                  </button>
+                  <p className="text-white text-sm font-medium">{p.colaborador.nome}</p>
                   <p className="text-xs text-gray-500">{p.colaborador.equipe.nome}</p>
                 </div>
                 <div className="text-right">

@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -34,16 +33,13 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-gray-950 flex">
       {/* Lado esquerdo — banner PJe */}
-      <div className="hidden lg:block relative flex-1 overflow-hidden">
-        <Image
+      <div className="hidden lg:flex flex-1 overflow-hidden">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
           src="/pje-banner.jpg"
           alt="PJe — Processo Judicial Eletrônico"
-          fill
-          className="object-cover object-center"
-          priority
+          className="w-full h-full object-cover object-center"
         />
-        {/* overlay sutil para suavizar a transição com o fundo escuro */}
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent to-gray-950/60" />
       </div>
 
       {/* Lado direito — formulário */}

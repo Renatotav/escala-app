@@ -190,7 +190,7 @@ function urgenciaCfg(ultimaAcao: string | null) {
 const SLA_REGRAS: { match: string; dias: number }[] = [
   { match: "cadastro", dias: 2 },
   { match: "migracao", dias: 15 },
-  { match: "orientacao tecnica", dias: 5 },
+  { match: "orientacao", dias: 5 },
   { match: "erro", dias: 5 },
   { match: "falha", dias: 5 },
 ];

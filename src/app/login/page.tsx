@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import pjeBanner from "@/lib/pje-banner";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -36,7 +37,7 @@ export default function LoginPage() {
       <div className="hidden lg:flex flex-1 overflow-hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/pje-banner.jpg"
+          src={pjeBanner}
           alt="PJe — Processo Judicial Eletrônico"
           className="w-full h-full object-cover object-center"
         />

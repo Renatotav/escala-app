@@ -66,12 +66,18 @@ export default async function DashboardPage() {
     folgasPendentes += Math.max(0, creditos - agendadas);
   }
 
+  const hojeStr    = brazilDateStr(0);
+  const em14diasStr = brazilDateStr(14);
+
   const proximasEntries: { data: string; nome: string; equipe: string; tipo: string }[] = [];
   for (const p of plantoesPendentes) {
     const d1 = p.folga1 ? p.folga1.toISOString().slice(0, 10) : null;
     const d2 = p.folga2 ? p.folga2.toISOString().slice(0, 10) : null;
-    if (d1) proximasEntries.push({ data: d1, nome: p.colaborador.nome, equipe: p.colaborador.equipe.nome, tipo: p.tipo });
-    if (d2) proximasEntries.push({ data: d2, nome: p.colaborador.nome, equipe: p.colaborador.equipe.nome, tipo: p.tipo });
+    // só adiciona a data que realmente cai dentro do período — evita mostrar folgas passadas
+    if (d1 && d1 >= hojeStr && d1 <= em14diasStr)
+      proximasEntries.push({ data: d1, nome: p.colaborador.nome, equipe: p.colaborador.equipe.nome, tipo: p.tipo });
+    if (d2 && d2 >= hojeStr && d2 <= em14diasStr)
+      proximasEntries.push({ data: d2, nome: p.colaborador.nome, equipe: p.colaborador.equipe.nome, tipo: p.tipo });
   }
   proximasEntries.sort((a, b) => a.data.localeCompare(b.data));
 

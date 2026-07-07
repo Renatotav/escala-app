@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 type Equipe = { id: number; nome: string; thresholdAmarelo: number; thresholdVerde: number };
 type Colaborador = { id: number; nome: string; cargo: string | null; matricula: string | null; ativo: boolean; equipe: Equipe; dataNascimento: string | null; cpf: string | null; email: string | null; telefone: string | null; telefoneEmerg: string | null; nomeEmerg: string | null; endereco: string | null };
+type LinkGerado = { id: number; nome: string; token: string };
 
 const empty = { nome: "", cargo: "", matricula: "", equipeId: "" };
 
@@ -20,6 +21,10 @@ export default function ColaboradoresPage() {
   const [editing, setEditing] = useState<Colaborador | null>(null);
   const [form, setForm] = useState(empty);
   const [saving, setSaving] = useState(false);
+  const [linksModal, setLinksModal] = useState(false);
+  const [gerandoLinks, setGerandoLinks] = useState(false);
+  const [linksResultado, setLinksResultado] = useState<{ gerados: number; colaboradores: LinkGerado[] } | null>(null);
+  const [copiedId, setCopiedId] = useState<number | null>(null);
 
   async function load(pageOverride?: number) {
     const params = new URLSearchParams({ page: String(pageOverride ?? page), status: filtroStatus });
@@ -89,6 +94,40 @@ export default function ColaboradoresPage() {
     URL.revokeObjectURL(url);
   }
 
+  async function gerarTodosLinks() {
+    setGerandoLinks(true);
+    setLinksModal(true);
+    try {
+      const res = await fetch("/api/colaboradores/gerar-links", { method: "POST" });
+      const data = await res.json();
+      setLinksResultado(data);
+    } finally {
+      setGerandoLinks(false);
+    }
+  }
+
+  function copiarLinkItem(item: LinkGerado) {
+    navigator.clipboard.writeText(`${window.location.origin}/meus-chamados/${item.token}`);
+    setCopiedId(item.id);
+    setTimeout(() => setCopiedId(null), 2000);
+  }
+
+  function exportarLinksCSV() {
+    if (!linksResultado) return;
+    const rows = [["Nome", "Link"]];
+    for (const c of linksResultado.colaboradores) {
+      rows.push([c.nome, `${window.location.origin}/meus-chamados/${c.token}`]);
+    }
+    const csv = rows.map(r => r.map(v => `"${v.replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "links-atendimento.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   async function handleDelete(id: number) {
     if (!confirm("Excluir este colaborador? Ele não aparecerá mais no sistema.")) return;
     await fetch(`/api/colaboradores/${id}`, { method: "DELETE" });
@@ -105,6 +144,9 @@ export default function ColaboradoresPage() {
         <div className="flex gap-2">
           <button onClick={exportCSV} className="bg-green-700 hover:bg-green-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
             Exportar CSV
+          </button>
+          <button onClick={gerarTodosLinks} className="bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-600/30 text-sm font-medium px-4 py-2 rounded-lg transition">
+            Gerar links para todos
           </button>
           <button onClick={openNew} className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
             + Novo colaborador
@@ -241,6 +283,60 @@ export default function ColaboradoresPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {linksModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4">
+          <div className="bg-gray-900 border border-gray-800 rounded-xl w-full max-w-2xl p-6 max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-base font-semibold text-white">Links de atendimento</h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {gerandoLinks
+                    ? "Gerando..."
+                    : linksResultado
+                      ? `${linksResultado.gerados} novo${linksResultado.gerados !== 1 ? "s" : ""} gerado${linksResultado.gerados !== 1 ? "s" : ""} · ${linksResultado.colaboradores.length} colaborador${linksResultado.colaboradores.length !== 1 ? "es" : ""} no total`
+                      : ""}
+                </p>
+              </div>
+              <button onClick={() => setLinksModal(false)} className="text-gray-600 hover:text-gray-400 transition">✕</button>
+            </div>
+
+            {gerandoLinks ? (
+              <p className="text-gray-500 text-sm py-8 text-center">Gerando links para todos os colaboradores...</p>
+            ) : linksResultado ? (
+              <>
+                <div className="flex justify-end mb-2">
+                  <button onClick={exportarLinksCSV}
+                    className="text-xs px-3 py-2 rounded-lg bg-green-700 hover:bg-green-600 text-white font-medium transition">
+                    ↓ Exportar CSV
+                  </button>
+                </div>
+                <div className="flex-1 overflow-y-auto rounded-lg border border-gray-800">
+                  <table className="w-full text-sm">
+                    <tbody>
+                      {linksResultado.colaboradores.map((c) => (
+                        <tr key={c.id} className="border-b border-gray-800 last:border-0">
+                          <td className="px-3 py-2 text-gray-300 whitespace-nowrap">{c.nome}</td>
+                          <td className="px-3 py-2 w-full">
+                            <input readOnly value={`${window.location.origin}/meus-chamados/${c.token}`}
+                              className="w-full bg-gray-800 border border-gray-700 text-gray-400 rounded px-2 py-1 text-xs" />
+                          </td>
+                          <td className="px-3 py-2 text-right">
+                            <button onClick={() => copiarLinkItem(c)}
+                              className="text-xs px-2 py-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 transition whitespace-nowrap">
+                              {copiedId === c.id ? "Copiado!" : "Copiar"}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            ) : null}
           </div>
         </div>
       )}

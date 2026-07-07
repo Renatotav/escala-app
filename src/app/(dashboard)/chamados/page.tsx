@@ -237,7 +237,7 @@ export default function ChamadosPage() {
   const quantRef = useRef<HTMLDivElement>(null);
 
   const [importModal, setImportModal] = useState(false);
-  const [fileName, setFileName] = useState("");
+  const [fileNames, setFileNames] = useState<string[]>([]);
   const [parsed, setParsed] = useState<ChamadoParsed[]>([]);
   const [substituir, setSubstituir] = useState(true);
   const [importing, setImporting] = useState(false);
@@ -295,20 +295,30 @@ export default function ChamadosPage() {
   }
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setFileName(file.name);
+    const files = Array.from(e.target.files ?? []);
+    if (files.length === 0) return;
+    setFileNames(files.map(f => f.name));
     setImportError("");
     setParsed([]);
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const text = ev.target?.result as string;
-      const result = parsePaste(text);
-      setParsed(result);
-      if (result.length === 0)
-        setImportError("Nenhum chamado encontrado. Verifique se o arquivo tem o cabeçalho correto.");
-    };
-    reader.readAsText(file, "UTF-8");
+
+    let completed = 0;
+    const allParsed: ChamadoParsed[] = [];
+
+    for (const file of files) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const text = ev.target?.result as string;
+        allParsed.push(...parsePaste(text));
+        completed++;
+        if (completed === files.length) {
+          if (allParsed.length === 0)
+            setImportError("Nenhum chamado encontrado. Verifique se os arquivos têm o cabeçalho correto.");
+          else
+            setParsed(allParsed);
+        }
+      };
+      reader.readAsText(file, "UTF-8");
+    }
   }
 
   async function handleImport() {
@@ -324,7 +334,7 @@ export default function ChamadosPage() {
       const data = await res.json();
       if (data.ok) {
         setImportResult({ count: data.count, skipped: data.skipped ?? 0, parsed: parsedCount });
-        setFileName("");
+        setFileNames([]);
         setParsed([]);
         load();
         loadStats();
@@ -539,7 +549,7 @@ export default function ChamadosPage() {
             </button>
           )}
           <button
-            onClick={() => { setImportModal(true); setFileName(""); setParsed([]); setImportError(""); setImportResult(null); }}
+            onClick={() => { setImportModal(true); setFileNames([]); setParsed([]); setImportError(""); setImportResult(null); }}
             className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
             Importar chamados
           </button>
@@ -841,20 +851,25 @@ export default function ChamadosPage() {
               <button onClick={() => setImportModal(false)} className="text-gray-600 hover:text-gray-400 transition">✕</button>
             </div>
 
-            <label className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-xl cursor-pointer transition
-              ${fileName ? "border-blue-500/50 bg-blue-500/5" : "border-gray-700 bg-gray-800/50 hover:border-gray-600 hover:bg-gray-800"}`}>
-              <input type="file" accept=".csv,.txt,.tsv" onChange={handleFileChange} className="hidden" />
-              {fileName ? (
+            <label className={`flex flex-col items-center justify-center w-full border-2 border-dashed rounded-xl cursor-pointer transition px-3 py-4
+              ${fileNames.length > 0 ? "border-blue-500/50 bg-blue-500/5" : "border-gray-700 bg-gray-800/50 hover:border-gray-600 hover:bg-gray-800"}`}>
+              <input type="file" accept=".csv,.txt,.tsv" multiple onChange={handleFileChange} className="hidden" />
+              {fileNames.length > 0 ? (
                 <>
                   <span className="text-2xl mb-1">📄</span>
-                  <span className="text-sm font-medium text-blue-400">{fileName}</span>
-                  <span className="text-xs text-gray-500 mt-0.5">Clique para trocar</span>
+                  <span className="text-sm font-medium text-blue-400 text-center">
+                    {fileNames.length === 1 ? fileNames[0] : `${fileNames.length} arquivos selecionados`}
+                  </span>
+                  {fileNames.length > 1 && (
+                    <span className="text-[10px] text-gray-500 mt-1 text-center">{fileNames.join(", ")}</span>
+                  )}
+                  <span className="text-xs text-gray-500 mt-1">Clique para trocar</span>
                 </>
               ) : (
                 <>
                   <span className="text-2xl mb-1">📂</span>
-                  <span className="text-sm text-gray-400">Clique para selecionar o arquivo</span>
-                  <span className="text-xs text-gray-600 mt-0.5">.csv · .txt · .tsv</span>
+                  <span className="text-sm text-gray-400">Clique para selecionar os arquivos</span>
+                  <span className="text-xs text-gray-600 mt-0.5">.csv · .txt · .tsv · vários ao mesmo tempo</span>
                 </>
               )}
             </label>
@@ -889,7 +904,7 @@ export default function ChamadosPage() {
 
             {importResult && (
               <div className="mt-3 px-3 py-2 rounded-lg bg-blue-500/10 border border-blue-500/20 text-xs text-blue-300 space-y-0.5">
-                <p className="text-gray-400">{importResult.parsed.toLocaleString("pt-BR")} linha{importResult.parsed !== 1 ? "s" : ""} lida{importResult.parsed !== 1 ? "s" : ""} do arquivo</p>
+                <p className="text-gray-400">{importResult.parsed.toLocaleString("pt-BR")} linha{importResult.parsed !== 1 ? "s" : ""} lida{importResult.parsed !== 1 ? "s" : ""} dos arquivos</p>
                 <p>{importResult.count.toLocaleString("pt-BR")} chamado{importResult.count !== 1 ? "s" : ""} importado{importResult.count !== 1 ? "s" : ""}</p>
                 {importResult.skipped > 0 && (
                   <p className="text-gray-500">{importResult.skipped.toLocaleString("pt-BR")} ignorado{importResult.skipped !== 1 ? "s" : ""} (referência já existia)</p>

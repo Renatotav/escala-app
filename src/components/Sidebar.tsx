@@ -9,6 +9,7 @@ const navItems = [
   { href: "/colaboradores", label: "Colaboradores", icon: "👥" },
   { href: "/escala", label: "Escala", icon: "📅" },
   { href: "/atestados", label: "Atestados", icon: "🩺" },
+  { href: "/declaracoes", label: "Declarações Médicas", icon: "📄" },
   { href: "/triagem", label: "Triagem", icon: "📋" },
   { href: "/banco-horas", label: "Banco de Horas", icon: "⏱" },
   { href: "/chamados", label: "Chamados", icon: "🎫" },

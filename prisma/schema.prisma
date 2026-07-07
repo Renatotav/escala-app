@@ -39,6 +39,7 @@ model Colaborador {
   bancoHoras      LancamentoBancoHoras[]
   escalaPlantao   EscalaPlantaoMensal[]
   atestados         Atestado[]
+  declaracoes       DeclaracaoMedica[]
   feedbacks         Feedback[]
   ocorrencias       Ocorrencia[]
   controleTriagem   ControleTriagem[]
@@ -155,6 +156,18 @@ model Atestado {
   dataFim       DateTime    @db.Date
   cid           String?
   descricao     String?
+  createdAt     DateTime    @default(now())
+}
+
+model DeclaracaoMedica {
+  id            Int         @id @default(autoincrement())
+  colaboradorId Int
+  colaborador   Colaborador @relation(fields: [colaboradorId], references: [id])
+  data          DateTime    @db.Date
+  horaEntrada   String?
+  horaSaida     String?
+  especialidade String?
+  observacao    String?
   createdAt     DateTime    @default(now())
 }
 

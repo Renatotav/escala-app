@@ -109,6 +109,19 @@ async function migrate() {
     \"createdAt\" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
   )\`);
 
+  // DeclaracaoMedica table
+  await client.query(\`CREATE TABLE IF NOT EXISTS \"DeclaracaoMedica\" (
+    \"id\" SERIAL PRIMARY KEY,
+    \"colaboradorId\" INTEGER NOT NULL,
+    \"data\" DATE NOT NULL,
+    \"horaEntrada\" TEXT,
+    \"horaSaida\" TEXT,
+    \"especialidade\" TEXT,
+    \"observacao\" TEXT,
+    \"createdAt\" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT \"DeclaracaoMedica_colaboradorId_fkey\" FOREIGN KEY (\"colaboradorId\") REFERENCES \"Colaborador\"(\"id\") ON DELETE RESTRICT ON UPDATE CASCADE
+  )\`);
+
   // ConfiguracaoSistema
   await client.query(\`CREATE TABLE IF NOT EXISTS \"ConfiguracaoSistema\" (
     \"chave\" TEXT PRIMARY KEY,

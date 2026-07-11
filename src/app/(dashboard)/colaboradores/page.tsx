@@ -112,6 +112,14 @@ export default function ColaboradoresPage() {
     setTimeout(() => setCopiedId(null), 2000);
   }
 
+  async function revogarLinkItem(item: LinkGerado) {
+    if (!confirm(`Revogar o link de ${item.nome}? Quem tiver esse link perderá o acesso imediatamente.`)) return;
+    await fetch(`/api/colaboradores/${item.id}/token`, { method: "DELETE" });
+    setLinksResultado((r) =>
+      r ? { ...r, colaboradores: r.colaboradores.filter((c) => c.id !== item.id) } : r
+    );
+  }
+
   function exportarLinksCSV() {
     if (!linksResultado) return;
     const rows = [["Nome", "Link"]];
@@ -325,10 +333,16 @@ export default function ColaboradoresPage() {
                               className="w-full bg-gray-800 border border-gray-700 text-gray-400 rounded px-2 py-1 text-xs" />
                           </td>
                           <td className="px-3 py-2 text-right">
-                            <button onClick={() => copiarLinkItem(c)}
-                              className="text-xs px-2 py-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 transition whitespace-nowrap">
-                              {copiedId === c.id ? "Copiado!" : "Copiar"}
-                            </button>
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button onClick={() => copiarLinkItem(c)}
+                                className="text-xs px-2 py-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 transition whitespace-nowrap">
+                                {copiedId === c.id ? "Copiado!" : "Copiar"}
+                              </button>
+                              <button onClick={() => revogarLinkItem(c)} title="Revogar link"
+                                className="text-xs w-6 h-6 flex items-center justify-center rounded bg-gray-800 hover:bg-red-900/40 text-gray-400 hover:text-red-400 border border-gray-700 hover:border-red-800 transition">
+                                ✕
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}

@@ -30,7 +30,7 @@ export default async function DashboardPage() {
   const hojeUTC  = new Date(Date.UTC(by, bm - 1, bd));       // today 00:00 UTC
   const em14dias = new Date(Date.UTC(by, bm - 1, bd + 14));  // +14 days  00:00 UTC
 
-  const [colaboradores, plantoesPendentes, plantoesRecentes] = await Promise.all([
+  const [colaboradores, plantoesPendentes, plantoesRecentes, compromissosProximos] = await Promise.all([
     prisma.colaborador.findMany({
       where: { ativo: true },
       include: { equipe: true, escalas: { where: { semana: { lte: hoje } }, orderBy: { semana: "desc" }, take: 10 }, plantoes: true },
@@ -44,6 +44,11 @@ export default async function DashboardPage() {
       orderBy: { data: "asc" },
       take: 12,
       include: { colaborador: { select: { nome: true, equipe: { select: { nome: true } } } } },
+    }),
+    prisma.compromisso.findMany({
+      where: { data: { gte: hojeUTC, lte: em14dias } },
+      orderBy: [{ data: "asc" }, { horaInicio: "asc" }],
+      take: 8,
     }),
   ]);
 
@@ -104,7 +109,7 @@ export default async function DashboardPage() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
         {/* Plantões recentes */}
         <PlantaoRecentesCard items={plantoesRecentes.map(p => ({
           id: p.id,
@@ -143,6 +148,41 @@ export default async function DashboardPage() {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+        </div>
+
+        {/* Próximos compromissos (Agenda) */}
+        <div className="bg-gray-900 rounded-xl border border-gray-800 p-5">
+          <h3 className="text-sm font-medium text-gray-300 mb-4">
+            Próximos compromissos
+            <span className="ml-2 text-xs text-gray-500 font-normal">próximos 14 dias</span>
+          </h3>
+          {compromissosProximos.length === 0 ? (
+            <p className="text-gray-600 text-sm">Nenhum compromisso agendado nos próximos 14 dias.</p>
+          ) : (
+            <div className="divide-y divide-gray-800">
+              {compromissosProximos.map((c) => {
+                const dataStr = c.data.toISOString().slice(0, 10);
+                const label = fmtRelativo(dataStr);
+                const color = label === "Hoje" ? "text-green-400" : label === "Amanhã" ? "text-blue-400" : "text-gray-300";
+                return (
+                  <div key={c.id} className="flex items-center justify-between py-2.5 gap-3">
+                    <div className="min-w-0">
+                      <p className="text-white text-sm font-medium truncate">{c.titulo}</p>
+                      {c.local && <p className="text-xs text-gray-500 truncate">📍 {c.local}</p>}
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className={`text-sm font-medium ${color}`}>{label}</p>
+                      {(c.horaInicio || c.horaFim) && (
+                        <p className="text-xs text-gray-500 font-mono">
+                          {c.horaInicio ?? "—"}{c.horaFim ? ` – ${c.horaFim}` : ""}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

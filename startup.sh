@@ -122,6 +122,19 @@ async function migrate() {
     CONSTRAINT \"DeclaracaoMedica_colaboradorId_fkey\" FOREIGN KEY (\"colaboradorId\") REFERENCES \"Colaborador\"(\"id\") ON DELETE RESTRICT ON UPDATE CASCADE
   )\`);
 
+  // Compromisso table (Agenda)
+  await client.query(\`CREATE TABLE IF NOT EXISTS \"Compromisso\" (
+    \"id\" SERIAL PRIMARY KEY,
+    \"titulo\" TEXT NOT NULL,
+    \"data\" DATE NOT NULL,
+    \"horaInicio\" TEXT,
+    \"horaFim\" TEXT,
+    \"local\" TEXT,
+    \"participantes\" TEXT,
+    \"observacao\" TEXT,
+    \"createdAt\" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+  )\`);
+
   // ConfiguracaoSistema
   await client.query(\`CREATE TABLE IF NOT EXISTS \"ConfiguracaoSistema\" (
     \"chave\" TEXT PRIMARY KEY,

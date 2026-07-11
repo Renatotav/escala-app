@@ -204,6 +204,18 @@ model FeriadoCustomizado {
   @@unique([data])
 }
 
+model Compromisso {
+  id            Int      @id @default(autoincrement())
+  titulo        String
+  data          DateTime @db.Date
+  horaInicio    String?
+  horaFim       String?
+  local         String?
+  participantes String?
+  observacao    String?
+  createdAt     DateTime @default(now())
+}
+
 model Chamado {
   id                   Int       @id @default(autoincrement())
   referencia           String

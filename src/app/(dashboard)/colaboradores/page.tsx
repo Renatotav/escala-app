@@ -25,6 +25,8 @@ export default function ColaboradoresPage() {
   const [gerandoLinks, setGerandoLinks] = useState(false);
   const [linksResultado, setLinksResultado] = useState<{ gerados: number; colaboradores: LinkGerado[] } | null>(null);
   const [copiedId, setCopiedId] = useState<number | null>(null);
+  const [selecionados, setSelecionados] = useState<Set<number>>(new Set());
+  const [revogandoSelecionados, setRevogandoSelecionados] = useState(false);
 
   async function load(pageOverride?: number) {
     const params = new URLSearchParams({ page: String(pageOverride ?? page), status: filtroStatus });
@@ -97,6 +99,7 @@ export default function ColaboradoresPage() {
   async function gerarTodosLinks() {
     setGerandoLinks(true);
     setLinksModal(true);
+    setSelecionados(new Set());
     try {
       const res = await fetch("/api/colaboradores/gerar-links", { method: "POST" });
       const data = await res.json();
@@ -118,6 +121,41 @@ export default function ColaboradoresPage() {
     setLinksResultado((r) =>
       r ? { ...r, colaboradores: r.colaboradores.filter((c) => c.id !== item.id) } : r
     );
+    setSelecionados((s) => { const n = new Set(s); n.delete(item.id); return n; });
+  }
+
+  function toggleSelecionado(id: number) {
+    setSelecionados((s) => {
+      const n = new Set(s);
+      if (n.has(id)) n.delete(id); else n.add(id);
+      return n;
+    });
+  }
+
+  function toggleSelecionarTodos() {
+    if (!linksResultado) return;
+    setSelecionados((s) =>
+      s.size === linksResultado.colaboradores.length
+        ? new Set()
+        : new Set(linksResultado.colaboradores.map((c) => c.id))
+    );
+  }
+
+  async function revogarSelecionados() {
+    if (selecionados.size === 0) return;
+    if (!confirm(`Revogar o link de ${selecionados.size} colaborador${selecionados.size !== 1 ? "es" : ""} selecionado${selecionados.size !== 1 ? "s" : ""}? Quem tiver esses links perderá o acesso imediatamente.`)) return;
+    setRevogandoSelecionados(true);
+    try {
+      await Promise.all(
+        Array.from(selecionados).map((id) => fetch(`/api/colaboradores/${id}/token`, { method: "DELETE" }))
+      );
+      setLinksResultado((r) =>
+        r ? { ...r, colaboradores: r.colaboradores.filter((c) => !selecionados.has(c.id)) } : r
+      );
+      setSelecionados(new Set());
+    } finally {
+      setRevogandoSelecionados(false);
+    }
   }
 
   function exportarLinksCSV() {
@@ -316,17 +354,42 @@ export default function ColaboradoresPage() {
               <p className="text-gray-500 text-sm py-8 text-center">Gerando links para todos os colaboradores...</p>
             ) : linksResultado ? (
               <>
-                <div className="flex justify-end mb-2">
-                  <button onClick={exportarLinksCSV}
-                    className="text-xs px-3 py-2 rounded-lg bg-green-700 hover:bg-green-600 text-white font-medium transition">
-                    ↓ Exportar CSV
-                  </button>
+                <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
+                  <label className="flex items-center gap-2 text-xs text-gray-400 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={linksResultado.colaboradores.length > 0 && selecionados.size === linksResultado.colaboradores.length}
+                      onChange={toggleSelecionarTodos}
+                      className="w-4 h-4 accent-blue-500 cursor-pointer"
+                    />
+                    Selecionar todos
+                  </label>
+                  <div className="flex gap-2">
+                    {selecionados.size > 0 && (
+                      <button onClick={revogarSelecionados} disabled={revogandoSelecionados}
+                        className="text-xs px-3 py-2 rounded-lg bg-red-900/30 hover:bg-red-900/50 disabled:opacity-50 text-red-400 border border-red-800/60 font-medium transition">
+                        {revogandoSelecionados ? "Revogando..." : `Revogar selecionados (${selecionados.size})`}
+                      </button>
+                    )}
+                    <button onClick={exportarLinksCSV}
+                      className="text-xs px-3 py-2 rounded-lg bg-green-700 hover:bg-green-600 text-white font-medium transition">
+                      ↓ Exportar CSV
+                    </button>
+                  </div>
                 </div>
                 <div className="flex-1 overflow-y-auto rounded-lg border border-gray-800">
                   <table className="w-full text-sm">
                     <tbody>
                       {linksResultado.colaboradores.map((c) => (
                         <tr key={c.id} className="border-b border-gray-800 last:border-0">
+                          <td className="px-3 py-2 w-8">
+                            <input
+                              type="checkbox"
+                              checked={selecionados.has(c.id)}
+                              onChange={() => toggleSelecionado(c.id)}
+                              className="w-4 h-4 accent-blue-500 cursor-pointer"
+                            />
+                          </td>
                           <td className="px-3 py-2 text-gray-300 whitespace-nowrap">{c.nome}</td>
                           <td className="px-3 py-2 w-full">
                             <input readOnly value={`${window.location.origin}/meus-chamados/${c.token}`}

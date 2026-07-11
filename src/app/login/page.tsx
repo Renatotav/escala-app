@@ -47,7 +47,7 @@ export default function LoginPage() {
       <div className="relative z-10 w-full max-w-lg">
         <div className="mb-10 text-center">
           <h1 className="text-4xl font-bold text-white tracking-tight drop-shadow">
-            Gestão de Escalas
+            Gestão da Coordenadoria de Atendimento do PJe
           </h1>
           <p className="mt-2 text-base text-gray-300">Acesso restrito</p>
         </div>

@@ -5,7 +5,7 @@ import "./globals.css";
 const geist = Geist({ subsets: ["latin"], variable: "--font-geist" });
 
 export const metadata: Metadata = {
-  title: "Gestão de Escalas",
+  title: "Gestão da Coordenadoria de Atendimento do PJe",
   description: "Sistema de gestão de escalas, banco de horas e elegibilidade híbrida",
 };
 

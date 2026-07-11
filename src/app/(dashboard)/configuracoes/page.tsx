@@ -63,20 +63,69 @@ export default function ConfiguracoesPage() {
   const [senhaStatus, setSenhaStatus] = useState<{ ok: boolean; msg: string } | null>(null);
   const [salvandoSenha, setSalvandoSenha] = useState(false);
 
+  const [restoreArquivo, setRestoreArquivo] = useState<File | null>(null);
+  const [restoreSenha, setRestoreSenha] = useState("");
+  const [restoreConfirmacao, setRestoreConfirmacao] = useState("");
+  const [restaurando, setRestaurando] = useState(false);
+  const [restoreStatus, setRestoreStatus] = useState<{ ok: boolean; msg: string } | null>(null);
+
+  async function baixarBackupBlob(): Promise<Blob> {
+    const res = await fetch("/api/backup");
+    if (!res.ok) throw new Error("Erro ao gerar backup");
+    return res.blob();
+  }
+
+  function disparaDownload(blob: Blob, nomeArquivo: string) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = nomeArquivo;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   async function downloadBackup() {
     setDownloading(true);
     try {
-      const res = await fetch("/api/backup");
-      if (!res.ok) throw new Error("Erro ao gerar backup");
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `backup_${new Date().toISOString().slice(0, 10)}.sql`;
-      a.click();
-      URL.revokeObjectURL(url);
+      const blob = await baixarBackupBlob();
+      disparaDownload(blob, `backup_${new Date().toISOString().slice(0, 10)}.sql`);
     } finally {
       setDownloading(false);
+    }
+  }
+
+  async function handleRestaurar(e: { preventDefault(): void }) {
+    e.preventDefault();
+    if (!restoreArquivo) return;
+    if (restoreConfirmacao !== "RESTAURAR") {
+      setRestoreStatus({ ok: false, msg: 'Digite "RESTAURAR" para confirmar.' });
+      return;
+    }
+    if (!confirm("Isso vai APAGAR todos os dados atuais e substituir pelo conteúdo do arquivo. Um backup de segurança dos dados atuais será baixado antes. Continuar?")) return;
+
+    setRestaurando(true);
+    setRestoreStatus(null);
+    try {
+      // Backup de segurança dos dados atuais antes de qualquer coisa
+      const seguranca = await baixarBackupBlob();
+      disparaDownload(seguranca, `backup-seguranca-antes-restaurar_${new Date().toISOString().slice(0, 10)}.sql`);
+
+      const body = new FormData();
+      body.set("senha", restoreSenha);
+      body.set("confirmacao", restoreConfirmacao);
+      body.set("arquivo", restoreArquivo);
+      const res = await fetch("/api/restore", { method: "POST", body });
+      const data = await res.json();
+      if (res.ok) {
+        setRestoreStatus({ ok: true, msg: "Restauração concluída! Recarregando..." });
+        setTimeout(() => window.location.reload(), 1500);
+      } else {
+        setRestoreStatus({ ok: false, msg: data.error ?? "Erro ao restaurar" });
+      }
+    } catch {
+      setRestoreStatus({ ok: false, msg: "Erro ao restaurar" });
+    } finally {
+      setRestaurando(false);
     }
   }
 
@@ -280,6 +329,47 @@ export default function ConfiguracoesPage() {
             className="shrink-0 bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
             {downloading ? "Gerando..." : "Download Backup"}
           </button>
+        </div>
+      </section>
+
+      {/* Restaurar backup */}
+      <section>
+        <h3 className="text-sm font-medium text-gray-300 mb-3">Restaurar backup</h3>
+        <div className="bg-gray-900 rounded-xl border border-gray-800 p-4">
+          <p className="text-xs text-amber-500/90 mb-4">
+            ⚠️ Isso <strong>apaga todos os dados atuais</strong> e substitui pelo conteúdo do arquivo .sql enviado. Não tem como desfazer.
+            Antes de restaurar, o sistema baixa automaticamente um backup de segurança do estado atual para o seu computador.
+          </p>
+          <form onSubmit={handleRestaurar} className="space-y-3">
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Arquivo de backup (.sql)</label>
+              <input type="file" accept=".sql" required
+                onChange={e => setRestoreArquivo(e.target.files?.[0] ?? null)}
+                className="w-full text-sm text-gray-300 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-gray-800 file:text-gray-300 file:text-sm hover:file:bg-gray-700 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Senha de admin</label>
+              <input type="password" value={restoreSenha} onChange={e => setRestoreSenha(e.target.value)} required
+                className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500" />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">
+                Digite <strong className="text-red-400">RESTAURAR</strong> para confirmar
+              </label>
+              <input value={restoreConfirmacao} onChange={e => setRestoreConfirmacao(e.target.value)} required
+                placeholder="RESTAURAR"
+                className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500" />
+            </div>
+            {restoreStatus && (
+              <p className={`text-xs px-3 py-2 rounded-lg ${restoreStatus.ok ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"}`}>
+                {restoreStatus.msg}
+              </p>
+            )}
+            <button type="submit" disabled={restaurando || !restoreArquivo || restoreConfirmacao !== "RESTAURAR"}
+              className="bg-red-600 hover:bg-red-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium px-4 py-2 rounded-lg transition">
+              {restaurando ? "Restaurando..." : "Restaurar backup"}
+            </button>
+          </form>
         </div>
       </section>
     </div>

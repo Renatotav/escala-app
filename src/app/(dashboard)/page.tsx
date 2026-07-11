@@ -1,7 +1,6 @@
 export const dynamic = "force-dynamic";
 
 import { prisma } from "@/lib/prisma";
-import { calcularSinal } from "@/lib/eligibility";
 import PlantaoRecentesCard from "@/app/(dashboard)/components/PlantaoRecentesCard";
 
 function fmt(iso: string) {
@@ -22,8 +21,6 @@ function fmtRelativo(iso: string) {
 }
 
 export default async function DashboardPage() {
-  const hoje = new Date();
-
   // Compute dates using Brazil time (UTC-3) so server UTC doesn't shift the day
   const brazilNow = new Date(Date.now() - 3 * 60 * 60 * 1000);
   const [by, bm, bd] = brazilNow.toISOString().slice(0, 10).split("-").map(Number);
@@ -33,7 +30,7 @@ export default async function DashboardPage() {
   const [colaboradores, plantoesPendentes, plantoesRecentes, compromissosProximos] = await Promise.all([
     prisma.colaborador.findMany({
       where: { ativo: true },
-      include: { equipe: true, escalas: { where: { semana: { lte: hoje } }, orderBy: { semana: "desc" }, take: 10 }, plantoes: true },
+      include: { plantoes: true },
     }),
     prisma.plantao.findMany({
       where: { OR: [{ folga1: { gte: hojeUTC, lte: em14dias } }, { folga2: { gte: hojeUTC, lte: em14dias } }] },
@@ -52,20 +49,8 @@ export default async function DashboardPage() {
     }),
   ]);
 
-  let verdes = 0, amarelos = 0, folgasPendentes = 0;
+  let folgasPendentes = 0;
   for (const c of colaboradores) {
-    let semanasPresencial = 0;
-    for (const e of c.escalas) {
-      if (e.tipo === "REMOTO") break;
-      semanasPresencial++;
-    }
-    const ultimaFoiRemoto = c.escalas[0]?.tipo === "REMOTO";
-    const sinal = ultimaFoiRemoto
-      ? ("VERDE" as const)
-      : calcularSinal(semanasPresencial, c.equipe.thresholdAmarelo, c.equipe.thresholdVerde);
-    if (sinal === "VERDE") verdes++;
-    else if (sinal === "AMARELO") amarelos++;
-
     const ps = c.plantoes ?? [];
     const creditos = ps.reduce((acc, p) => acc + (p.tipo === "SABADO" || p.tipo === "PONTO_FACULTATIVO" ? 1 : 2), 0);
     const agendadas = ps.reduce((acc, p) => acc + (p.folga1 ? 1 : 0) + (p.folga2 ? 1 : 0), 0);
@@ -89,10 +74,13 @@ export default async function DashboardPage() {
 
   const tipoLabel: Record<string, string> = { SABADO: "Sábado", DOMINGO: "Domingo", FERIADO: "Feriado", PONTO_FACULTATIVO: "Pto. Facultativo" };
 
+  const deFolgaHoje = proximasEntries.filter(e => e.data === hojeStr).length;
+  const compromissosHoje = compromissosProximos.filter(c => c.data.toISOString().slice(0, 10) === hojeStr).length;
+
   const cards = [
     { label: "Colaboradores ativos", value: colaboradores.length, color: "text-white", icon: "👥" },
-    { label: "Elegíveis para remoto", value: verdes, color: "text-green-400", icon: "🟢" },
-    { label: "Quase elegíveis", value: amarelos, color: "text-yellow-400", icon: "🟡" },
+    { label: "De folga hoje", value: deFolgaHoje, color: "text-blue-400", icon: "🌴" },
+    { label: "Compromissos hoje", value: compromissosHoje, color: "text-purple-400", icon: "🗓" },
     { label: "Folgas a agendar", value: folgasPendentes, color: folgasPendentes > 0 ? "text-orange-400" : "text-gray-500", icon: "⏳" },
   ];
 

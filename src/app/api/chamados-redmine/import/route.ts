@@ -110,7 +110,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ ok: true, count: rows.length });
   } catch (err) {
-    console.error("Import error:", err);
-    return NextResponse.json({ error: "Erro ao processar arquivo" }, { status: 500 });
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("Import error:", msg);
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

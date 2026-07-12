@@ -246,6 +246,7 @@ export default function ChamadosPage() {
 
   const [clearing, setClearing] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [csvExporting, setCsvExporting] = useState<string | null>(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -292,6 +293,40 @@ export default function ChamadosPage() {
     setEquipe("");
     setUrgentes(false);
     setPage(1);
+  }
+
+  async function exportUserCSV(nome: string) {
+    setCsvExporting(nome);
+    try {
+      const params = new URLSearchParams({ usuario: nome, export: "1" });
+      const res = await fetch(`/api/chamados?${params}`);
+      const data = await res.json() as { chamados: Array<{ referencia: string; dataRegistro: string | null; nomeDpsAtribuido: string | null; nomeUsuarioAtribuido: string | null; ultimaAcao: string | null }> };
+      const atrasados = data.chamados.filter((c) => {
+        const sla = getSLADias(c.nomeDpsAtribuido);
+        const dias = diasDesde(c.dataRegistro);
+        return sla !== null && dias !== null && dias >= sla;
+      });
+      if (atrasados.length === 0) {
+        alert("Nenhum chamado com SLA excedido para este operador.");
+        return;
+      }
+      const rows = [["Referência", "Data/Hora", "DPS Atribuído", "Dias em aberto", "SLA (dias)", "Excedeu por (dias)"]];
+      for (const c of atrasados) {
+        const dias = diasDesde(c.dataRegistro) ?? 0;
+        const sla = getSLADias(c.nomeDpsAtribuido) ?? 0;
+        rows.push([c.referencia, fmtDateTime(c.dataRegistro), c.nomeDpsAtribuido ?? "", String(dias), String(sla), String(dias - sla)]);
+      }
+      const csv = rows.map((r) => r.map((v) => `"${v.replace(/"/g, '""')}"`).join(";")).join("\n");
+      const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `atrasados_${nome.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setCsvExporting(null);
+    }
   }
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -821,6 +856,13 @@ export default function ChamadosPage() {
                                   <div className="flex-1 h-1.5 bg-gray-800 rounded-full overflow-hidden min-w-[40px] max-w-[80px]">
                                     <div className={`h-full rounded-full ${sobrecarregado ? "bg-red-500/60" : "bg-blue-600/60"}`} style={{ width: `${pct}%` }} />
                                   </div>
+                                  <button
+                                    onClick={() => exportUserCSV(u.nome)}
+                                    disabled={csvExporting === u.nome}
+                                    title="Exportar chamados com SLA excedido"
+                                    className="shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded bg-orange-500/15 text-orange-400 border border-orange-500/25 hover:bg-orange-500/25 transition disabled:opacity-50">
+                                    {csvExporting === u.nome ? "..." : "↓ CSV"}
+                                  </button>
                                 </div>
                               </td>
                               <td className="px-4 py-2.5 text-right w-24">

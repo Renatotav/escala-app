@@ -106,6 +106,7 @@ export async function GET(request: NextRequest) {
   }
 
   const page = Math.max(1, Number(searchParams.get("page") ?? "1"));
+  const exportAll = searchParams.get("export") === "1";
   const usuario = searchParams.get("usuario") || null;
   const ultimaAcao = searchParams.get("ultimaAcao") || null;
   const apenasUrgentes = searchParams.get("urgentes") === "1";
@@ -154,6 +155,22 @@ export async function GET(request: NextRequest) {
     } else {
       where.nomeUsuarioAtribuido = "__NO_MATCH__";
     }
+  }
+
+  // Export mode: return all chamados for the user without pagination
+  if (exportAll) {
+    const chamados = await prisma.chamado.findMany({
+      where,
+      orderBy: { dataRegistro: "asc" },
+      select: {
+        referencia: true,
+        dataRegistro: true,
+        nomeDpsAtribuido: true,
+        nomeUsuarioAtribuido: true,
+        ultimaAcao: true,
+      },
+    });
+    return NextResponse.json({ chamados });
   }
 
   const [total, chamados, range, usuariosRaw, acoesRaw] = await Promise.all([

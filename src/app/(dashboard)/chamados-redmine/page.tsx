@@ -94,7 +94,8 @@ export default function ChamadosRedminePage() {
     load();
   }
 
-  const validos = chamados.filter(c => /^S?\d+$/i.test(c.numero?.trim() ?? ""));
+  // Exclui linhas de metadados do Power BI: número não pode ter espaços
+  const validos = chamados.filter(c => /^\S+$/.test(c.numero?.trim() ?? "") && !c.numero?.includes(" "));
   const totalAtraso = validos.filter(c => diasDesde(c.dataAbertura) >= 50).length;
   const totalAtencao = validos.filter(c => { const d = diasDesde(c.dataAbertura); return d >= 30 && d < 50; }).length;
   const filtrados = filtroAtraso

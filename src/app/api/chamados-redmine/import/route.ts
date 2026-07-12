@@ -78,8 +78,8 @@ export async function POST(request: NextRequest) {
         obj[field] = cols[j] ?? null;
       }
       const numero = String(obj.numero ?? "").trim();
-      // Ignora linhas de metadados do Power BI: número deve ser só dígitos ou S+dígitos, máx 15 chars
-      if (!numero || numero.length > 15 || !/^S?\d+$/i.test(numero)) continue;
+      // Ignora linhas de metadados do Power BI: número não pode ter espaços
+      if (!numero || numero.includes(" ")) continue;
       rows.push({
         numero,
         dataAbertura: toIso(obj.dataAbertura),

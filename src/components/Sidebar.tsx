@@ -14,6 +14,7 @@ const navItems = [
   { href: "/triagem", label: "Triagem", icon: "📋" },
   { href: "/banco-horas", label: "Banco de Horas", icon: "⏱" },
   { href: "/chamados", label: "Chamados", icon: "🎫" },
+  { href: "/chamados-redmine", label: "Chamados Redmine", icon: "🔴" },
   { href: "/plantoes", label: "Plantões & Folgas", icon: "🔔" },
   { href: "/configuracoes", label: "Configurações", icon: "⚙" },
 ];

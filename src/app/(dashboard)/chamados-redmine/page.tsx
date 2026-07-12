@@ -50,9 +50,8 @@ export default function ChamadosRedminePage() {
   const [importModal, setImportModal] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [importResult, setImportResult] = useState<{ count?: number; error?: string } | null>(null);
-  const [filtroEquipe, setFiltroEquipe] = useState("Todas");
-  const [filtroSituacao, setFiltroSituacao] = useState("Todas");
   const [filtroAtraso, setFiltroAtraso] = useState(false);
+  const [filtroAtencao, setFiltroAtencao] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   function load() {
@@ -95,18 +94,13 @@ export default function ChamadosRedminePage() {
     load();
   }
 
-  const equipes = ["Todas", ...Array.from(new Set(chamados.map(c => c.equipeAtribuida ?? "").filter(Boolean))).sort()];
-  const situacoes = ["Todas", ...Array.from(new Set(chamados.map(c => c.situacaoRegra ?? "").filter(Boolean))).sort()];
-
-  const filtrados = chamados.filter(c => {
-    const dias = diasDesde(c.dataAbertura);
-    if (filtroEquipe !== "Todas" && c.equipeAtribuida !== filtroEquipe) return false;
-    if (filtroSituacao !== "Todas" && c.situacaoRegra !== filtroSituacao) return false;
-    if (filtroAtraso && dias < 50) return false;
-    return true;
-  });
-
   const totalAtraso = chamados.filter(c => diasDesde(c.dataAbertura) >= 50).length;
+  const totalAtencao = chamados.filter(c => { const d = diasDesde(c.dataAbertura); return d >= 30 && d < 50; }).length;
+  const filtrados = filtroAtraso
+    ? chamados.filter(c => diasDesde(c.dataAbertura) >= 50)
+    : filtroAtencao
+      ? chamados.filter(c => { const d = diasDesde(c.dataAbertura); return d >= 30 && d < 50; })
+      : chamados;
 
   const datas = chamados.map(c => c.dataAbertura).filter(Boolean) as string[];
   const periodoMin = datas.length ? fmtDateTime(datas.reduce((a, b) => a < b ? a : b)) : "—";
@@ -140,45 +134,47 @@ export default function ChamadosRedminePage() {
             <p className="text-xs text-gray-400 mb-1">Total de chamados</p>
             <p className="text-3xl font-bold text-white">{chamados.length.toLocaleString("pt-BR")}</p>
           </div>
-          <div className={`rounded-xl p-4 border ${totalAtraso > 0 ? "bg-red-950 border-red-700" : "bg-gray-900 border-gray-800"}`}>
+
+          {/* Card ≥50 dias — filtro clicável */}
+          <button
+            onClick={() => { setFiltroAtraso(f => !f); setFiltroAtencao(false); }}
+            className={`rounded-xl p-4 border text-left transition ${
+              filtroAtraso
+                ? "bg-red-800 border-red-500 ring-2 ring-red-400"
+                : totalAtraso > 0
+                  ? "bg-red-950 border-red-700 hover:bg-red-900"
+                  : "bg-gray-900 border-gray-800 hover:bg-gray-800"
+            }`}
+          >
             <p className="text-xs text-gray-400 mb-1">Em atraso (≥50 dias)</p>
             <p className={`text-3xl font-bold ${totalAtraso > 0 ? "text-red-400" : "text-white"}`}>{totalAtraso}</p>
-            {totalAtraso > 0 && <p className="text-xs text-red-500 mt-1">⚠ Atenção requerida</p>}
-          </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
-            <p className="text-xs text-gray-400 mb-1">Equipes atribuídas</p>
-            <p className="text-3xl font-bold text-white">{equipes.length - 1}</p>
-          </div>
+            <p className="text-xs text-red-400 mt-1">
+              {filtroAtraso ? "✓ Filtro ativo — clique para remover" : "⚠ Clique para filtrar"}
+            </p>
+          </button>
+
+          {/* Card ≥30 dias — filtro clicável */}
+          <button
+            onClick={() => { setFiltroAtencao(f => !f); setFiltroAtraso(false); }}
+            className={`rounded-xl p-4 border text-left transition ${
+              filtroAtencao
+                ? "bg-yellow-700 border-yellow-400 ring-2 ring-yellow-300"
+                : totalAtencao > 0
+                  ? "bg-yellow-950/40 border-yellow-700 hover:bg-yellow-900/30"
+                  : "bg-gray-900 border-gray-800 hover:bg-gray-800"
+            }`}
+          >
+            <p className="text-xs text-gray-400 mb-1">Em atenção (≥30 dias)</p>
+            <p className={`text-3xl font-bold ${totalAtencao > 0 ? "text-yellow-400" : "text-white"}`}>{totalAtencao}</p>
+            <p className="text-xs text-yellow-500 mt-1">
+              {filtroAtencao ? "✓ Filtro ativo — clique para remover" : "Clique para filtrar"}
+            </p>
+          </button>
+
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
             <p className="text-xs text-gray-400 mb-1">Período dos dados</p>
             <p className="text-xs font-medium text-gray-300 mt-2">{periodoMin.slice(0, 8)} → {periodoMax.slice(0, 8)}</p>
           </div>
-        </div>
-      )}
-
-      {/* Filtros */}
-      {chamados.length > 0 && (
-        <div className="flex flex-wrap gap-3 mb-4 items-center">
-          <select value={filtroEquipe} onChange={e => setFiltroEquipe(e.target.value)}
-            className="bg-gray-800 border border-gray-700 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500">
-            {equipes.map(e => <option key={e} value={e}>{e === "Todas" ? "Todas as equipes" : e}</option>)}
-          </select>
-          <select value={filtroSituacao} onChange={e => setFiltroSituacao(e.target.value)}
-            className="bg-gray-800 border border-gray-700 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500">
-            {situacoes.map(s => <option key={s} value={s}>{s === "Todas" ? "Todas as situações" : s}</option>)}
-          </select>
-          <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer select-none">
-            <input type="checkbox" checked={filtroAtraso} onChange={e => setFiltroAtraso(e.target.checked)}
-              className="accent-red-500 w-4 h-4" />
-            Somente em atraso (≥50d)
-          </label>
-          {(filtroEquipe !== "Todas" || filtroSituacao !== "Todas" || filtroAtraso) && (
-            <button onClick={() => { setFiltroEquipe("Todas"); setFiltroSituacao("Todas"); setFiltroAtraso(false); }}
-              className="text-xs text-gray-400 hover:text-white underline">
-              Limpar filtros
-            </button>
-          )}
-          <span className="text-xs text-gray-500 ml-auto">{filtrados.length} de {chamados.length} chamados</span>
         </div>
       )}
 
@@ -207,7 +203,7 @@ export default function ChamadosRedminePage() {
             )}
             {!loading && filtrados.length === 0 && (
               <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-500">
-                {chamados.length === 0 ? "Nenhum chamado importado" : "Nenhum resultado para os filtros selecionados"}
+                {chamados.length === 0 ? "Nenhum chamado importado" : "Nenhum chamado em atraso"}
               </td></tr>
             )}
             {filtrados.map(c => {

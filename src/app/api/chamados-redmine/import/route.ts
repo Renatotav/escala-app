@@ -78,7 +78,8 @@ export async function POST(request: NextRequest) {
         obj[field] = cols[j] ?? null;
       }
       const numero = String(obj.numero ?? "").trim();
-      if (!numero) continue;
+      // Ignora linhas de metadados do Power BI (número deve ser dígitos ou S+dígitos)
+      if (!numero || !/^S?\d+$/.test(numero)) continue;
       rows.push({
         numero,
         dataAbertura: toIso(obj.dataAbertura),

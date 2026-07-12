@@ -110,14 +110,14 @@ async function migrate() {
   )\`);
 
   // ChamadoRedmine table
-  await client.query(\`CREATE TABLE IF NOT EXISTS "ChamadoRedmine" (
-    "id" SERIAL PRIMARY KEY,
-    "numero" TEXT NOT NULL,
-    "dataAbertura" TIMESTAMP(3),
-    "equipeAtribuida" TEXT,
-    "dataMovimentacao" TIMESTAMP(3),
-    "situacaoRegra" TEXT,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+  await client.query(\`CREATE TABLE IF NOT EXISTS \"ChamadoRedmine\" (
+    \"id\" SERIAL PRIMARY KEY,
+    \"numero\" TEXT NOT NULL,
+    \"dataAbertura\" TIMESTAMP(3),
+    \"equipeAtribuida\" TEXT,
+    \"dataMovimentacao\" TIMESTAMP(3),
+    \"situacaoRegra\" TEXT,
+    \"createdAt\" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
   )\`);
 
   // DeclaracaoMedica table

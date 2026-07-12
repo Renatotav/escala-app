@@ -17,7 +17,7 @@ function diasDesde(dataAbertura: string | null): number {
 }
 
 function DiasBadge({ dias }: { dias: number }) {
-  if (dias > 50) {
+  if (dias >= 50) {
     return (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-600 text-white text-xs font-bold animate-pulse">
         ⚠ {dias}d
@@ -106,11 +106,11 @@ export default function ChamadosRedminePage() {
     const dias = diasDesde(c.dataAbertura);
     if (filtroEquipe !== "Todas" && c.equipeAtribuida !== filtroEquipe) return false;
     if (filtroSituacao !== "Todas" && c.situacaoRegra !== filtroSituacao) return false;
-    if (filtroAtraso && dias <= 50) return false;
+    if (filtroAtraso && dias < 50) return false;
     return true;
   });
 
-  const totalAtraso = chamados.filter(c => diasDesde(c.dataAbertura) > 50).length;
+  const totalAtraso = chamados.filter(c => diasDesde(c.dataAbertura) >= 50).length;
 
   const datas = chamados.map(c => c.dataAbertura).filter(Boolean) as string[];
   const periodoMin = datas.length ? fmtDateTime(datas.reduce((a, b) => a < b ? a : b)) : "—";
@@ -145,7 +145,7 @@ export default function ChamadosRedminePage() {
             <p className="text-3xl font-bold text-white">{chamados.length.toLocaleString("pt-BR")}</p>
           </div>
           <div className={`rounded-xl p-4 border ${totalAtraso > 0 ? "bg-red-950 border-red-700" : "bg-gray-900 border-gray-800"}`}>
-            <p className="text-xs text-gray-400 mb-1">Em atraso (&gt;50 dias)</p>
+            <p className="text-xs text-gray-400 mb-1">Em atraso (≥50 dias)</p>
             <p className={`text-3xl font-bold ${totalAtraso > 0 ? "text-red-400" : "text-white"}`}>{totalAtraso}</p>
             {totalAtraso > 0 && <p className="text-xs text-red-500 mt-1">⚠ Atenção requerida</p>}
           </div>
@@ -174,7 +174,7 @@ export default function ChamadosRedminePage() {
           <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer select-none">
             <input type="checkbox" checked={filtroAtraso} onChange={e => setFiltroAtraso(e.target.checked)}
               className="accent-red-500 w-4 h-4" />
-            Somente em atraso (&gt;50d)
+            Somente em atraso (≥50d)
           </label>
           {(filtroEquipe !== "Todas" || filtroSituacao !== "Todas" || filtroAtraso) && (
             <button onClick={() => { setFiltroEquipe("Todas"); setFiltroSituacao("Todas"); setFiltroAtraso(false); }}
@@ -216,7 +216,7 @@ export default function ChamadosRedminePage() {
             )}
             {filtrados.map(c => {
               const dias = diasDesde(c.dataAbertura);
-              const atrasado = dias > 50;
+              const atrasado = dias >= 50;
               return (
                 <tr key={c.id}
                   className={`border-b border-gray-800 last:border-0 transition ${atrasado ? "bg-red-950/30 hover:bg-red-950/50 border-l-2 border-l-red-600" : "hover:bg-gray-800/50"}`}>

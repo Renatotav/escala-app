@@ -24,18 +24,14 @@ function DiasBadge({ dias }: { dias: number }) {
       </span>
     );
   }
-  if (dias > 20) {
+  if (dias >= 30) {
     return (
       <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-yellow-500 text-black text-xs font-bold">
         {dias}d
       </span>
     );
   }
-  return (
-    <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-green-600 text-white text-xs font-bold">
-      {dias}d
-    </span>
-  );
+  return null;
 }
 
 function fmtDateTime(iso: string | null) {

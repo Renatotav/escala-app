@@ -11,93 +11,6 @@ type ChamadoRedmine = {
   situacaoRegra: string | null;
 };
 
-// ─── Parser (mesmo mecanismo dos Chamados PJe) ───────────────────────────────
-
-function parseCsvFull(text: string, delim: string): string[][] {
-  const rows: string[][] = [];
-  let row: string[] = [];
-  let cur = "";
-  let inQ = false;
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    if (ch === '"') {
-      if (inQ && text[i + 1] === '"') { cur += '"'; i++; }
-      else inQ = !inQ;
-    } else if (ch === delim && !inQ) {
-      row.push(cur.trim()); cur = "";
-    } else if (ch === '\r' && text[i + 1] === '\n' && !inQ) {
-      i++; row.push(cur.trim()); rows.push(row); row = []; cur = "";
-    } else if ((ch === '\n' || ch === '\r') && !inQ) {
-      row.push(cur.trim()); rows.push(row); row = []; cur = "";
-    } else {
-      cur += ch;
-    }
-  }
-  if (row.length > 0 || cur.trim()) {
-    row.push(cur.trim());
-    if (row.some(c => c !== "")) rows.push(row);
-  }
-  return rows;
-}
-
-function normalize(s: string) {
-  return s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9 /]/g, "").trim();
-}
-
-// Formato Redmine: M/D/YYYY H:MM:SS AM/PM  ou  M/D/YYYY H:MM AM/PM
-function parseDateRedmine(raw: string): string | null {
-  if (!raw?.trim()) return null;
-  const d = new Date(raw.trim());
-  return isNaN(d.getTime()) ? null : d.toISOString();
-}
-
-const HEADER_MAP_REDMINE: Record<string, string> = {
-  "numero do chamado":   "numero",
-  "data/hora da abertura": "dataAbertura",
-  "equipe atribuida":    "equipeAtribuida",
-  "data/hora da movimentacao": "dataMovimentacao",
-  "situacao regra":      "situacaoRegra",
-};
-
-type RedmineParsed = {
-  numero: string;
-  dataAbertura: string | null;
-  equipeAtribuida: string | null;
-  dataMovimentacao: string | null;
-  situacaoRegra: string | null;
-};
-
-function parseRedmine(text: string): RedmineParsed[] {
-  const clean = text.replace(/^﻿/, ""); // remove BOM
-  if (!clean.trim()) return [];
-  const firstNl = clean.indexOf("\n");
-  const firstLine = (firstNl >= 0 ? clean.slice(0, firstNl) : clean).replace(/\r$/, "");
-  const delim = firstLine.includes("\t") ? "\t" : firstLine.includes(";") ? ";" : ",";
-  const rows = parseCsvFull(clean, delim);
-  if (rows.length < 2) return [];
-
-  const headers = rows[0].map(h => HEADER_MAP_REDMINE[normalize(h)] ?? null);
-
-  const result: RedmineParsed[] = [];
-  for (let i = 1; i < rows.length; i++) {
-    const cols = rows[i];
-    if (cols.every(c => !c)) continue;
-    const obj: Partial<RedmineParsed> = {};
-    for (let j = 0; j < headers.length; j++) {
-      const field = headers[j];
-      if (!field) continue;
-      const raw = cols[j]?.replace(/^"|"$/g, "").trim() ?? "";
-      if (field === "dataAbertura" || field === "dataMovimentacao") {
-        (obj as Record<string, string | null>)[field] = parseDateRedmine(raw);
-      } else {
-        (obj as Record<string, string | null>)[field] = raw || null;
-      }
-    }
-    if (obj.numero?.trim()) result.push(obj as RedmineParsed);
-  }
-  return result;
-}
-
 function diasDesde(dataAbertura: string | null): number {
   if (!dataAbertura) return 0;
   return Math.floor((Date.now() - new Date(dataAbertura).getTime()) / 86400000);
@@ -128,7 +41,10 @@ function DiasBadge({ dias }: { dias: number }) {
 function fmtDateTime(iso: string | null) {
   if (!iso) return "—";
   const d = new Date(iso);
-  return d.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  return d.toLocaleString("pt-BR", {
+    day: "2-digit", month: "2-digit", year: "numeric",
+    hour: "2-digit", minute: "2-digit",
+  });
 }
 
 export default function ChamadosRedminePage() {
@@ -136,9 +52,8 @@ export default function ChamadosRedminePage() {
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
   const [importModal, setImportModal] = useState(false);
-  const [fileNames, setFileNames] = useState<string[]>([]);
-  const [parsed, setParsed] = useState<RedmineParsed[]>([]);
-  const [importError, setImportError] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [importResult, setImportResult] = useState<{ count?: number; error?: string } | null>(null);
   const [filtroEquipe, setFiltroEquipe] = useState("Todas");
   const [filtroSituacao, setFiltroSituacao] = useState("Todas");
   const [filtroAtraso, setFiltroAtraso] = useState(false);
@@ -154,42 +69,28 @@ export default function ChamadosRedminePage() {
   useEffect(() => { load(); }, []);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files ?? []);
-    if (files.length === 0) return;
-    setFileNames(files.map(f => f.name));
-    setImportError("");
-    setParsed([]);
-    let completed = 0;
-    const all: RedmineParsed[] = [];
-    for (const file of files) {
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        const text = ev.target?.result as string;
-        all.push(...parseRedmine(text));
-        completed++;
-        if (completed === files.length) {
-          if (all.length === 0) setImportError("Nenhum chamado encontrado no arquivo.");
-          else setParsed(all);
-        }
-      };
-      reader.readAsText(file, "UTF-8");
-    }
+    const file = e.target.files?.[0] ?? null;
+    setSelectedFile(file);
+    setImportResult(null);
   }
 
   async function handleImport() {
-    if (parsed.length === 0) return;
+    if (!selectedFile) return;
     setImporting(true);
-    await fetch("/api/chamados-redmine", { method: "DELETE" });
-    await fetch("/api/chamados-redmine", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(parsed),
-    });
+    setImportResult(null);
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+    const res = await fetch("/api/chamados-redmine/import", { method: "POST", body: formData });
+    const data = await res.json();
+    if (res.ok) {
+      setImportResult({ count: data.count });
+      setImportModal(false);
+      setSelectedFile(null);
+      load();
+    } else {
+      setImportResult({ error: data.error ?? "Erro ao importar" });
+    }
     setImporting(false);
-    setImportModal(false);
-    setParsed([]);
-    setFileNames([]);
-    load();
   }
 
   async function handleLimpar() {
@@ -198,7 +99,6 @@ export default function ChamadosRedminePage() {
     load();
   }
 
-  // Derived data
   const equipes = ["Todas", ...Array.from(new Set(chamados.map(c => c.equipeAtribuida ?? "").filter(Boolean))).sort()];
   const situacoes = ["Todas", ...Array.from(new Set(chamados.map(c => c.situacaoRegra ?? "").filter(Boolean))).sort()];
 
@@ -218,7 +118,6 @@ export default function ChamadosRedminePage() {
 
   return (
     <div>
-      {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
         <div>
           <h2 className="text-xl font-semibold text-white">Chamados Redmine</h2>
@@ -231,7 +130,7 @@ export default function ChamadosRedminePage() {
               Limpar dados
             </button>
           )}
-          <button onClick={() => { setImportModal(true); setParsed([]); setFileNames([]); setImportError(""); }}
+          <button onClick={() => { setImportModal(true); setSelectedFile(null); setImportResult(null); }}
             className="bg-red-700 hover:bg-red-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
             Importar chamados
           </button>
@@ -256,7 +155,7 @@ export default function ChamadosRedminePage() {
           </div>
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
             <p className="text-xs text-gray-400 mb-1">Período dos dados</p>
-            <p className="text-sm font-medium text-gray-300 mt-1">{periodoMin.slice(0, 8)} → {periodoMax.slice(0, 8)}</p>
+            <p className="text-xs font-medium text-gray-300 mt-2">{periodoMin.slice(0, 8)} → {periodoMax.slice(0, 8)}</p>
           </div>
         </div>
       )}
@@ -266,11 +165,11 @@ export default function ChamadosRedminePage() {
         <div className="flex flex-wrap gap-3 mb-4 items-center">
           <select value={filtroEquipe} onChange={e => setFiltroEquipe(e.target.value)}
             className="bg-gray-800 border border-gray-700 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500">
-            {equipes.map(e => <option key={e}>{e === "Todas" ? "Todas as equipes" : e}</option>)}
+            {equipes.map(e => <option key={e} value={e}>{e === "Todas" ? "Todas as equipes" : e}</option>)}
           </select>
           <select value={filtroSituacao} onChange={e => setFiltroSituacao(e.target.value)}
             className="bg-gray-800 border border-gray-700 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500">
-            {situacoes.map(s => <option key={s}>{s === "Todas" ? "Todas as situações" : s}</option>)}
+            {situacoes.map(s => <option key={s} value={s}>{s === "Todas" ? "Todas as situações" : s}</option>)}
           </select>
           <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer select-none">
             <input type="checkbox" checked={filtroAtraso} onChange={e => setFiltroAtraso(e.target.checked)}
@@ -320,17 +219,13 @@ export default function ChamadosRedminePage() {
                       <DiasBadge dias={dias} />
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-gray-300 text-xs font-mono whitespace-nowrap">
-                    {fmtDateTime(c.dataAbertura)}
-                  </td>
+                  <td className="px-4 py-3 text-gray-300 text-xs font-mono whitespace-nowrap">{fmtDateTime(c.dataAbertura)}</td>
                   <td className="px-4 py-3">
                     <span className="text-xs px-2 py-0.5 rounded bg-gray-700 text-gray-300 whitespace-nowrap">
                       {c.equipeAtribuida ?? "—"}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-gray-300 text-xs font-mono whitespace-nowrap">
-                    {fmtDateTime(c.dataMovimentacao)}
-                  </td>
+                  <td className="px-4 py-3 text-gray-300 text-xs font-mono whitespace-nowrap">{fmtDateTime(c.dataMovimentacao)}</td>
                   <td className="px-4 py-3">
                     {c.situacaoRegra ? (
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
@@ -354,31 +249,26 @@ export default function ChamadosRedminePage() {
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4">
           <div className="bg-gray-900 border border-gray-800 rounded-xl w-full max-w-md p-6">
             <h3 className="text-base font-semibold text-white mb-1">Importar Chamados Redmine</h3>
-            <p className="text-xs text-gray-400 mb-4">Selecione o arquivo TSV exportado do Redmine. Os dados anteriores serão substituídos.</p>
+            <p className="text-xs text-gray-400 mb-4">Selecione o arquivo exportado do Power BI (.ods ou .xlsx). Os dados anteriores serão substituídos.</p>
             <div className="border-2 border-dashed border-gray-700 hover:border-red-600 rounded-lg p-6 text-center cursor-pointer transition"
               onClick={() => fileRef.current?.click()}>
               <p className="text-gray-400 text-sm">
-                {fileNames.length > 0
-                  ? fileNames.join(", ")
-                  : "Clique para selecionar o arquivo (.txt / .tsv / .csv)"}
+                {selectedFile ? selectedFile.name : "Clique para selecionar o arquivo (.ods / .xlsx)"}
               </p>
-              {parsed.length > 0 && (
-                <p className="text-green-400 text-xs mt-2">{parsed.length} chamados encontrados</p>
-              )}
-              {importError && (
-                <p className="text-red-400 text-xs mt-2">{importError}</p>
+              {importResult?.error && (
+                <p className="text-red-400 text-xs mt-2">{importResult.error}</p>
               )}
             </div>
-            <input ref={fileRef} type="file" accept=".txt,.tsv,.csv" multiple className="hidden"
+            <input ref={fileRef} type="file" accept=".ods,.xlsx,.xls" className="hidden"
               onChange={handleFileChange} />
             <div className="flex gap-2 mt-4">
-              <button onClick={() => { setImportModal(false); setParsed([]); setFileNames([]); }}
+              <button onClick={() => { setImportModal(false); setSelectedFile(null); setImportResult(null); }}
                 className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-lg py-2 transition">
                 Cancelar
               </button>
-              <button onClick={handleImport} disabled={parsed.length === 0 || importing}
+              <button onClick={handleImport} disabled={!selectedFile || importing}
                 className="flex-1 bg-red-700 hover:bg-red-600 disabled:opacity-50 text-white text-sm font-medium rounded-lg py-2 transition">
-                {importing ? "Importando..." : `Importar ${parsed.length > 0 ? `(${parsed.length})` : ""}`}
+                {importing ? "Importando..." : "Importar"}
               </button>
             </div>
           </div>

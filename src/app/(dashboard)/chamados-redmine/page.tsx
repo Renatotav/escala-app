@@ -108,6 +108,26 @@ export default function ChamadosRedminePage() {
   const periodoMin = datas.length ? fmtDateTime(datas.reduce((a, b) => a < b ? a : b)) : "—";
   const periodoMax = datas.length ? fmtDateTime(datas.reduce((a, b) => a > b ? a : b)) : "—";
 
+  function exportCSV() {
+    const rows = [["Referência", "Dias em aberto", "Abertura", "Equipe Atribuída", "Movimentação", "Situação"]];
+    for (const c of filtrados) {
+      rows.push([
+        c.numero,
+        String(diasDesde(c.dataAbertura)),
+        fmtDateTime(c.dataAbertura),
+        c.equipeAtribuida ?? "",
+        fmtDateTime(c.dataMovimentacao),
+        c.situacaoRegra ?? "",
+      ]);
+    }
+    const csv = rows.map(r => r.map(v => `"${v.replace(/"/g, '""')}"`).join(";")).join("\n");
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "chamados_redmine.csv"; a.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div>
       <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
@@ -115,7 +135,13 @@ export default function ChamadosRedminePage() {
           <h2 className="text-xl font-semibold text-white">Chamados Redmine</h2>
           <p className="text-sm text-gray-400 mt-0.5">Listagem de chamados por equipe</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          {validos.length > 0 && (
+            <button onClick={exportCSV}
+              className="bg-green-700 hover:bg-green-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
+              Exportar CSV
+            </button>
+          )}
           {chamados.length > 0 && (
             <button onClick={handleLimpar}
               className="bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm font-medium px-4 py-2 rounded-lg transition">
@@ -184,15 +210,17 @@ export default function ChamadosRedminePage() {
       <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto">
         <table className="w-full text-sm table-fixed">
           <colgroup>
-            <col className="w-44" />
+            <col className="w-36" />
+            <col className="w-24" />
             <col className="w-40" />
-            <col className="w-56" />
+            <col className="w-52" />
             <col className="w-40" />
             <col className="w-28" />
           </colgroup>
           <thead>
             <tr className="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wide">
               <th className="text-left px-4 py-3">Referência</th>
+              <th className="text-center px-4 py-3">Dias</th>
               <th className="text-left px-4 py-3">Abertura</th>
               <th className="text-left px-4 py-3">Equipe Atribuída</th>
               <th className="text-left px-4 py-3">Movimentação</th>
@@ -215,10 +243,10 @@ export default function ChamadosRedminePage() {
                 <tr key={c.id}
                   className={`border-b border-gray-800 last:border-0 transition ${atrasado ? "bg-red-950/30 hover:bg-red-950/50 border-l-2 border-l-red-600" : "hover:bg-gray-800/50"}`}>
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <span className="text-white font-mono font-medium">{c.numero}</span>
-                      <DiasBadge dias={dias} />
-                    </div>
+                    <span className="text-white font-mono font-medium">{c.numero}</span>
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <DiasBadge dias={dias} />
                   </td>
                   <td className="px-4 py-3 text-gray-300 text-xs font-mono whitespace-nowrap">{fmtDateTime(c.dataAbertura)}</td>
                   <td className="px-4 py-3">

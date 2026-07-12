@@ -713,8 +713,8 @@ export default function ChamadosPage() {
                         <div className="flex items-center gap-1.5 flex-nowrap">
                           <span className="font-mono text-xs text-gray-200">{c.referencia}</span>
                           {urg.badge && (
-                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30 leading-none">
-                              URGENTE
+                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30 leading-none animate-pulse">
+                              ⚠ URGENTE
                             </span>
                           )}
                           {atrasado && dias !== null && (

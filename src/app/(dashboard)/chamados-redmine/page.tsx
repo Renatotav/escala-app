@@ -94,15 +94,16 @@ export default function ChamadosRedminePage() {
     load();
   }
 
-  const totalAtraso = chamados.filter(c => diasDesde(c.dataAbertura) >= 50).length;
-  const totalAtencao = chamados.filter(c => { const d = diasDesde(c.dataAbertura); return d >= 30 && d < 50; }).length;
+  const validos = chamados.filter(c => /^S?\d+$/i.test(c.numero?.trim() ?? ""));
+  const totalAtraso = validos.filter(c => diasDesde(c.dataAbertura) >= 50).length;
+  const totalAtencao = validos.filter(c => { const d = diasDesde(c.dataAbertura); return d >= 30 && d < 50; }).length;
   const filtrados = filtroAtraso
-    ? chamados.filter(c => diasDesde(c.dataAbertura) >= 50)
+    ? validos.filter(c => diasDesde(c.dataAbertura) >= 50)
     : filtroAtencao
-      ? chamados.filter(c => { const d = diasDesde(c.dataAbertura); return d >= 30 && d < 50; })
-      : chamados;
+      ? validos.filter(c => { const d = diasDesde(c.dataAbertura); return d >= 30 && d < 50; })
+      : validos;
 
-  const datas = chamados.map(c => c.dataAbertura).filter(Boolean) as string[];
+  const datas = validos.map(c => c.dataAbertura).filter(Boolean) as string[];
   const periodoMin = datas.length ? fmtDateTime(datas.reduce((a, b) => a < b ? a : b)) : "—";
   const periodoMax = datas.length ? fmtDateTime(datas.reduce((a, b) => a > b ? a : b)) : "—";
 
@@ -132,7 +133,7 @@ export default function ChamadosRedminePage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
             <p className="text-xs text-gray-400 mb-1">Total de chamados</p>
-            <p className="text-3xl font-bold text-white">{chamados.length.toLocaleString("pt-BR")}</p>
+            <p className="text-3xl font-bold text-white">{validos.length.toLocaleString("pt-BR")}</p>
           </div>
 
           {/* Card ≥50 dias — filtro clicável */}

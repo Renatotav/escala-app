@@ -109,22 +109,17 @@ export default function ChamadosRedminePage() {
   const periodoMax = datas.length ? fmtDateTime(datas.reduce((a, b) => a > b ? a : b)) : "—";
 
   function exportCSV() {
-    const rows = [["Referência", "Dias em aberto", "Abertura", "Equipe Atribuída", "Movimentação", "Situação"]];
-    for (const c of filtrados) {
-      rows.push([
-        c.numero,
-        String(diasDesde(c.dataAbertura)),
-        fmtDateTime(c.dataAbertura),
-        c.equipeAtribuida ?? "",
-        fmtDateTime(c.dataMovimentacao),
-        c.situacaoRegra ?? "",
-      ]);
-    }
-    const csv = rows.map(r => r.map(v => `"${v.replace(/"/g, '""')}"`).join(";")).join("\n");
-    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+    function esc(s: string) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+    const dataRows = filtrados.map(c => {
+      const dias = diasDesde(c.dataAbertura);
+      const url = `https://cati.tjce.jus.br/assystnet/#events/${c.numero}?eventType=1&currentIndex=0`;
+      return `<tr><td><a href="${esc(url)}">${esc(c.numero)}</a></td><td>${dias ?? ""}</td><td>${esc(fmtDateTime(c.dataAbertura))}</td><td>${esc(c.equipeAtribuida ?? "")}</td><td>${esc(fmtDateTime(c.dataMovimentacao))}</td><td>${esc(c.situacaoRegra ?? "")}</td></tr>`;
+    }).join("");
+    const html = `<html><head><meta charset="UTF-8"><style>table{border-collapse:collapse}th,td{border:1px solid #ccc;padding:4px 8px;font-size:12px}th{background:#f0f0f0}a{color:#1155cc}</style></head><body><table><tr><th>Referência</th><th>Dias em aberto</th><th>Abertura</th><th>Equipe Atribuída</th><th>Movimentação</th><th>Situação</th></tr>${dataRows}</table></body></html>`;
+    const blob = new Blob([html], { type: "application/vnd.ms-excel;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url; a.download = "chamados_redmine.csv"; a.click();
+    a.href = url; a.download = "chamados_redmine.xls"; a.click();
     URL.revokeObjectURL(url);
   }
 

@@ -210,8 +210,7 @@ export default function ChamadosRedminePage() {
       <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto">
         <table className="w-full text-sm table-fixed">
           <colgroup>
-            <col className="w-36" />
-            <col className="w-24" />
+            <col className="w-48" />
             <col className="w-40" />
             <col className="w-52" />
             <col className="w-40" />
@@ -220,7 +219,6 @@ export default function ChamadosRedminePage() {
           <thead>
             <tr className="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wide">
               <th className="text-left px-4 py-3">Referência</th>
-              <th className="text-center px-4 py-3">Dias</th>
               <th className="text-left px-4 py-3">Abertura</th>
               <th className="text-left px-4 py-3">Equipe Atribuída</th>
               <th className="text-left px-4 py-3">Movimentação</th>
@@ -243,10 +241,10 @@ export default function ChamadosRedminePage() {
                 <tr key={c.id}
                   className={`border-b border-gray-800 last:border-0 transition ${atrasado ? "bg-red-950/30 hover:bg-red-950/50 border-l-2 border-l-red-600" : "hover:bg-gray-800/50"}`}>
                   <td className="px-4 py-3">
-                    <span className="text-white font-mono font-medium">{c.numero}</span>
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <DiasBadge dias={dias} />
+                    <div className="flex items-center gap-2">
+                      <span className="text-white font-mono font-medium">{c.numero}</span>
+                      <DiasBadge dias={dias} />
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-gray-300 text-xs font-mono whitespace-nowrap">{fmtDateTime(c.dataAbertura)}</td>
                   <td className="px-4 py-3">

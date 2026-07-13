@@ -134,7 +134,7 @@ export default function ChamadosRedminePage() {
           {validos.length > 0 && (
             <button onClick={exportCSV}
               className="bg-green-700 hover:bg-green-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
-              Exportar CSV
+              ↓ Exportar XLS
             </button>
           )}
           {chamados.length > 0 && (

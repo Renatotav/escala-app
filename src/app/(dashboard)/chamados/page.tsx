@@ -864,7 +864,7 @@ export default function ChamadosPage() {
                                   <button
                                     onClick={() => exportUserCSV(u.nome)}
                                     disabled={csvExporting === u.nome}
-                                    title="Exportar chamados com SLA excedido"
+                                    title="Exportar chamados com dias em atraso"
                                     className="shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded bg-orange-500/15 text-orange-400 border border-orange-500/25 hover:bg-orange-500/25 transition disabled:opacity-50">
                                     {csvExporting === u.nome ? "..." : "↓ CSV"}
                                   </button>

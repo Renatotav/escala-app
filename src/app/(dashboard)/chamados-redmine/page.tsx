@@ -242,7 +242,13 @@ export default function ChamadosRedminePage() {
                   className={`border-b border-gray-800 last:border-0 transition ${atrasado ? "bg-red-950/30 hover:bg-red-950/50 border-l-2 border-l-red-600" : "hover:bg-gray-800/50"}`}>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <span className="text-white font-mono font-medium">{c.numero}</span>
+                      <a
+                        href={`https://cati.tjce.jus.br/assystnet/#events/${c.numero}?eventType=1&currentIndex=0`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-400 hover:text-blue-300 font-mono font-medium hover:underline transition">
+                        {c.numero}
+                      </a>
                       <DiasBadge dias={dias} />
                     </div>
                   </td>

@@ -711,7 +711,13 @@ export default function ChamadosPage() {
                       className={`border-b border-gray-800/60 last:border-0 hover:bg-gray-800/40 transition ${urg.rowClass} ${rowExtra}`}>
                       <td className="px-4 py-2.5">
                         <div className="flex items-center gap-1.5 flex-nowrap">
-                          <span className="font-mono text-xs text-gray-200">{c.referencia}</span>
+                          <a
+                            href={`https://cati.tjce.jus.br/assystnet/#events/${c.referencia}?eventType=1&currentIndex=0`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-mono text-xs text-blue-400 hover:text-blue-300 hover:underline transition">
+                            {c.referencia}
+                          </a>
                           {atrasado && dias !== null && (
                             <span
                               title="Chamado atrasado"

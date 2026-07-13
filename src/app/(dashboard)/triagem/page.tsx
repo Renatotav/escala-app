@@ -135,7 +135,7 @@ export default function TriagemPage() {
   const [saving, setSaving] = useState(false);
 
   // Modal registrar retorno (com hora)
-  const [retornoModal, setRetornoModal] = useState<{ id: number; nome: string } | null>(null);
+  const [retornoModal, setRetornoModal] = useState<{ id: number; nome: string; colaboradorId: number } | null>(null);
   const [retornoForm, setRetornoForm] = useState({ dataFim: "", horaFim: "" });
   const [savingRetorno, setSavingRetorno] = useState(false);
 
@@ -207,14 +207,20 @@ export default function TriagemPage() {
         dataFim: form.dataFim || null,
       }),
     });
+    await fetch("/api/colaboradores", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: modal.colaboradorId, grupoListagem: "ESPECIFICA" }),
+    });
+    setColaboradores(prev => prev.map(c => c.id === modal.colaboradorId ? { ...c, grupoListagem: "ESPECIFICA" } : c));
     setSaving(false);
     setModal(null);
     setForm({ motivo: "DECLARACAO", dataInicio: "", horaInicio: "", dataFim: "", observacao: "" });
     load();
   }
 
-  function abrirRetorno(id: number, nome: string) {
-    setRetornoModal({ id, nome });
+  function abrirRetorno(id: number, nome: string, colaboradorId: number) {
+    setRetornoModal({ id, nome, colaboradorId });
     setRetornoForm({ dataFim: localDateStr(), horaFim: horaAgora() });
     setPopup(null);
   }
@@ -228,6 +234,12 @@ export default function TriagemPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: retornoModal.id, dataFim: retornoForm.dataFim, horaFim: retornoForm.horaFim }),
     });
+    await fetch("/api/colaboradores", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: retornoModal.colaboradorId, grupoListagem: "FORA" }),
+    });
+    setColaboradores(prev => prev.map(c => c.id === retornoModal.colaboradorId ? { ...c, grupoListagem: "FORA" } : c));
     setSavingRetorno(false);
     setRetornoModal(null);
     load();
@@ -612,7 +624,7 @@ export default function TriagemPage() {
                             className="text-xs text-blue-400 hover:text-blue-300 px-2 py-1 rounded transition">
                             ✎ Editar
                           </button>
-                          <button onClick={() => abrirRetorno(reg.id, c.nome)}
+                          <button onClick={() => abrirRetorno(reg.id, c.nome, c.id)}
                             className="text-xs bg-green-700 hover:bg-green-600 text-white px-2 py-1 rounded transition">
                             Retornou
                           </button>
@@ -661,7 +673,7 @@ export default function TriagemPage() {
 
             <div className="flex gap-2 mb-5">
               {popupAtivo ? (
-                <button onClick={() => abrirRetorno(popupAtivo.id, popup.nome)}
+                <button onClick={() => abrirRetorno(popupAtivo.id, popup.nome, popup.id)}
                   className="flex-1 bg-green-700 hover:bg-green-600 text-white text-sm font-medium py-2 rounded-lg transition">
                   ✓ Registrar retorno
                 </button>

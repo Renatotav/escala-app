@@ -756,9 +756,13 @@ export default function ChamadosPage() {
                         )}
                       </td>
                       <td className="px-4 py-2.5">
-                        <span className={`text-xs ${urg.acaoClass}`}>
-                          {c.ultimaAcao ?? "—"}
-                        </span>
+                        {urg.badge ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30 animate-pulse whitespace-nowrap">
+                            ⚠ Solicitação de Urgência
+                          </span>
+                        ) : (
+                          <span className="text-xs text-gray-400">{c.ultimaAcao ?? "—"}</span>
+                        )}
                       </td>
                     </tr>
                   );

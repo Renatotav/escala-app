@@ -247,6 +247,7 @@ export default function ChamadosPage() {
   const [clearing, setClearing] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
   const [csvExporting, setCsvExporting] = useState<string | null>(null);
+  const [listaExporting, setListaExporting] = useState(false);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -326,6 +327,33 @@ export default function ChamadosPage() {
       URL.revokeObjectURL(url);
     } finally {
       setCsvExporting(null);
+    }
+  }
+
+  async function exportListaXLS() {
+    setListaExporting(true);
+    try {
+      const params = new URLSearchParams({ export: "1" });
+      if (usuario) params.set("usuario", usuario);
+      if (equipe) params.set("equipe", equipe);
+      if (urgentes) params.set("urgentes", "1");
+      const res = await fetch(`/api/chamados?${params}`);
+      const data = await res.json() as { chamados: Array<{ referencia: string; dataRegistro: string | null; nomeDpsAtribuido: string | null; nomeUsuarioAtribuido: string | null; ultimaAcao: string | null }> };
+      function esc(s: string) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+      const dataRows = data.chamados.map(c => {
+        const url = `https://cati.tjce.jus.br/assystnet/#events/${c.referencia}?eventType=1&currentIndex=0`;
+        return `<tr><td><a href="${esc(url)}">${esc(c.referencia)}</a></td><td>${esc(fmtDateTime(c.dataRegistro))}</td><td>${esc(c.nomeDpsAtribuido ?? "")}</td><td>${esc(c.nomeUsuarioAtribuido ?? "Triagem")}</td><td>${esc(c.ultimaAcao ?? "")}</td></tr>`;
+      }).join("");
+      const html = `<html><head><meta charset="UTF-8"><style>table{border-collapse:collapse}th,td{border:1px solid #ccc;padding:4px 8px;font-size:12px}th{background:#f0f0f0}a{color:#1155cc}</style></head><body><table><tr><th>Referência</th><th>Data/Hora</th><th>DPS Atribuído</th><th>Usuário Atribuído</th><th>Última Ação</th></tr>${dataRows}</table></body></html>`;
+      const blob = new Blob([html], { type: "application/vnd.ms-excel;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `chamados${usuario ? "_" + usuario.replace(/[^a-z0-9]/gi, "_").toLowerCase() : ""}.xls`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setListaExporting(false);
     }
   }
 
@@ -575,6 +603,14 @@ export default function ChamadosPage() {
                 </button>
               )}
             </>
+          )}
+          {view === "lista" && dados && dados.total > 0 && (
+            <button
+              onClick={exportListaXLS}
+              disabled={listaExporting}
+              className="text-xs px-3 py-2 rounded-lg bg-green-700 hover:bg-green-600 disabled:opacity-50 text-white border border-green-700 transition">
+              {listaExporting ? "Exportando..." : "↓ Exportar XLS"}
+            </button>
           )}
           {dados && dados.total > 0 && (
             <button

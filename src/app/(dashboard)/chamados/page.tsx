@@ -310,23 +310,18 @@ export default function ChamadosPage() {
         alert("Nenhum chamado com SLA excedido para este operador.");
         return;
       }
-      const header = `"Referência";"Data/Hora";"DPS Atribuído";"Dias em aberto"`;
-      const dataRows = atrasados.map((c) => {
+      function esc(s: string) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+      const rows = atrasados.map((c) => {
         const dias = diasDesde(c.dataRegistro) ?? 0;
         const url = `https://cati.tjce.jus.br/assystnet/#events/${c.referencia}?eventType=1&currentIndex=0`;
-        return [
-          `=HYPERLINK("${url}","${c.referencia}")`,
-          `"${fmtDateTime(c.dataRegistro)}"`,
-          `"${(c.nomeDpsAtribuido ?? "").replace(/"/g, '""')}"`,
-          `"${dias}"`,
-        ].join(";");
-      });
-      const csv = [header, ...dataRows].join("\n");
-      const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+        return `<tr><td><a href="${esc(url)}">${esc(c.referencia)}</a></td><td>${esc(fmtDateTime(c.dataRegistro))}</td><td>${esc(c.nomeDpsAtribuido ?? "")}</td><td>${dias}</td></tr>`;
+      }).join("");
+      const html = `<html><head><meta charset="UTF-8"><style>table{border-collapse:collapse}th,td{border:1px solid #ccc;padding:4px 8px;font-size:12px}th{background:#f0f0f0}a{color:#1155cc}</style></head><body><table><tr><th>Referência</th><th>Data/Hora</th><th>DPS Atribuído</th><th>Dias em aberto</th></tr>${rows}</table></body></html>`;
+      const blob = new Blob([html], { type: "application/vnd.ms-excel;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `atrasados_${nome.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.csv`;
+      a.download = `atrasados_${nome.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.xls`;
       a.click();
       URL.revokeObjectURL(url);
     } finally {

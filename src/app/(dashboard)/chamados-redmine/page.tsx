@@ -208,14 +208,7 @@ export default function ChamadosRedminePage() {
 
       {/* Tabela */}
       <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto">
-        <table className="w-full text-sm table-fixed">
-          <colgroup>
-            <col className="w-48" />
-            <col className="w-40" />
-            <col className="w-52" />
-            <col className="w-40" />
-            <col className="w-28" />
-          </colgroup>
+        <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wide">
               <th className="text-left px-4 py-3">Referência</th>

@@ -247,9 +247,7 @@ export default function EscalaPage() {
                                 <span className={`text-xs font-medium ${c.escalaSemana === "REMOTO" ? "text-blue-400" : "text-gray-300"}`}>
                                   {c.escalaSemana === "REMOTO" ? "Remoto" : "Presencial"}
                                 </span>
-                              ) : (
-                                <span className="text-xs text-gray-600">Não lançado</span>
-                              )}
+                              ) : null}
                             </td>
                             <td className="px-4 py-3">
                               <div className="flex items-center justify-center gap-2">

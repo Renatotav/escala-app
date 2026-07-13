@@ -714,7 +714,7 @@ export default function ChamadosPage() {
                           <span className="font-mono text-xs text-gray-200">{c.referencia}</span>
                           {atrasado && dias !== null && (
                             <span
-                              title="SLA excedido"
+                              title="Chamado atrasado"
                               className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400 border border-orange-500/30 leading-none cursor-help animate-pulse">
                               ⚠ {dias}d
                             </span>

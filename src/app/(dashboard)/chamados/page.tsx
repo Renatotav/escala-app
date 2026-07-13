@@ -342,9 +342,10 @@ export default function ChamadosPage() {
       function esc(s: string) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
       const dataRows = data.chamados.map(c => {
         const url = `https://cati.tjce.jus.br/assystnet/#events/${c.referencia}?eventType=1&currentIndex=0`;
-        return `<tr><td><a href="${esc(url)}">${esc(c.referencia)}</a></td><td>${esc(fmtDateTime(c.dataRegistro))}</td><td>${esc(c.nomeDpsAtribuido ?? "")}</td><td>${esc(c.nomeUsuarioAtribuido ?? "Triagem")}</td><td>${esc(c.ultimaAcao ?? "")}</td></tr>`;
+        const dias = diasDesde(c.dataRegistro) ?? "";
+        return `<tr><td><a href="${esc(url)}">${esc(c.referencia)}</a></td><td>${esc(fmtDateTime(c.dataRegistro))}</td><td>${dias}</td><td>${esc(c.nomeDpsAtribuido ?? "")}</td><td>${esc(c.nomeUsuarioAtribuido ?? "Triagem")}</td><td>${esc(c.ultimaAcao ?? "")}</td></tr>`;
       }).join("");
-      const html = `<html><head><meta charset="UTF-8"><style>table{border-collapse:collapse}th,td{border:1px solid #ccc;padding:4px 8px;font-size:12px}th{background:#f0f0f0}a{color:#1155cc}</style></head><body><table><tr><th>Referência</th><th>Data/Hora</th><th>DPS Atribuído</th><th>Usuário Atribuído</th><th>Última Ação</th></tr>${dataRows}</table></body></html>`;
+      const html = `<html><head><meta charset="UTF-8"><style>table{border-collapse:collapse}th,td{border:1px solid #ccc;padding:4px 8px;font-size:12px}th{background:#f0f0f0}a{color:#1155cc}</style></head><body><table><tr><th>Referência</th><th>Data/Hora</th><th>Dias em aberto</th><th>DPS Atribuído</th><th>Usuário Atribuído</th><th>Última Ação</th></tr>${dataRows}</table></body></html>`;
       const blob = new Blob([html], { type: "application/vnd.ms-excel;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");

@@ -241,9 +241,7 @@ export default function EscalaPage() {
                               )}
                             </td>
                             <td className="px-4 py-3">
-                              {c.semRemoto ? (
-                                <span className="text-xs font-medium text-gray-400">Presencial</span>
-                              ) : c.escalaSemana ? (
+                              {c.semRemoto ? null : c.escalaSemana ? (
                                 <span className={`text-xs font-medium ${c.escalaSemana === "REMOTO" ? "text-blue-400" : "text-gray-300"}`}>
                                   {c.escalaSemana === "REMOTO" ? "Remoto" : "Presencial"}
                                 </span>

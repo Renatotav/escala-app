@@ -310,13 +310,18 @@ export default function ChamadosPage() {
         alert("Nenhum chamado com SLA excedido para este operador.");
         return;
       }
-      const rows = [["Referência", "Data/Hora", "DPS Atribuído", "Dias em aberto", "SLA (dias)", "Excedeu por (dias)"]];
-      for (const c of atrasados) {
+      const header = `"Referência";"Data/Hora";"DPS Atribuído";"Dias em aberto"`;
+      const dataRows = atrasados.map((c) => {
         const dias = diasDesde(c.dataRegistro) ?? 0;
-        const sla = getSLADias(c.nomeDpsAtribuido) ?? 0;
-        rows.push([c.referencia, fmtDateTime(c.dataRegistro), c.nomeDpsAtribuido ?? "", String(dias), String(sla), String(dias - sla)]);
-      }
-      const csv = rows.map((r) => r.map((v) => `"${v.replace(/"/g, '""')}"`).join(";")).join("\n");
+        const url = `https://cati.tjce.jus.br/assystnet/#events/${c.referencia}?eventType=1&currentIndex=0`;
+        return [
+          `=HYPERLINK("${url}","${c.referencia}")`,
+          `"${fmtDateTime(c.dataRegistro)}"`,
+          `"${(c.nomeDpsAtribuido ?? "").replace(/"/g, '""')}"`,
+          `"${dias}"`,
+        ].join(";");
+      });
+      const csv = [header, ...dataRows].join("\n");
       const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");

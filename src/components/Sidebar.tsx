@@ -21,9 +21,9 @@ const navItems: NavItem[] = [
   { href: "/triagem", label: "Triagem", icon: "📋" },
   { href: "/banco-horas", label: "Banco de Horas", icon: "⏱" },
   { href: "/chamados", label: "Chamados", icon: "🎫" },
-  { href: "/chamados-redmine", label: "Chamados Redmine", dot: "bg-red-500" },
-  { href: "/redmine-resolvidos", label: "Redmine Resolvidos", dot: "bg-green-500" },
-  { href: "/redmine-atribuidos", label: "Redmine Atribuídos", dot: "bg-blue-500" },
+  { href: "/chamados-redmine", label: "Chamados Redmine", icon: "🔴" },
+  { href: "/redmine-resolvidos", label: "Redmine Resolvidos", icon: "🟢" },
+  { href: "/redmine-atribuidos", label: "Redmine Atribuídos", icon: "🔵" },
   { href: "/plantoes", label: "Plantões & Folgas", icon: "🔔" },
   { href: "/configuracoes", label: "Configurações", icon: "⚙" },
 ];

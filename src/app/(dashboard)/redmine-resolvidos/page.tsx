@@ -65,16 +65,6 @@ function TextoComLinks({
   );
 }
 
-function corSituacao(sit: string) {
-  const s = sit.toLowerCase();
-  if (s.includes("resolv") || s.includes("implant"))
-    return "bg-green-500/20 text-green-400 border border-green-500/30";
-  if (s.includes("cancelad"))
-    return "bg-gray-600/30 text-gray-400 border border-gray-500/30";
-  if (s.includes("fechad"))
-    return "bg-blue-500/20 text-blue-400 border border-blue-500/30";
-  return "bg-gray-600/30 text-gray-400 border border-gray-500/30";
-}
 
 function CelulaTexto({ label, texto, onClick, assystNums }: {
   label: string;
@@ -389,7 +379,7 @@ export default function RedmineResolvidosPage() {
                     <td className="px-4 py-3 text-xs text-gray-400">{r.tipo ?? "—"}</td>
                     <td className="px-4 py-3">
                       {r.situacao ? (
-                        <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${corSituacao(r.situacao)}`}>{r.situacao}</span>
+                        <span className="text-xs px-2 py-0.5 rounded-full whitespace-nowrap bg-green-500/20 text-green-400 border border-green-500/30">{r.situacao}</span>
                       ) : "—"}
                     </td>
                     <td className="px-4 py-3"><CelulaTexto label="Título" texto={r.titulo} onClick={setTextoModal} /></td>

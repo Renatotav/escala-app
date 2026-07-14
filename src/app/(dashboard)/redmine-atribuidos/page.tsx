@@ -86,6 +86,8 @@ export default function RedmineAtribuidosPage() {
   const [editValue, setEditValue] = useState("");
   const [saving, setSaving] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const topScrollRef = useRef<HTMLDivElement>(null);
+  const tableScrollRef = useRef<HTMLDivElement>(null);
 
   function load() {
     setLoading(true);
@@ -254,7 +256,18 @@ export default function RedmineAtribuidosPage() {
         </div>
       )}
 
-      <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto">
+      {!loading && registros.length > 0 && (
+        <div
+          ref={topScrollRef}
+          className="overflow-x-auto mb-1 rounded-t-xl"
+          onScroll={() => { if (tableScrollRef.current && topScrollRef.current) tableScrollRef.current.scrollLeft = topScrollRef.current.scrollLeft; }}>
+          <div style={{ minWidth: 1100, height: 1 }} />
+        </div>
+      )}
+      <div
+        ref={tableScrollRef}
+        className="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto"
+        onScroll={() => { if (topScrollRef.current && tableScrollRef.current) topScrollRef.current.scrollLeft = tableScrollRef.current.scrollLeft; }}>
         {loading ? (
           <p className="px-4 py-8 text-center text-gray-500 text-sm">Carregando...</p>
         ) : registros.length === 0 ? (

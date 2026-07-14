@@ -80,6 +80,7 @@ export default function RedmineAtribuidosPage() {
   const [importModal, setImportModal] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [importResult, setImportResult] = useState<{ count?: number; error?: string } | null>(null);
+  const [filtroPessoa, setFiltroPessoa] = useState("");
   const [textoModal, setTextoModal] = useState<{ titulo: string; corpo: string; resolvidoId?: number } | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [editValue, setEditValue] = useState("");
@@ -123,13 +124,23 @@ export default function RedmineAtribuidosPage() {
     load();
   }
 
+  const pessoas = [...new Set(registros.map(r => r.atribuidoPara).filter(Boolean) as string[])].sort();
+  const contagemPorPessoa = pessoas.map(p => ({
+    nome: p,
+    total: registros.filter(r => r.atribuidoPara === p).length,
+    emAtraso: registros.filter(r => r.atribuidoPara === p && (parseDias(r.criadoEm) ?? 0) >= 5).length,
+  }));
+  const registrosFiltrados = filtroPessoa
+    ? registros.filter(r => r.atribuidoPara === filtroPessoa)
+    : registros;
+
   function exportXLS() {
     setXlsExporting(true);
     try {
       function esc(s: string) {
         return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
       }
-      const rows = registros.map(r => {
+      const rows = registrosFiltrados.map(r => {
         const redmineCell = `<a href="${esc(redmineUrl(r.numeroRedmine))}">${esc(r.numeroRedmine)}</a>`;
         const nums = splitAssyst(r.numerosAssyst);
         const assystCell = nums.length === 0
@@ -208,6 +219,41 @@ export default function RedmineAtribuidosPage() {
         );
       })()}
 
+      {pessoas.length > 0 && (
+        <div className="mb-6">
+          <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Por responsável</p>
+          <div className="flex flex-wrap gap-3">
+            {contagemPorPessoa.map(p => (
+              <button
+                key={p.nome}
+                onClick={() => setFiltroPessoa(f => f === p.nome ? "" : p.nome)}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition text-left ${
+                  filtroPessoa === p.nome
+                    ? "bg-blue-600/20 border-blue-500/50"
+                    : "bg-gray-900 border-gray-800 hover:border-gray-600"
+                }`}>
+                <div>
+                  <p className="text-sm font-medium text-white">{p.nome}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    <span className="font-bold text-white tabular-nums">{p.total}</span> redmine{p.total !== 1 ? "s" : ""}
+                    {p.emAtraso > 0 && (
+                      <span className="ml-2 font-semibold text-red-400">· {p.emAtraso} em atraso</span>
+                    )}
+                  </p>
+                </div>
+              </button>
+            ))}
+            {filtroPessoa && (
+              <button
+                onClick={() => setFiltroPessoa("")}
+                className="text-xs px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white border border-gray-700 transition self-center">
+                Limpar filtro
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto">
         {loading ? (
           <p className="px-4 py-8 text-center text-gray-500 text-sm">Carregando...</p>
@@ -232,7 +278,7 @@ export default function RedmineAtribuidosPage() {
               </tr>
             </thead>
             <tbody>
-              {registros.map(r => {
+              {registrosFiltrados.map(r => {
                 const nums = splitAssyst(r.numerosAssyst);
                 return (
                   <tr key={r.id} className="border-b border-gray-800 last:border-0 hover:bg-gray-800/50 transition">

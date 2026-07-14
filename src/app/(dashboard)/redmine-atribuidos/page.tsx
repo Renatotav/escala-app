@@ -226,14 +226,14 @@ export default function RedmineAtribuidosPage() {
             </div>
             <button
               onClick={() => setFiltroAtraso(f => f === "atraso" ? null : "atraso")}
-              className={`rounded-xl p-4 border text-left transition cursor-pointer ${filtroAtraso === "atraso" ? "ring-2 ring-red-500" : ""} ${emAtraso > 0 ? "bg-red-950/30 border-red-700 hover:border-red-500" : "bg-gray-900 border-gray-800 hover:border-gray-600"}`}>
+              className={`rounded-xl p-4 border text-left transition cursor-pointer ${filtroAtraso === "atraso" ? "ring-2 ring-red-500 animate-pulse" : ""} ${emAtraso > 0 ? "bg-red-950/30 border-red-700 hover:border-red-500" : "bg-gray-900 border-gray-800 hover:border-gray-600"}`}>
               <p className="text-xs text-gray-400 mb-1">Em atraso (≥5 dias)</p>
               <p className={`text-3xl font-bold ${emAtraso > 0 ? "text-red-400" : "text-white"}`}>{emAtraso}</p>
               <p className="text-xs mt-1 text-gray-500">{filtroAtraso === "atraso" ? "✓ Filtro ativo — clique para remover" : "⚠ Clique para filtrar"}</p>
             </button>
             <button
               onClick={() => setFiltroAtraso(f => f === "atencao" ? null : "atencao")}
-              className={`rounded-xl p-4 border text-left transition cursor-pointer ${filtroAtraso === "atencao" ? "ring-2 ring-yellow-500" : ""} ${emAtencao > 0 ? "bg-yellow-950/30 border-yellow-700 hover:border-yellow-500" : "bg-gray-900 border-gray-800 hover:border-gray-600"}`}>
+              className={`rounded-xl p-4 border text-left transition cursor-pointer ${filtroAtraso === "atencao" ? "ring-2 ring-yellow-500 animate-pulse" : ""} ${emAtencao > 0 ? "bg-yellow-950/30 border-yellow-700 hover:border-yellow-500" : "bg-gray-900 border-gray-800 hover:border-gray-600"}`}>
               <p className="text-xs text-gray-400 mb-1">Em atenção (≥3 dias)</p>
               <p className={`text-3xl font-bold ${emAtencao > 0 ? "text-yellow-400" : "text-white"}`}>{emAtencao}</p>
               <p className="text-xs mt-1 text-gray-500">{filtroAtraso === "atencao" ? "✓ Filtro ativo — clique para remover" : "⚠ Clique para filtrar"}</p>
@@ -252,7 +252,7 @@ export default function RedmineAtribuidosPage() {
                 onClick={() => setFiltroPessoa(f => f === p.nome ? "" : p.nome)}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition text-left ${
                   filtroPessoa === p.nome
-                    ? "bg-blue-600/20 border-blue-500/50"
+                    ? "bg-blue-600/20 border-blue-500/50 animate-pulse"
                     : "bg-gray-900 border-gray-800 hover:border-gray-600"
                 }`}>
                 <div>

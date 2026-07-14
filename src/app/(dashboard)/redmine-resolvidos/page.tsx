@@ -272,13 +272,13 @@ export default function RedmineResolvidosPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wide">
-                <th className="text-left px-4 py-3">Nº Assyst</th>
-                <th className="text-left px-4 py-3">Redmine #</th>
-                <th className="text-left px-4 py-3">Tipo</th>
-                <th className="text-left px-4 py-3">Situação</th>
-                <th className="text-left px-4 py-3">Título</th>
-                <th className="text-left px-4 py-3">Descrição</th>
-                <th className="text-left px-4 py-3">Últimas notas</th>
+                <th className="text-left px-4 py-3 whitespace-nowrap">Nº Assyst</th>
+                <th className="text-left px-4 py-3 whitespace-nowrap">Redmine #</th>
+                <th className="text-left px-4 py-3 whitespace-nowrap">Tipo</th>
+                <th className="text-left px-4 py-3 whitespace-nowrap">Situação</th>
+                <th className="text-left px-4 py-3 whitespace-nowrap">Título</th>
+                <th className="text-left px-4 py-3 whitespace-nowrap">Descrição</th>
+                <th className="text-left px-4 py-3 whitespace-nowrap">Últimas notas</th>
               </tr>
             </thead>
             <tbody>
@@ -303,7 +303,7 @@ export default function RedmineResolvidosPage() {
                     <td className="px-4 py-3 text-xs text-gray-400">{r?.tipo ?? "—"}</td>
                     <td className="px-4 py-3">
                       {r?.situacao ? (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30">{r.situacao}</span>
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30 whitespace-nowrap">{r.situacao}</span>
                       ) : "—"}
                     </td>
                     <td className="px-4 py-3"><CelulaTexto label="Título" texto={r?.titulo} onClick={setTextoModal} /></td>
@@ -318,13 +318,13 @@ export default function RedmineResolvidosPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wide">
-                <th className="text-left px-4 py-3">Redmine #</th>
-                <th className="text-left px-4 py-3">Nº Assyst</th>
-                <th className="text-left px-4 py-3">Tipo</th>
-                <th className="text-left px-4 py-3">Situação</th>
-                <th className="text-left px-4 py-3">Título</th>
-                <th className="text-left px-4 py-3">Descrição</th>
-                <th className="text-left px-4 py-3">Últimas notas</th>
+                <th className="text-left px-4 py-3 whitespace-nowrap">Redmine #</th>
+                <th className="text-left px-4 py-3 whitespace-nowrap">Nº Assyst</th>
+                <th className="text-left px-4 py-3 whitespace-nowrap">Tipo</th>
+                <th className="text-left px-4 py-3 whitespace-nowrap">Situação</th>
+                <th className="text-left px-4 py-3 whitespace-nowrap">Título</th>
+                <th className="text-left px-4 py-3 whitespace-nowrap">Descrição</th>
+                <th className="text-left px-4 py-3 whitespace-nowrap">Últimas notas</th>
               </tr>
             </thead>
             <tbody>
@@ -353,7 +353,7 @@ export default function RedmineResolvidosPage() {
                     <td className="px-4 py-3 text-xs text-gray-400">{r.tipo ?? "—"}</td>
                     <td className="px-4 py-3">
                       {r.situacao ? (
-                        <span className="text-xs px-2 py-0.5 rounded bg-gray-700 text-gray-300">{r.situacao}</span>
+                        <span className="text-xs px-2 py-0.5 rounded bg-gray-700 text-gray-300 whitespace-nowrap">{r.situacao}</span>
                       ) : "—"}
                     </td>
                     <td className="px-4 py-3"><CelulaTexto label="Título" texto={r.titulo} onClick={setTextoModal} /></td>

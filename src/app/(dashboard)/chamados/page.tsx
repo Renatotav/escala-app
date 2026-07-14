@@ -758,7 +758,7 @@ export default function ChamadosPage() {
                           {atrasado && dias !== null && (
                             <span
                               title="Chamado atrasado"
-                              className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400 border border-orange-500/30 leading-none cursor-help animate-pulse">
+                              className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-600 text-white leading-none cursor-help animate-pulse">
                               ⚠ {dias}d
                             </span>
                           )}
@@ -794,7 +794,7 @@ export default function ChamadosPage() {
                       </td>
                       <td className="px-4 py-2.5">
                         {urg.badge ? (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30 animate-pulse whitespace-nowrap">
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-red-600 text-white animate-pulse whitespace-nowrap">
                             ⚠ Solicitação de Urgência
                           </span>
                         ) : (

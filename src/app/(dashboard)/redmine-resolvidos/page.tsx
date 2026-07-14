@@ -156,6 +156,12 @@ export default function RedmineResolvidosPage() {
     for (const p of splitAssyst(r.numerosAssyst)) resolvidoMap.set(p.toUpperCase(), r);
   }
 
+  // "Todos Resolvidos" só mostra os que têm ao menos um Assyst presente nos Chamados Redmine
+  const encontradosSet = new Set(comResolvido.map(n => n.toUpperCase()));
+  const resolvidosNaRedmine = resolvidos.filter(r =>
+    splitAssyst(r.numerosAssyst).some(n => encontradosSet.has(n.toUpperCase()))
+  );
+
   return (
     <div>
       <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
@@ -197,7 +203,7 @@ export default function RedmineResolvidosPage() {
           <button
             onClick={() => setAba("esquecidos")}
             className={`rounded-xl p-4 border text-left transition ${aba === "esquecidos" ? "bg-red-900/40 border-red-500 ring-2 ring-red-400" : semResolvido.length > 0 ? "bg-red-950/30 border-red-700 hover:bg-red-900/20" : "bg-gray-900 border-gray-800"}`}>
-            <p className="text-xs text-gray-400 mb-1">Esquecidos de devolver</p>
+            <p className="text-xs text-gray-400 mb-1">Não resolvidos</p>
             <p className={`text-3xl font-bold ${semResolvido.length > 0 ? "text-red-400" : "text-white"}`}>{semResolvido.length}</p>
             {semResolvido.length > 0 && <p className="text-xs text-red-400 mt-1">⚠ Clique para ver</p>}
           </button>
@@ -214,7 +220,7 @@ export default function RedmineResolvidosPage() {
       {/* Abas */}
       {dados && resolvidos.length > 0 && (
         <div className="flex gap-1 mb-4 bg-gray-900 border border-gray-800 rounded-lg p-1 w-fit">
-          {([["esquecidos", "⚠ Esquecidos"], ["encontrados", "✓ Encontrados"], ["resolvidos", "Todos Resolvidos"]] as const).map(([k, label]) => (
+          {([["esquecidos", "⚠ Não Resolvidos"], ["encontrados", "✓ Encontrados"], ["resolvidos", "Todos Resolvidos"]] as const).map(([k, label]) => (
             <button key={k} onClick={() => setAba(k)}
               className={`text-sm px-4 py-1.5 rounded-md transition ${aba === k ? "bg-gray-700 text-white font-medium" : "text-gray-500 hover:text-gray-300"}`}>
               {label}
@@ -243,7 +249,7 @@ export default function RedmineResolvidosPage() {
             </thead>
             <tbody>
               {semResolvido.length === 0 ? (
-                <tr><td colSpan={2} className="px-4 py-8 text-center text-green-400 text-sm">Todos os chamados foram encontrados nos Resolvidos!</td></tr>
+                <tr><td colSpan={2} className="px-4 py-8 text-center text-green-400 text-sm">Todos os chamados foram resolvidos!</td></tr>
               ) : semResolvido.map(num => (
                 <tr key={num} className="border-b border-gray-800 last:border-0 bg-red-950/20 hover:bg-red-950/30 transition border-l-2 border-l-red-600">
                   <td className="px-4 py-3">
@@ -254,7 +260,7 @@ export default function RedmineResolvidosPage() {
                   </td>
                   <td className="px-4 py-3">
                     <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30">
-                      ⚠ Não encontrado nos Resolvidos
+                      ⚠ Ainda não resolvido
                     </span>
                   </td>
                 </tr>
@@ -321,7 +327,7 @@ export default function RedmineResolvidosPage() {
               </tr>
             </thead>
             <tbody>
-              {resolvidos.map(r => {
+              {resolvidosNaRedmine.map(r => {
                 const nums = splitAssyst(r.numerosAssyst);
                 return (
                   <tr key={r.id} className="border-b border-gray-800 last:border-0 hover:bg-gray-800/50 transition">

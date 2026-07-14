@@ -341,7 +341,7 @@ export default function RedmineResolvidosPage() {
                     </a>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30">
+                    <span className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full bg-red-600 text-white animate-pulse">
                       ⚠ Ainda não resolvido
                     </span>
                   </td>

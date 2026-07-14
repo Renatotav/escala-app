@@ -82,10 +82,23 @@ export async function POST(request: NextRequest) {
   const iDesc = idx(["descricao", "descri", "description"]);
   const iNota = idx(["ultimasnota", "notas", "nota"]);
 
+  const expectedCols = rows[0].length; // número de colunas do header
+
   const registros = [];
   for (let i = 1; i < rows.length; i++) {
-    const r = rows[i];
+    let r = rows[i];
     if (r.every(c => !c)) continue;
+
+    // Se a linha tem mais colunas que o header, é porque a célula Assyst (col iAssyst)
+    // continha o delimitador sem aspas e foi dividida em vários campos.
+    // Remonta: mantém col 0 (Redmine#), junta as extras de volta no campo Assyst com ";",
+    // e preserva as últimas (expectedCols - iAssyst - 1) colunas na posição correta.
+    if (r.length > expectedCols && iAssyst >= 0) {
+      const extra = r.length - expectedCols;
+      const assystMerged = r.slice(iAssyst, iAssyst + extra + 1).join(";");
+      r = [...r.slice(0, iAssyst), assystMerged, ...r.slice(iAssyst + extra + 1)];
+    }
+
     const numeroRedmine = r[iId] ?? "";
     const numerosAssyst = r[iAssyst] ?? "";
     if (!numeroRedmine && !numerosAssyst) continue;

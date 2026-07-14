@@ -2,9 +2,16 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
-const navItems = [
+type NavItem = {
+  href: string;
+  label: string;
+  icon?: string;
+  dot?: string; // cor Tailwind do ponto CSS (ex: "bg-red-500")
+};
+
+const navItems: NavItem[] = [
   { href: "/", label: "Dashboard", icon: "⊞" },
   { href: "/colaboradores", label: "Colaboradores", icon: "👥" },
   { href: "/agenda", label: "Agenda", icon: "📅" },
@@ -14,13 +21,12 @@ const navItems = [
   { href: "/triagem", label: "Triagem", icon: "📋" },
   { href: "/banco-horas", label: "Banco de Horas", icon: "⏱" },
   { href: "/chamados", label: "Chamados", icon: "🎫" },
-  { href: "/chamados-redmine", label: "Chamados Redmine", icon: "🔴" },
-  { href: "/redmine-resolvidos", label: "Redmine Resolvidos", icon: "🟢" },
-  { href: "/redmine-atribuidos", label: "Redmine Atribuídos", icon: "🔵" },
+  { href: "/chamados-redmine", label: "Chamados Redmine", dot: "bg-red-500" },
+  { href: "/redmine-resolvidos", label: "Redmine Resolvidos", dot: "bg-green-500" },
+  { href: "/redmine-atribuidos", label: "Redmine Atribuídos", dot: "bg-blue-500" },
   { href: "/plantoes", label: "Plantões & Folgas", icon: "🔔" },
   { href: "/configuracoes", label: "Configurações", icon: "⚙" },
 ];
-
 
 function NavLinks({ onClose }: { onClose?: () => void }) {
   const pathname = usePathname();
@@ -48,7 +54,11 @@ function NavLinks({ onClose }: { onClose?: () => void }) {
                 active ? "bg-blue-600 text-white font-medium" : "text-gray-400 hover:text-white hover:bg-gray-800"
               }`}
             >
-              <span className="text-base leading-none">{item.icon}</span>
+              {item.dot ? (
+                <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${item.dot}`} />
+              ) : (
+                <span className="text-base leading-none w-4 text-center">{item.icon}</span>
+              )}
               {item.label}
             </Link>
           );
@@ -72,7 +82,6 @@ export function Sidebar() {
 
   return (
     <>
-      {/* Hamburger button — mobile only */}
       <button
         onClick={() => setOpen(true)}
         className="md:hidden fixed top-3 left-3 z-40 bg-gray-900 border border-gray-700 text-white p-2 rounded-lg leading-none"
@@ -81,12 +90,10 @@ export function Sidebar() {
         ☰
       </button>
 
-      {/* Mobile overlay */}
       {open && (
         <div className="md:hidden fixed inset-0 bg-black/60 z-40" onClick={() => setOpen(false)} />
       )}
 
-      {/* Mobile sidebar */}
       <aside className={`md:hidden fixed left-0 top-0 h-full w-60 bg-gray-900 border-r border-gray-800 flex flex-col z-50 transition-transform duration-200 ${open ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="flex items-center justify-between px-5 py-5 border-b border-gray-800">
           <div>
@@ -98,7 +105,6 @@ export function Sidebar() {
         <NavLinks onClose={() => setOpen(false)} />
       </aside>
 
-      {/* Desktop sidebar */}
       <aside className="hidden md:flex flex-col w-60 shrink-0 bg-gray-900 border-r border-gray-800 h-dvh sticky top-0">
         <div className="px-5 py-5 border-b border-gray-800">
           <h1 className="text-sm font-semibold text-white leading-tight">Gestão da Coordenadoria de Atendimento do PJe</h1>

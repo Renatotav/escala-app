@@ -22,15 +22,13 @@ function splitAssyst(raw: string): string[] {
 
 function parseDias(criadoEm: string | null): number | null {
   if (!criadoEm) return null;
-  // Suporta formatos: "10/08/2024, 12:51" ou "10/08/2024" ou ISO "2024-08-10"
-  const clean = criadoEm.trim().split(",")[0].trim();
-  let d: Date;
-  if (/^\d{2}\/\d{2}\/\d{4}$/.test(clean)) {
-    const [dia, mes, ano] = clean.split("/");
-    d = new Date(Number(ano), Number(mes) - 1, Number(dia));
-  } else {
-    d = new Date(clean);
+  // Captura DD/MM/YYYY independente do que vem depois (ex: "10/06/2026 09:48")
+  const match = criadoEm.trim().match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+  if (match) {
+    const d = new Date(Number(match[3]), Number(match[2]) - 1, Number(match[1]));
+    if (!isNaN(d.getTime())) return Math.floor((Date.now() - d.getTime()) / 86400000);
   }
+  const d = new Date(criadoEm.trim());
   if (isNaN(d.getTime())) return null;
   return Math.floor((Date.now() - d.getTime()) / 86400000);
 }
@@ -218,7 +216,7 @@ export default function RedmineAtribuidosPage() {
             Nenhum Redmine atribuído importado. Clique em "Importar Atribuídos".
           </p>
         ) : (
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[1100px] text-sm">
             <thead>
               <tr className="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wide">
                 <th className="text-left px-4 py-3 whitespace-nowrap">Redmine #</th>

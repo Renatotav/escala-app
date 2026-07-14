@@ -290,18 +290,6 @@ export default function RedmineResolvidosPage() {
         </div>
       )}
 
-      {/* Abas */}
-      {dados && resolvidos.length > 0 && (
-        <div className="flex gap-1 mb-4 bg-gray-900 border border-gray-800 rounded-lg p-1 w-fit">
-          {([["esquecidos", "⚠ Não Resolvidos"], ["resolvidos", "✓ Encontrados"]] as const).map(([k, label]) => (
-            <button key={k} onClick={() => setAba(k)}
-              className={`text-sm px-4 py-1.5 rounded-md transition ${aba === k ? "bg-gray-700 text-white font-medium" : "text-gray-500 hover:text-gray-300"}`}>
-              {label}
-            </button>
-          ))}
-        </div>
-      )}
-
       {/* Tabela */}
       <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto">
         {loading ? (

@@ -17,7 +17,7 @@ type Atribuido = {
 };
 
 function splitAssyst(raw: string): string[] {
-  return raw.split(/[;/]/).map(s => s.trim()).filter(Boolean);
+  return raw.split(/[;/,]|\s+e\s+/i).map(s => s.trim()).filter(Boolean);
 }
 
 function parseDias(criadoEm: string | null): number | null {

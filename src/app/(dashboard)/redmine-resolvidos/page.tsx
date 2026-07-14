@@ -89,7 +89,7 @@ function CelulaTexto({ label, texto, onClick, assystNums, resolvidoId }: {
 }
 
 function splitAssyst(raw: string): string[] {
-  return raw.split(/[;/]/).map(s => s.trim()).filter(Boolean);
+  return raw.split(/[;/,]|\s+e\s+/i).map(s => s.trim()).filter(Boolean);
 }
 
 function assystUrl(num: string) {

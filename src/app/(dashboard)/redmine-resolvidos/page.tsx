@@ -181,7 +181,8 @@ export default function RedmineResolvidosPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wide">
-                <th className="text-left px-4 py-3">Nº Chamado (Redmine)</th>
+                <th className="text-left px-4 py-3">Nº Chamado (Assyst)</th>
+                <th className="text-left px-4 py-3">Redmine #</th>
                 <th className="text-left px-4 py-3">Tipo</th>
                 <th className="text-left px-4 py-3">Situação</th>
                 <th className="text-left px-4 py-3">Últimas notas</th>
@@ -198,6 +199,15 @@ export default function RedmineResolvidosPage() {
                         className="font-mono text-sm text-blue-400 hover:text-blue-300 hover:underline transition">
                         {num}
                       </a>
+                    </td>
+                    <td className="px-4 py-3">
+                      {r?.numeroRedmine ? (
+                        <a href={`https://redmine.tjce.jus.br/issues/${r.numeroRedmine}`}
+                          target="_blank" rel="noopener noreferrer"
+                          className="font-mono text-xs text-blue-400 hover:text-blue-300 hover:underline transition">
+                          {r.numeroRedmine}
+                        </a>
+                      ) : "—"}
                     </td>
                     <td className="px-4 py-3 text-xs text-gray-400">{r?.tipo ?? "—"}</td>
                     <td className="px-4 py-3">
@@ -227,7 +237,13 @@ export default function RedmineResolvidosPage() {
             <tbody>
               {resolvidos.map(r => (
                 <tr key={r.id} className="border-b border-gray-800 last:border-0 hover:bg-gray-800/50 transition">
-                  <td className="px-4 py-3 font-mono text-xs text-gray-300">{r.numeroRedmine}</td>
+                  <td className="px-4 py-3">
+                    <a href={`https://redmine.tjce.jus.br/issues/${r.numeroRedmine}`}
+                      target="_blank" rel="noopener noreferrer"
+                      className="font-mono text-xs text-blue-400 hover:text-blue-300 hover:underline transition">
+                      {r.numeroRedmine}
+                    </a>
+                  </td>
                   <td className="px-4 py-3 font-mono text-xs text-gray-300 max-w-[200px] truncate" title={r.numerosAssyst}>{r.numerosAssyst}</td>
                   <td className="px-4 py-3 text-xs text-gray-400">{r.tipo ?? "—"}</td>
                   <td className="px-4 py-3">

@@ -270,7 +270,7 @@ export default function RedmineResolvidosPage() {
               : "Nenhum arquivo de Resolvidos importado. Clique em \"Importar Resolvidos\"."}
           </p>
         ) : aba === "esquecidos" ? (
-          <table className="w-full text-sm">
+          <table className="text-sm">
             <thead>
               <tr className="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wide">
                 <th className="text-left px-4 py-3">Nº Chamado (Assyst)</th>

@@ -296,14 +296,14 @@ export default function RedmineResolvidosPage() {
           </div>
           <button
             onClick={() => setAba("esquecidos")}
-            className={`rounded-xl p-4 border text-left transition ${aba === "esquecidos" ? "bg-red-900/40 border-red-500 ring-2 ring-red-400" : semResolvido.length > 0 ? "bg-red-950/30 border-red-700 hover:bg-red-900/20" : "bg-gray-900 border-gray-800"}`}>
+            className={`rounded-xl p-4 border text-left transition ${aba === "esquecidos" ? "bg-red-900/40 border-red-500 ring-2 ring-red-400 animate-pulse" : semResolvido.length > 0 ? "bg-red-950/30 border-red-700 hover:bg-red-900/20" : "bg-gray-900 border-gray-800"}`}>
             <p className="text-xs text-gray-400 mb-1">Não resolvidos</p>
             <p className={`text-3xl font-bold ${semResolvido.length > 0 ? "text-red-400" : "text-white"}`}>{semResolvido.length}</p>
             {semResolvido.length > 0 && <p className="text-xs text-red-400 mt-1">⚠ Clique para ver</p>}
           </button>
           <button
             onClick={() => setAba("resolvidos")}
-            className={`rounded-xl p-4 border text-left transition ${aba === "resolvidos" ? "bg-green-900/40 border-green-500 ring-2 ring-green-400" : "bg-gray-900 border-gray-800 hover:bg-gray-800"}`}>
+            className={`rounded-xl p-4 border text-left transition ${aba === "resolvidos" ? "bg-green-900/40 border-green-500 ring-2 ring-green-400 animate-pulse" : "bg-gray-900 border-gray-800 hover:bg-gray-800"}`}>
             <p className="text-xs text-gray-400 mb-1">Encontrados nos Resolvidos</p>
             <p className="text-3xl font-bold text-green-400">{comResolvido.length}</p>
             <p className="text-xs text-green-600 mt-1">Clique para ver</p>
@@ -385,7 +385,7 @@ export default function RedmineResolvidosPage() {
                                   {n}
                                 </a>
                                 {dias !== null && (
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-600 text-white text-xs font-bold animate-pulse whitespace-nowrap">
+                                  <span title="Chamado em aberto" className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-600 text-white text-xs font-bold animate-pulse whitespace-nowrap">
                                     ⚠ {dias}d
                                   </span>
                                 )}

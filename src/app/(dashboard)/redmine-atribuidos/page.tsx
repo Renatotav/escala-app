@@ -326,7 +326,7 @@ export default function RedmineAtribuidosPage() {
                     <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">
                       <div className="flex items-center gap-1.5">
                         <span>{r.criadoEm ?? "—"}</span>
-                        {(() => { const b = badgeDias(parseDias(r.criadoEm)); return b ? <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold animate-pulse ${b.cls}`}>{b.label}</span> : null; })()}
+                        {(() => { const b = badgeDias(parseDias(r.criadoEm)); return b ? <span title="Chamado em atraso" className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold animate-pulse ${b.cls}`}>{b.label}</span> : null; })()}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-xs text-gray-400">{r.tipo ?? "—"}</td>

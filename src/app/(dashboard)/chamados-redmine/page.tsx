@@ -163,7 +163,7 @@ export default function ChamadosRedminePage() {
             onClick={() => { setFiltroAtraso(f => !f); setFiltroAtencao(false); }}
             className={`rounded-xl p-4 border text-left transition light-card-red ${
               filtroAtraso
-                ? "bg-red-800 border-red-500 ring-2 ring-red-400"
+                ? "bg-red-800 border-red-500 ring-2 ring-red-400 animate-pulse"
                 : totalAtraso > 0
                   ? "bg-red-950 border-red-700 hover:bg-red-900"
                   : "bg-gray-900 border-gray-800 hover:bg-gray-800"
@@ -181,7 +181,7 @@ export default function ChamadosRedminePage() {
             onClick={() => { setFiltroAtencao(f => !f); setFiltroAtraso(false); }}
             className={`rounded-xl p-4 border text-left transition light-card-amber ${
               filtroAtencao
-                ? "bg-yellow-700 border-yellow-400 ring-2 ring-yellow-300"
+                ? "bg-yellow-700 border-yellow-400 ring-2 ring-yellow-300 animate-pulse"
                 : totalAtencao > 0
                   ? "bg-yellow-950/40 border-yellow-700 hover:bg-yellow-900/30"
                   : "bg-gray-900 border-gray-800 hover:bg-gray-800"

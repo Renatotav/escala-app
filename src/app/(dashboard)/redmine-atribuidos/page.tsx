@@ -57,6 +57,14 @@ function corSituacao(sit: string) {
   return "bg-blue-500/20 text-blue-400 border border-blue-500/30";
 }
 
+function preview(texto: string, max = 55): string {
+  const s = texto.replace(/\s+/g, " ").trim();
+  if (s.length <= max) return s;
+  const cortado = s.slice(0, max);
+  const ultimoEspaco = cortado.lastIndexOf(" ");
+  return (ultimoEspaco > 10 ? cortado.slice(0, ultimoEspaco) : cortado) + "…";
+}
+
 function CelulaTexto({ label, texto, onClick, resolvidoId }: {
   label: string;
   texto: string | null | undefined;
@@ -66,8 +74,8 @@ function CelulaTexto({ label, texto, onClick, resolvidoId }: {
   if (!texto) return <span className="text-gray-600">—</span>;
   return (
     <button onClick={() => onClick({ titulo: label, corpo: texto, resolvidoId })}
-      className="text-left text-xs text-gray-300 hover:text-blue-400 transition max-w-[220px] truncate block underline-offset-2 hover:underline cursor-pointer">
-      {texto}
+      className="text-left text-xs text-gray-300 hover:text-blue-400 transition block underline-offset-2 hover:underline cursor-pointer">
+      {preview(texto)}
     </button>
   );
 }

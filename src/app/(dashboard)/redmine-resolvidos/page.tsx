@@ -72,6 +72,14 @@ function TextoComLinks({
 }
 
 
+function preview(texto: string, max = 55): string {
+  const s = texto.replace(/\s+/g, " ").trim();
+  if (s.length <= max) return s;
+  const cortado = s.slice(0, max);
+  const ultimoEspaco = cortado.lastIndexOf(" ");
+  return (ultimoEspaco > 10 ? cortado.slice(0, ultimoEspaco) : cortado) + "…";
+}
+
 function CelulaTexto({ label, texto, onClick, assystNums, resolvidoId }: {
   label: string;
   texto: string | null | undefined;
@@ -82,8 +90,8 @@ function CelulaTexto({ label, texto, onClick, assystNums, resolvidoId }: {
   if (!texto) return <span className="text-gray-600">—</span>;
   return (
     <button onClick={() => onClick({ titulo: label, corpo: texto, assystNums, resolvidoId })}
-      className="text-left text-xs text-gray-300 hover:text-blue-400 transition max-w-[220px] truncate block underline-offset-2 hover:underline cursor-pointer">
-      {texto}
+      className="text-left text-xs text-gray-300 hover:text-blue-400 transition block underline-offset-2 hover:underline cursor-pointer">
+      {preview(texto)}
     </button>
   );
 }
@@ -114,6 +122,8 @@ export default function RedmineResolvidosPage() {
   const [editValue, setEditValue] = useState("");
   const [saving, setSaving] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const topScrollRef = useRef<HTMLDivElement>(null);
+  const tableScrollRef = useRef<HTMLDivElement>(null);
 
   function load() {
     setLoading(true);
@@ -302,7 +312,19 @@ export default function RedmineResolvidosPage() {
       )}
 
       {/* Tabela */}
-      <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto">
+      {!loading && aba === "resolvidos" && resolvidosNaRedmine.length > 0 && (
+        <div
+          ref={topScrollRef}
+          style={{ overflowX: "scroll", height: 16, marginBottom: 4 }}
+          onScroll={() => { if (tableScrollRef.current && topScrollRef.current) tableScrollRef.current.scrollLeft = topScrollRef.current.scrollLeft; }}>
+          <div style={{ minWidth: 900, height: 1 }} />
+        </div>
+      )}
+      <div
+        ref={tableScrollRef}
+        className="bg-gray-900 rounded-xl border border-gray-800"
+        style={{ overflowX: "auto" }}
+        onScroll={() => { if (topScrollRef.current && tableScrollRef.current) topScrollRef.current.scrollLeft = tableScrollRef.current.scrollLeft; }}>
         {loading ? (
           <p className="px-4 py-8 text-center text-gray-500 text-sm">Carregando...</p>
         ) : !dados || resolvidos.length === 0 ? (
@@ -340,7 +362,7 @@ export default function RedmineResolvidosPage() {
             </tbody>
           </table>
         ) : (
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[900px] text-sm">
             <thead>
               <tr className="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wide">
                 <th className="text-left px-4 py-3 whitespace-nowrap">Redmine #</th>

@@ -157,6 +157,16 @@ export default function RedmineResolvidosPage() {
     for (const p of splitAssyst(r.numerosAssyst)) resolvidoMap.set(p.toUpperCase(), r);
   }
 
+  // Conta quantas vezes cada Redmine# aparece nos Encontrados (para badge de repetição)
+  const redmineCountMap = new Map<string, number>();
+  for (const num of comResolvido) {
+    const r = resolvidoMap.get(num.toUpperCase());
+    if (r?.numeroRedmine) {
+      const key = r.numeroRedmine.trim().toUpperCase();
+      redmineCountMap.set(key, (redmineCountMap.get(key) ?? 0) + 1);
+    }
+  }
+
   // "Todos Resolvidos" só mostra os que têm ao menos um Assyst presente nos Chamados Redmine
   const encontradosSet = new Set(comResolvido.map(n => n.toUpperCase()));
   const resolvidosNaRedmine = resolvidos.filter(r =>
@@ -284,6 +294,9 @@ export default function RedmineResolvidosPage() {
             <tbody>
               {comResolvido.map(num => {
                 const r = resolvidoMap.get(num.toUpperCase());
+                const redmineCount = r?.numeroRedmine
+                  ? (redmineCountMap.get(r.numeroRedmine.trim().toUpperCase()) ?? 1)
+                  : 1;
                 return (
                   <tr key={num} className="border-b border-gray-800 last:border-0 hover:bg-gray-800/50 transition">
                     <td className="px-4 py-3">
@@ -294,10 +307,17 @@ export default function RedmineResolvidosPage() {
                     </td>
                     <td className="px-4 py-3">
                       {r?.numeroRedmine ? (
-                        <a href={redmineUrl(r.numeroRedmine)} target="_blank" rel="noopener noreferrer"
-                          className="font-mono text-xs text-blue-400 hover:text-blue-300 hover:underline transition">
-                          {r.numeroRedmine}
-                        </a>
+                        <div className="flex items-center gap-1.5">
+                          <a href={redmineUrl(r.numeroRedmine)} target="_blank" rel="noopener noreferrer"
+                            className="font-mono text-xs text-blue-400 hover:text-blue-300 hover:underline transition">
+                            {r.numeroRedmine}
+                          </a>
+                          {redmineCount > 1 && (
+                            <span className="text-xs font-bold px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-400 border border-yellow-500/40 whitespace-nowrap">
+                              {redmineCount}x
+                            </span>
+                          )}
+                        </div>
                       ) : "—"}
                     </td>
                     <td className="px-4 py-3 text-xs text-gray-400">{r?.tipo ?? "—"}</td>

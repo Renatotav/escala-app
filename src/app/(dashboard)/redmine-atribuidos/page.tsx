@@ -20,6 +20,28 @@ function splitAssyst(raw: string): string[] {
   return raw.split(/[;/]/).map(s => s.trim()).filter(Boolean);
 }
 
+function parseDias(criadoEm: string | null): number | null {
+  if (!criadoEm) return null;
+  // Suporta formatos: "10/08/2024, 12:51" ou "10/08/2024" ou ISO "2024-08-10"
+  const clean = criadoEm.trim().split(",")[0].trim();
+  let d: Date;
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(clean)) {
+    const [dia, mes, ano] = clean.split("/");
+    d = new Date(Number(ano), Number(mes) - 1, Number(dia));
+  } else {
+    d = new Date(clean);
+  }
+  if (isNaN(d.getTime())) return null;
+  return Math.floor((Date.now() - d.getTime()) / 86400000);
+}
+
+function badgeDias(dias: number | null) {
+  if (dias === null) return null;
+  if (dias >= 5) return { cls: "bg-red-500/20 text-red-400 border border-red-500/30", label: `⚠ ${dias}d` };
+  if (dias >= 3) return { cls: "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30", label: `⚠ ${dias}d` };
+  return null;
+}
+
 function assystUrl(num: string) {
   return `https://cati.tjce.jus.br/assystnet/#events/${num}?eventType=1&currentIndex=0`;
 }
@@ -167,14 +189,26 @@ export default function RedmineAtribuidosPage() {
         </div>
       </div>
 
-      {registros.length > 0 && (
-        <div className="mb-4">
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 w-fit">
-            <p className="text-xs text-gray-400 mb-1">Total importados</p>
-            <p className="text-3xl font-bold text-blue-400">{registros.length}</p>
+      {registros.length > 0 && (() => {
+        const emAtraso = registros.filter(r => (parseDias(r.criadoEm) ?? 0) >= 5).length;
+        const emAtencao = registros.filter(r => { const d = parseDias(r.criadoEm) ?? 0; return d >= 3 && d < 5; }).length;
+        return (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+              <p className="text-xs text-gray-400 mb-1">Total importados</p>
+              <p className="text-3xl font-bold text-blue-400">{registros.length}</p>
+            </div>
+            <div className={`rounded-xl p-4 border ${emAtraso > 0 ? "bg-red-950/30 border-red-700" : "bg-gray-900 border-gray-800"}`}>
+              <p className="text-xs text-gray-400 mb-1">Em atraso (≥5 dias)</p>
+              <p className={`text-3xl font-bold ${emAtraso > 0 ? "text-red-400" : "text-white"}`}>{emAtraso}</p>
+            </div>
+            <div className={`rounded-xl p-4 border ${emAtencao > 0 ? "bg-yellow-950/30 border-yellow-700" : "bg-gray-900 border-gray-800"}`}>
+              <p className="text-xs text-gray-400 mb-1">Em atenção (≥3 dias)</p>
+              <p className={`text-3xl font-bold ${emAtencao > 0 ? "text-yellow-400" : "text-white"}`}>{emAtencao}</p>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto">
         {loading ? (
@@ -222,7 +256,12 @@ export default function RedmineAtribuidosPage() {
                         </div>
                       ) : <span className="text-gray-500">—</span>}
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">{r.criadoEm ?? "—"}</td>
+                    <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">
+                      <div className="flex items-center gap-1.5">
+                        <span>{r.criadoEm ?? "—"}</span>
+                        {(() => { const b = badgeDias(parseDias(r.criadoEm)); return b ? <span className={`font-bold px-1.5 py-0.5 rounded-full text-xs ${b.cls}`}>{b.label}</span> : null; })()}
+                      </div>
+                    </td>
                     <td className="px-4 py-3 text-xs text-gray-400">{r.tipo ?? "—"}</td>
                     <td className="px-4 py-3">
                       {r.situacao ? (

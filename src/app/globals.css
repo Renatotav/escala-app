@@ -1,26 +1,21 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+body {
+  font-family: Arial, Helvetica, sans-serif;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Modo claro: inverte o tema escuro para claro preservando as cores de acento */
+html.light {
+  filter: invert(1) hue-rotate(180deg);
+}
+/* Re-inverte imagens e vídeos para não ficarem estranhos */
+html.light img,
+html.light video,
+html.light canvas {
+  filter: invert(1) hue-rotate(180deg);
 }

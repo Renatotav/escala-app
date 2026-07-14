@@ -15,6 +15,7 @@ const navItems = [
   { href: "/banco-horas", label: "Banco de Horas", icon: "⏱" },
   { href: "/chamados", label: "Chamados", icon: "🎫" },
   { href: "/chamados-redmine", label: "Chamados Redmine", icon: "🔴" },
+  { href: "/redmine-resolvidos", label: "Redmine Resolvidos", icon: "🟢" },
   { href: "/plantoes", label: "Plantões & Folgas", icon: "🔔" },
   { href: "/configuracoes", label: "Configurações", icon: "⚙" },
 ];

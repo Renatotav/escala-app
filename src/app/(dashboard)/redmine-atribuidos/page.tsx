@@ -81,6 +81,7 @@ export default function RedmineAtribuidosPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [importResult, setImportResult] = useState<{ count?: number; error?: string } | null>(null);
   const [filtroPessoa, setFiltroPessoa] = useState("");
+  const [filtroAtraso, setFiltroAtraso] = useState<"atraso" | "atencao" | null>(null);
   const [textoModal, setTextoModal] = useState<{ titulo: string; corpo: string; resolvidoId?: number } | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [editValue, setEditValue] = useState("");
@@ -132,9 +133,15 @@ export default function RedmineAtribuidosPage() {
     total: registros.filter(r => r.atribuidoPara === p).length,
     emAtraso: registros.filter(r => r.atribuidoPara === p && (parseDias(r.criadoEm) ?? 0) >= 5).length,
   }));
-  const registrosFiltrados = filtroPessoa
-    ? registros.filter(r => r.atribuidoPara === filtroPessoa)
-    : registros;
+  const registrosFiltrados = registros
+    .filter(r => !filtroPessoa || r.atribuidoPara === filtroPessoa)
+    .filter(r => {
+      if (!filtroAtraso) return true;
+      const d = parseDias(r.criadoEm) ?? 0;
+      if (filtroAtraso === "atraso") return d >= 5;
+      if (filtroAtraso === "atencao") return d >= 3 && d < 5;
+      return true;
+    });
 
   function exportXLS() {
     setXlsExporting(true);
@@ -209,14 +216,20 @@ export default function RedmineAtribuidosPage() {
               <p className="text-xs text-gray-400 mb-1">Total importados</p>
               <p className="text-3xl font-bold text-blue-400">{registros.length}</p>
             </div>
-            <div className={`rounded-xl p-4 border ${emAtraso > 0 ? "bg-red-950/30 border-red-700" : "bg-gray-900 border-gray-800"}`}>
+            <button
+              onClick={() => setFiltroAtraso(f => f === "atraso" ? null : "atraso")}
+              className={`rounded-xl p-4 border text-left transition cursor-pointer ${filtroAtraso === "atraso" ? "ring-2 ring-red-500" : ""} ${emAtraso > 0 ? "bg-red-950/30 border-red-700 hover:border-red-500" : "bg-gray-900 border-gray-800 hover:border-gray-600"}`}>
               <p className="text-xs text-gray-400 mb-1">Em atraso (≥5 dias)</p>
               <p className={`text-3xl font-bold ${emAtraso > 0 ? "text-red-400" : "text-white"}`}>{emAtraso}</p>
-            </div>
-            <div className={`rounded-xl p-4 border ${emAtencao > 0 ? "bg-yellow-950/30 border-yellow-700" : "bg-gray-900 border-gray-800"}`}>
+              <p className="text-xs mt-1 text-gray-500">{filtroAtraso === "atraso" ? "✓ Filtro ativo — clique para remover" : "⚠ Clique para filtrar"}</p>
+            </button>
+            <button
+              onClick={() => setFiltroAtraso(f => f === "atencao" ? null : "atencao")}
+              className={`rounded-xl p-4 border text-left transition cursor-pointer ${filtroAtraso === "atencao" ? "ring-2 ring-yellow-500" : ""} ${emAtencao > 0 ? "bg-yellow-950/30 border-yellow-700 hover:border-yellow-500" : "bg-gray-900 border-gray-800 hover:border-gray-600"}`}>
               <p className="text-xs text-gray-400 mb-1">Em atenção (≥3 dias)</p>
               <p className={`text-3xl font-bold ${emAtencao > 0 ? "text-yellow-400" : "text-white"}`}>{emAtencao}</p>
-            </div>
+              <p className="text-xs mt-1 text-gray-500">{filtroAtraso === "atencao" ? "✓ Filtro ativo — clique para remover" : "⚠ Clique para filtrar"}</p>
+            </button>
           </div>
         );
       })()}
@@ -259,14 +272,15 @@ export default function RedmineAtribuidosPage() {
       {!loading && registros.length > 0 && (
         <div
           ref={topScrollRef}
-          className="overflow-x-auto mb-1 rounded-t-xl"
+          style={{ overflowX: "scroll", height: 16, marginBottom: 4 }}
           onScroll={() => { if (tableScrollRef.current && topScrollRef.current) tableScrollRef.current.scrollLeft = topScrollRef.current.scrollLeft; }}>
           <div style={{ minWidth: 1100, height: 1 }} />
         </div>
       )}
       <div
         ref={tableScrollRef}
-        className="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto"
+        className="bg-gray-900 rounded-xl border border-gray-800"
+        style={{ overflowX: "auto" }}
         onScroll={() => { if (topScrollRef.current && tableScrollRef.current) topScrollRef.current.scrollLeft = tableScrollRef.current.scrollLeft; }}>
         {loading ? (
           <p className="px-4 py-8 text-center text-gray-500 text-sm">Carregando...</p>

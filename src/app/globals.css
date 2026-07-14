@@ -29,3 +29,12 @@ html.light .light-card-amber {
 html.light .light-card-amber p {
   color: #92400e !important;
 }
+
+html.light .light-card-red {
+  filter: invert(1) hue-rotate(180deg);
+  background-color: #fee2e2 !important;
+  border-color: #dc2626 !important;
+}
+html.light .light-card-red p {
+  color: #7f1d1d !important;
+}

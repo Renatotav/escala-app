@@ -653,7 +653,7 @@ export default function ChamadosPage() {
           </div>
           <div
             onClick={toggleUrgentes}
-            className={`rounded-xl border p-4 cursor-pointer transition ${urgentes ? "bg-red-900/30 border-red-500/50" : "bg-gray-900 border-gray-800 hover:border-red-500/30"}`}>
+            className={`rounded-xl border p-4 cursor-pointer transition light-card-red ${urgentes ? "bg-red-900/30 border-red-500/50" : "bg-gray-900 border-gray-800 hover:border-red-500/30"}`}>
             <p className="text-xs text-gray-500 mb-1">Solicitação de Urgência</p>
             <p className={`text-3xl font-bold tabular-nums ${dados.totalUrgentes > 0 ? "text-red-400" : "text-gray-600"}`}>
               {dados.totalUrgentes.toLocaleString("pt-BR")}

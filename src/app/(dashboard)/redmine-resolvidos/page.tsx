@@ -416,7 +416,9 @@ export default function RedmineResolvidosPage() {
               <button onClick={() => setTextoModal(null)} className="text-gray-400 hover:text-white text-lg leading-none">✕</button>
             </div>
             <div className="px-5 py-4 overflow-y-auto text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">
-              <TextoComLinks texto={textoModal.corpo} />
+              {textoModal.titulo === "Últimas notas"
+                ? <TextoComLinks texto={textoModal.corpo} />
+                : textoModal.corpo}
             </div>
           </div>
         </div>

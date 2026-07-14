@@ -244,7 +244,7 @@ export default function RedmineResolvidosPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wide">
-                <th className="text-left px-4 py-3">Redmine #</th>
+                <th className="text-left px-4 py-3">Nº Chamado (Assyst)</th>
                 <th className="text-left px-4 py-3">Status</th>
               </tr>
             </thead>

@@ -375,7 +375,7 @@ export default function RedmineResolvidosPage() {
                                   {n}
                                 </a>
                                 {dias !== null && (
-                                  <span className="text-xs font-bold px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30 whitespace-nowrap animate-pulse">
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-600 text-white text-xs font-bold animate-pulse whitespace-nowrap">
                                     ⚠ {dias}d
                                   </span>
                                 )}

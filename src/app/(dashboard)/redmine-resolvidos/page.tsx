@@ -69,7 +69,7 @@ export default function RedmineResolvidosPage() {
   const [importModal, setImportModal] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [importResult, setImportResult] = useState<{ count?: number; error?: string } | null>(null);
-  const [aba, setAba] = useState<"esquecidos" | "encontrados" | "resolvidos">("esquecidos");
+  const [aba, setAba] = useState<"esquecidos" | "resolvidos">("esquecidos");
   const [textoModal, setTextoModal] = useState<{ titulo: string; corpo: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -238,8 +238,8 @@ export default function RedmineResolvidosPage() {
             {semResolvido.length > 0 && <p className="text-xs text-red-400 mt-1">⚠ Clique para ver</p>}
           </button>
           <button
-            onClick={() => setAba("encontrados")}
-            className={`rounded-xl p-4 border text-left transition ${aba === "encontrados" ? "bg-green-900/40 border-green-500 ring-2 ring-green-400" : "bg-gray-900 border-gray-800 hover:bg-gray-800"}`}>
+            onClick={() => setAba("resolvidos")}
+            className={`rounded-xl p-4 border text-left transition ${aba === "resolvidos" ? "bg-green-900/40 border-green-500 ring-2 ring-green-400" : "bg-gray-900 border-gray-800 hover:bg-gray-800"}`}>
             <p className="text-xs text-gray-400 mb-1">Encontrados nos Resolvidos</p>
             <p className="text-3xl font-bold text-green-400">{comResolvido.length}</p>
             <p className="text-xs text-green-600 mt-1">Clique para ver</p>
@@ -250,7 +250,7 @@ export default function RedmineResolvidosPage() {
       {/* Abas */}
       {dados && resolvidos.length > 0 && (
         <div className="flex gap-1 mb-4 bg-gray-900 border border-gray-800 rounded-lg p-1 w-fit">
-          {([["esquecidos", "⚠ Não Resolvidos"], ["encontrados", "✓ Encontrados"], ["resolvidos", "Todos Resolvidos"]] as const).map(([k, label]) => (
+          {([["esquecidos", "⚠ Não Resolvidos"], ["resolvidos", "✓ Encontrados"]] as const).map(([k, label]) => (
             <button key={k} onClick={() => setAba(k)}
               className={`text-sm px-4 py-1.5 rounded-md transition ${aba === k ? "bg-gray-700 text-white font-medium" : "text-gray-500 hover:text-gray-300"}`}>
               {label}
@@ -295,62 +295,6 @@ export default function RedmineResolvidosPage() {
                   </td>
                 </tr>
               ))}
-            </tbody>
-          </table>
-        ) : aba === "encontrados" ? (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wide">
-                <th className="text-left px-4 py-3 whitespace-nowrap">Nº Assyst</th>
-                <th className="text-left px-4 py-3 whitespace-nowrap">Redmine #</th>
-                <th className="text-left px-4 py-3 whitespace-nowrap">Tipo</th>
-                <th className="text-left px-4 py-3 whitespace-nowrap">Situação</th>
-                <th className="text-left px-4 py-3 whitespace-nowrap">Título</th>
-                <th className="text-left px-4 py-3 whitespace-nowrap">Descrição</th>
-                <th className="text-left px-4 py-3 whitespace-nowrap">Últimas notas</th>
-              </tr>
-            </thead>
-            <tbody>
-              {comResolvido.map(num => {
-                const r = resolvidoMap.get(num.toUpperCase());
-                const redmineCount = r?.numeroRedmine
-                  ? (redmineCountMap.get(r.numeroRedmine.trim().toUpperCase()) ?? 1)
-                  : 1;
-                return (
-                  <tr key={num} className="border-b border-gray-800 last:border-0 hover:bg-gray-800/50 transition">
-                    <td className="px-4 py-3">
-                      <a href={assystUrl(num)} target="_blank" rel="noopener noreferrer"
-                        className="font-mono text-sm text-blue-400 hover:text-blue-300 hover:underline transition">
-                        {num}
-                      </a>
-                    </td>
-                    <td className="px-4 py-3">
-                      {r?.numeroRedmine ? (
-                        <div className="flex items-center gap-1.5">
-                          <a href={redmineUrl(r.numeroRedmine)} target="_blank" rel="noopener noreferrer"
-                            className="font-mono text-xs text-blue-400 hover:text-blue-300 hover:underline transition">
-                            {r.numeroRedmine}
-                          </a>
-                          {redmineCount > 1 && (
-                            <span className="text-xs font-bold px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-400 border border-yellow-500/40 whitespace-nowrap">
-                              {redmineCount}x
-                            </span>
-                          )}
-                        </div>
-                      ) : "—"}
-                    </td>
-                    <td className="px-4 py-3 text-xs text-gray-400">{r?.tipo ?? "—"}</td>
-                    <td className="px-4 py-3">
-                      {r?.situacao ? (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30 whitespace-nowrap">{r.situacao}</span>
-                      ) : "—"}
-                    </td>
-                    <td className="px-4 py-3"><CelulaTexto label="Título" texto={r?.titulo} onClick={setTextoModal} /></td>
-                    <td className="px-4 py-3"><CelulaTexto label="Descrição" texto={r?.descricao} onClick={setTextoModal} /></td>
-                    <td className="px-4 py-3"><CelulaTexto label="Últimas notas" texto={r?.ultimasNotas} onClick={setTextoModal} /></td>
-                  </tr>
-                );
-              })}
             </tbody>
           </table>
         ) : (

@@ -19,25 +19,6 @@ const navItems = [
   { href: "/configuracoes", label: "Configurações", icon: "⚙" },
 ];
 
-function ThemeToggle() {
-  const [light, setLight] = useState(false);
-  useEffect(() => {
-    setLight(document.documentElement.classList.contains("light"));
-  }, []);
-  function toggle() {
-    const next = !light;
-    setLight(next);
-    document.documentElement.classList.toggle("light", next);
-    try { localStorage.setItem("theme", next ? "light" : "dark"); } catch {}
-  }
-  return (
-    <button onClick={toggle} title={light ? "Mudar para tema escuro" : "Mudar para tema claro"}
-      className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
-      <span className="text-base leading-none">{light ? "🌙" : "☀️"}</span>
-      {light ? "Tema escuro" : "Tema claro"}
-    </button>
-  );
-}
 
 function NavLinks({ onClose }: { onClose?: () => void }) {
   const pathname = usePathname();
@@ -71,8 +52,7 @@ function NavLinks({ onClose }: { onClose?: () => void }) {
           );
         })}
       </nav>
-      <div className="px-3 py-4 border-t border-gray-800 space-y-0.5">
-        <ThemeToggle />
+      <div className="px-3 py-4 border-t border-gray-800">
         <button
           onClick={handleLogout}
           className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"

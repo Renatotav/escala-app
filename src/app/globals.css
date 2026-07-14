@@ -9,32 +9,3 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Modo claro: inverte o tema escuro para claro preservando as cores de acento */
-html.light {
-  filter: invert(1) hue-rotate(180deg);
-}
-/* Re-inverte imagens e vídeos para não ficarem estranhos */
-html.light img,
-html.light video,
-html.light canvas {
-  filter: invert(1) hue-rotate(180deg);
-}
-
-/* Cards que ficam ilegíveis com a inversão simples — cancela a inversão e aplica cores legíveis para tema claro */
-html.light .light-card-amber {
-  filter: invert(1) hue-rotate(180deg);
-  background-color: #fef3c7 !important;
-  border-color: #d97706 !important;
-}
-html.light .light-card-amber p {
-  color: #92400e !important;
-}
-
-html.light .light-card-red {
-  filter: invert(1) hue-rotate(180deg);
-  background-color: #fee2e2 !important;
-  border-color: #dc2626 !important;
-}
-html.light .light-card-red p {
-  color: #7f1d1d !important;
-}

@@ -124,6 +124,12 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({ count: registros.length });
 }
 
+export async function PATCH(request: NextRequest) {
+  const { id, ultimasNotas } = await request.json();
+  await prisma.redmineResolvido.update({ where: { id }, data: { ultimasNotas } });
+  return NextResponse.json({ ok: true });
+}
+
 export async function DELETE() {
   await prisma.redmineResolvido.deleteMany();
   return NextResponse.json({ ok: true });

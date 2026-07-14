@@ -238,6 +238,18 @@ model RedmineResolvido {
   createdAt      DateTime @default(now())
 }
 
+model RedmineAtribuido {
+  id             Int      @id @default(autoincrement())
+  numeroRedmine  String
+  numerosAssyst  String
+  tipo           String?
+  situacao       String?
+  titulo         String?
+  descricao      String?
+  ultimasNotas   String?
+  createdAt      DateTime @default(now())
+}
+
 model Chamado {
   id                   Int       @id @default(autoincrement())
   referencia           String

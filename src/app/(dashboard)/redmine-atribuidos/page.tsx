@@ -1,0 +1,316 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+
+type Atribuido = {
+  id: number;
+  numeroRedmine: string;
+  numerosAssyst: string;
+  tipo: string | null;
+  situacao: string | null;
+  titulo: string | null;
+  descricao: string | null;
+  ultimasNotas: string | null;
+};
+
+function splitAssyst(raw: string): string[] {
+  return raw.split(/[;/]/).map(s => s.trim()).filter(Boolean);
+}
+
+function assystUrl(num: string) {
+  return `https://cati.tjce.jus.br/assystnet/#events/${num}?eventType=1&currentIndex=0`;
+}
+
+function redmineUrl(num: string) {
+  return `https://redmine.tjce.jus.br/issues/${num}`;
+}
+
+function corSituacao(sit: string) {
+  const s = sit.toLowerCase();
+  if (s.includes("resolv") || s.includes("implant") || s.includes("fechad"))
+    return "bg-green-500/20 text-green-400 border border-green-500/30";
+  if (s.includes("cancelad"))
+    return "bg-gray-600/30 text-gray-400 border border-gray-500/30";
+  return "bg-blue-500/20 text-blue-400 border border-blue-500/30";
+}
+
+function CelulaTexto({ label, texto, onClick, resolvidoId }: {
+  label: string;
+  texto: string | null | undefined;
+  onClick: (t: { titulo: string; corpo: string; resolvidoId?: number }) => void;
+  resolvidoId?: number;
+}) {
+  if (!texto) return <span className="text-gray-600">—</span>;
+  return (
+    <button onClick={() => onClick({ titulo: label, corpo: texto, resolvidoId })}
+      className="text-left text-xs text-gray-300 hover:text-blue-400 transition max-w-[220px] truncate block underline-offset-2 hover:underline cursor-pointer">
+      {texto}
+    </button>
+  );
+}
+
+export default function RedmineAtribuidosPage() {
+  const [registros, setRegistros] = useState<Atribuido[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [importing, setImporting] = useState(false);
+  const [xlsExporting, setXlsExporting] = useState(false);
+  const [importModal, setImportModal] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [importResult, setImportResult] = useState<{ count?: number; error?: string } | null>(null);
+  const [textoModal, setTextoModal] = useState<{ titulo: string; corpo: string; resolvidoId?: number } | null>(null);
+  const [editMode, setEditMode] = useState(false);
+  const [editValue, setEditValue] = useState("");
+  const [saving, setSaving] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  function load() {
+    setLoading(true);
+    fetch("/api/redmine-atribuidos")
+      .then(r => r.json())
+      .then(d => { setRegistros(d.registros ?? []); setLoading(false); });
+  }
+
+  useEffect(() => { load(); }, []);
+
+  async function handleImport() {
+    if (!selectedFile) return;
+    setImporting(true);
+    setImportResult(null);
+    const text = await selectedFile.text();
+    const res = await fetch("/api/redmine-atribuidos", {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: text,
+    });
+    const data = await res.json();
+    if (res.ok) {
+      setImportResult({ count: data.count });
+      setImportModal(false);
+      setSelectedFile(null);
+      load();
+    } else {
+      setImportResult({ error: data.error ?? "Erro ao importar" });
+    }
+    setImporting(false);
+  }
+
+  async function handleLimpar() {
+    if (!confirm("Limpar todos os Atribuídos importados?")) return;
+    await fetch("/api/redmine-atribuidos", { method: "DELETE" });
+    load();
+  }
+
+  function exportXLS() {
+    setXlsExporting(true);
+    try {
+      function esc(s: string) {
+        return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+      }
+      const rows = registros.map(r => {
+        const redmineCell = `<a href="${esc(redmineUrl(r.numeroRedmine))}">${esc(r.numeroRedmine)}</a>`;
+        const nums = splitAssyst(r.numerosAssyst);
+        const assystCell = nums.length === 0
+          ? esc(r.numerosAssyst)
+          : nums.map(n => `<a href="${esc(assystUrl(n))}">${esc(n)}</a>`).join("<br>");
+        return `<tr>
+          <td>${redmineCell}</td><td>${assystCell}</td>
+          <td>${esc(r.tipo ?? "")}</td><td>${esc(r.situacao ?? "")}</td>
+          <td>${esc(r.titulo ?? "")}</td><td>${esc(r.descricao ?? "")}</td>
+          <td>${esc(r.ultimasNotas ?? "")}</td>
+        </tr>`;
+      }).join("");
+      const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office"
+        xmlns:x="urn:schemas-microsoft-com:office:excel"
+        xmlns="http://www.w3.org/TR/REC-html40">
+        <head><meta charset="UTF-8">
+        <style>td{mso-wrap-text:auto;vertical-align:top;font-size:11pt;}th{background:#1e293b;color:#fff;font-size:11pt;}</style>
+        </head><body><table border="1">
+          <tr><th>Redmine #</th><th>Nº Assyst</th><th>Tipo</th><th>Situação</th><th>Título</th><th>Descrição</th><th>Últimas notas</th></tr>
+          ${rows}
+        </table></body></html>`;
+      const blob = new Blob([html], { type: "application/vnd.ms-excel;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = "redmine-atribuidos.xls"; a.click();
+      URL.revokeObjectURL(url);
+    } finally { setXlsExporting(false); }
+  }
+
+  return (
+    <div>
+      <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
+        <div>
+          <h2 className="text-xl font-semibold text-white">Redmine Atribuídos</h2>
+          <p className="text-sm text-gray-400 mt-0.5">Redmines atribuídos à Coordenadoria de Atendimento</p>
+        </div>
+        <div className="flex gap-2 flex-wrap">
+          {registros.length > 0 && (
+            <>
+              <button onClick={exportXLS} disabled={xlsExporting}
+                className="bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-gray-200 text-sm font-medium px-4 py-2 rounded-lg transition">
+                {xlsExporting ? "Exportando..." : "↓ Exportar XLS"}
+              </button>
+              <button onClick={handleLimpar}
+                className="bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm font-medium px-4 py-2 rounded-lg transition">
+                Limpar
+              </button>
+            </>
+          )}
+          <button onClick={() => { setImportModal(true); setSelectedFile(null); setImportResult(null); }}
+            className="bg-blue-700 hover:bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
+            Importar Atribuídos
+          </button>
+        </div>
+      </div>
+
+      {registros.length > 0 && (
+        <div className="mb-4">
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 w-fit">
+            <p className="text-xs text-gray-400 mb-1">Total importados</p>
+            <p className="text-3xl font-bold text-blue-400">{registros.length}</p>
+          </div>
+        </div>
+      )}
+
+      <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto">
+        {loading ? (
+          <p className="px-4 py-8 text-center text-gray-500 text-sm">Carregando...</p>
+        ) : registros.length === 0 ? (
+          <p className="px-4 py-12 text-center text-gray-500 text-sm">
+            Nenhum Redmine atribuído importado. Clique em "Importar Atribuídos".
+          </p>
+        ) : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wide">
+                <th className="text-left px-4 py-3 whitespace-nowrap">Redmine #</th>
+                <th className="text-left px-4 py-3 whitespace-nowrap">Nº Assyst</th>
+                <th className="text-left px-4 py-3 whitespace-nowrap">Tipo</th>
+                <th className="text-left px-4 py-3 whitespace-nowrap">Situação</th>
+                <th className="text-left px-4 py-3 whitespace-nowrap">Título</th>
+                <th className="text-left px-4 py-3 whitespace-nowrap">Descrição</th>
+                <th className="text-left px-4 py-3 whitespace-nowrap">Últimas notas</th>
+              </tr>
+            </thead>
+            <tbody>
+              {registros.map(r => {
+                const nums = splitAssyst(r.numerosAssyst);
+                return (
+                  <tr key={r.id} className="border-b border-gray-800 last:border-0 hover:bg-gray-800/50 transition">
+                    <td className="px-4 py-3">
+                      <a href={redmineUrl(r.numeroRedmine)} target="_blank" rel="noopener noreferrer"
+                        className="font-mono text-xs text-blue-400 hover:text-blue-300 hover:underline transition">
+                        {r.numeroRedmine}
+                      </a>
+                    </td>
+                    <td className="px-4 py-3 text-xs">
+                      {nums.length > 0 ? (
+                        <div className="flex flex-col gap-0.5">
+                          {nums.map(n => (
+                            <a key={n} href={assystUrl(n)} target="_blank" rel="noopener noreferrer"
+                              className="font-mono text-blue-400 hover:text-blue-300 hover:underline transition">
+                              {n}
+                            </a>
+                          ))}
+                        </div>
+                      ) : <span className="text-gray-500">—</span>}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-gray-400">{r.tipo ?? "—"}</td>
+                    <td className="px-4 py-3">
+                      {r.situacao ? (
+                        <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${corSituacao(r.situacao)}`}>
+                          {r.situacao}
+                        </span>
+                      ) : "—"}
+                    </td>
+                    <td className="px-4 py-3"><CelulaTexto label="Título" texto={r.titulo} onClick={setTextoModal} /></td>
+                    <td className="px-4 py-3"><CelulaTexto label="Descrição" texto={r.descricao} onClick={setTextoModal} /></td>
+                    <td className="px-4 py-3"><CelulaTexto label="Últimas notas" texto={r.ultimasNotas} onClick={setTextoModal} resolvidoId={r.id} /></td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {/* Modal texto */}
+      {textoModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4" onClick={() => { setTextoModal(null); setEditMode(false); }}>
+          <div className="bg-gray-900 border border-gray-700 rounded-xl w-full max-w-2xl max-h-[80vh] flex flex-col shadow-2xl"
+            onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-800">
+              <h3 className="text-sm font-semibold text-white">{textoModal.titulo}</h3>
+              <div className="flex items-center gap-2">
+                {textoModal.titulo === "Últimas notas" && textoModal.resolvidoId && !editMode && (
+                  <button onClick={() => { setEditValue(textoModal.corpo); setEditMode(true); }}
+                    className="text-xs px-3 py-1 rounded bg-blue-700 hover:bg-blue-600 text-white transition">
+                    ✏ Editar
+                  </button>
+                )}
+                <button onClick={() => { setTextoModal(null); setEditMode(false); }} className="text-gray-400 hover:text-white text-lg leading-none">✕</button>
+              </div>
+            </div>
+            {editMode ? (
+              <div className="flex flex-col gap-3 px-5 py-4">
+                <textarea value={editValue} onChange={e => setEditValue(e.target.value)} rows={10}
+                  className="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-200 resize-y focus:outline-none focus:border-blue-500" />
+                <div className="flex gap-2 justify-end">
+                  <button onClick={() => setEditMode(false)}
+                    className="text-sm px-4 py-1.5 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 transition">Cancelar</button>
+                  <button disabled={saving} onClick={async () => {
+                    if (!textoModal.resolvidoId) return;
+                    setSaving(true);
+                    await fetch("/api/redmine-atribuidos", {
+                      method: "PATCH",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ id: textoModal.resolvidoId, ultimasNotas: editValue }),
+                    });
+                    setSaving(false);
+                    setEditMode(false);
+                    setTextoModal({ ...textoModal, corpo: editValue });
+                    setRegistros(rs => rs.map(r => r.id === textoModal.resolvidoId ? { ...r, ultimasNotas: editValue } : r));
+                  }}
+                    className="text-sm px-4 py-1.5 rounded bg-green-700 hover:bg-green-600 disabled:opacity-50 text-white font-medium transition">
+                    {saving ? "Salvando..." : "Salvar"}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="px-5 py-4 overflow-y-auto text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">
+                {textoModal.corpo}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Modal importar */}
+      {importModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4">
+          <div className="bg-gray-900 border border-gray-800 rounded-xl w-full max-w-md p-6">
+            <h3 className="text-base font-semibold text-white mb-1">Importar Redmine Atribuídos</h3>
+            <p className="text-xs text-gray-400 mb-4">Selecione o arquivo CSV exportado do Redmine com os chamados atribuídos.</p>
+            <div className="border-2 border-dashed border-gray-700 hover:border-blue-600 rounded-lg p-6 text-center cursor-pointer transition"
+              onClick={() => fileRef.current?.click()}>
+              <p className="text-gray-400 text-sm">
+                {selectedFile ? selectedFile.name : "Clique para selecionar o arquivo (.csv)"}
+              </p>
+              {importResult?.error && <p className="text-red-400 text-xs mt-2">{importResult.error}</p>}
+            </div>
+            <input ref={fileRef} type="file" accept=".csv,.txt" className="hidden"
+              onChange={e => { setSelectedFile(e.target.files?.[0] ?? null); setImportResult(null); }} />
+            <div className="flex gap-2 mt-4">
+              <button onClick={() => { setImportModal(false); setSelectedFile(null); setImportResult(null); }}
+                className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-lg py-2 transition">Cancelar</button>
+              <button onClick={handleImport} disabled={!selectedFile || importing}
+                className="flex-1 bg-blue-700 hover:bg-blue-600 disabled:opacity-50 text-white text-sm font-medium rounded-lg py-2 transition">
+                {importing ? "Importando..." : "Importar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

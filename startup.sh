@@ -1,4 +1,4 @@
-#!/bin/sh
+﻿#!/bin/sh
 set -e
 echo "Running database migration..."
 
@@ -160,7 +160,18 @@ async function migrate() {
   )\`);
   await client.query(\`ALTER TABLE \"RedmineResolvido\" ADD COLUMN IF NOT EXISTS \"titulo\" TEXT\`);
   await client.query(\`ALTER TABLE \"RedmineResolvido\" ADD COLUMN IF NOT EXISTS \"descricao\" TEXT\`);
-
+  // RedmineAtribuido
+  await client.query(`CREATE TABLE IF NOT EXISTS "RedmineAtribuido" (
+    "id" SERIAL PRIMARY KEY,
+    "numeroRedmine" TEXT NOT NULL,
+    "numerosAssyst" TEXT NOT NULL,
+    "tipo" TEXT,
+    "situacao" TEXT,
+    "titulo" TEXT,
+    "descricao" TEXT,
+    "ultimasNotas" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+  )`);
   // ConfiguracaoSistema
   await client.query(\`CREATE TABLE IF NOT EXISTS \"ConfiguracaoSistema\" (
     \"chave\" TEXT PRIMARY KEY,

@@ -16,6 +16,7 @@ const navItems = [
   { href: "/chamados", label: "Chamados", icon: "🎫" },
   { href: "/chamados-redmine", label: "Chamados Redmine", icon: "🔴" },
   { href: "/redmine-resolvidos", label: "Redmine Resolvidos", icon: "🟢" },
+  { href: "/redmine-atribuidos", label: "Redmine Atribuídos", icon: "🔵" },
   { href: "/plantoes", label: "Plantões & Folgas", icon: "🔔" },
   { href: "/configuracoes", label: "Configurações", icon: "⚙" },
 ];

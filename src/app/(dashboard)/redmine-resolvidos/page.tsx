@@ -151,16 +151,16 @@ export default function RedmineResolvidosPage() {
   const comResolvido = dados?.encontrados ?? [];
   const resolvidos = dados?.resolvidos ?? [];
 
-  // Mapa Redmine# → Resolvido para lookup na aba Encontrados
+  // Mapa Assyst# → Resolvido para lookup na aba Encontrados
   const resolvidoMap = new Map<string, Resolvido>();
   for (const r of resolvidos) {
-    if (r.numeroRedmine) resolvidoMap.set(r.numeroRedmine.trim().toUpperCase(), r);
+    for (const p of splitAssyst(r.numerosAssyst)) resolvidoMap.set(p.toUpperCase(), r);
   }
 
-  // "Todos Resolvidos" só mostra os que têm Redmine# presente nos Chamados Redmine
+  // "Todos Resolvidos" só mostra os que têm ao menos um Assyst presente nos Chamados Redmine
   const encontradosSet = new Set(comResolvido.map(n => n.toUpperCase()));
   const resolvidosNaRedmine = resolvidos.filter(r =>
-    r.numeroRedmine && encontradosSet.has(r.numeroRedmine.trim().toUpperCase())
+    splitAssyst(r.numerosAssyst).some(n => encontradosSet.has(n.toUpperCase()))
   );
 
   return (
@@ -254,7 +254,7 @@ export default function RedmineResolvidosPage() {
               ) : semResolvido.map(num => (
                 <tr key={num} className="border-b border-gray-800 last:border-0 bg-red-950/20 hover:bg-red-950/30 transition border-l-2 border-l-red-600">
                   <td className="px-4 py-3">
-                    <a href={redmineUrl(num)} target="_blank" rel="noopener noreferrer"
+                    <a href={assystUrl(num)} target="_blank" rel="noopener noreferrer"
                       className="font-mono text-sm text-blue-400 hover:text-blue-300 hover:underline transition">
                       {num}
                     </a>
@@ -272,8 +272,8 @@ export default function RedmineResolvidosPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wide">
-                <th className="text-left px-4 py-3">Redmine #</th>
                 <th className="text-left px-4 py-3">Nº Assyst</th>
+                <th className="text-left px-4 py-3">Redmine #</th>
                 <th className="text-left px-4 py-3">Tipo</th>
                 <th className="text-left px-4 py-3">Situação</th>
                 <th className="text-left px-4 py-3">Título</th>
@@ -284,25 +284,20 @@ export default function RedmineResolvidosPage() {
             <tbody>
               {comResolvido.map(num => {
                 const r = resolvidoMap.get(num.toUpperCase());
-                const assystNums = r ? splitAssyst(r.numerosAssyst) : [];
                 return (
                   <tr key={num} className="border-b border-gray-800 last:border-0 hover:bg-gray-800/50 transition">
                     <td className="px-4 py-3">
-                      <a href={redmineUrl(num)} target="_blank" rel="noopener noreferrer"
+                      <a href={assystUrl(num)} target="_blank" rel="noopener noreferrer"
                         className="font-mono text-sm text-blue-400 hover:text-blue-300 hover:underline transition">
                         {num}
                       </a>
                     </td>
-                    <td className="px-4 py-3 text-xs">
-                      {assystNums.length > 0 ? (
-                        <div className="flex flex-col gap-0.5">
-                          {assystNums.map(n => (
-                            <a key={n} href={assystUrl(n)} target="_blank" rel="noopener noreferrer"
-                              className="font-mono text-blue-400 hover:text-blue-300 hover:underline transition">
-                              {n}
-                            </a>
-                          ))}
-                        </div>
+                    <td className="px-4 py-3">
+                      {r?.numeroRedmine ? (
+                        <a href={redmineUrl(r.numeroRedmine)} target="_blank" rel="noopener noreferrer"
+                          className="font-mono text-xs text-blue-400 hover:text-blue-300 hover:underline transition">
+                          {r.numeroRedmine}
+                        </a>
                       ) : "—"}
                     </td>
                     <td className="px-4 py-3 text-xs text-gray-400">{r?.tipo ?? "—"}</td>

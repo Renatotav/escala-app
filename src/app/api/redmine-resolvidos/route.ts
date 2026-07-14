@@ -43,16 +43,17 @@ export async function GET() {
     prisma.chamadoRedmine.findMany({ select: { numero: true } }),
   ]);
 
-  // Monta set de números Redmine que já foram resolvidos (pelo campo numeroRedmine do CSV)
-  const resolvidosRedmineSet = new Set<string>();
+  // Monta set de todos os números Assyst presentes nos Resolvidos (split por ; e /)
+  const resolvidosAssystSet = new Set<string>();
   for (const r of resolvidos) {
-    if (r.numeroRedmine) resolvidosRedmineSet.add(r.numeroRedmine.trim().toUpperCase());
+    const partes = r.numerosAssyst.split(/[;/]/).map(s => s.trim().toUpperCase()).filter(Boolean);
+    for (const p of partes) resolvidosAssystSet.add(p);
   }
 
-  // Cruza: quais Chamados Redmine NÃO aparecem nos Resolvidos (por número Redmine)
+  // ChamadoRedmine.numero é número Assyst — cruza contra os Assyst dos Resolvidos
   const redmineNums = redmine.map(r => r.numero.trim().toUpperCase());
-  const esquecidos = redmineNums.filter(n => !resolvidosRedmineSet.has(n));
-  const encontrados = redmineNums.filter(n => resolvidosRedmineSet.has(n));
+  const esquecidos = redmineNums.filter(n => !resolvidosAssystSet.has(n));
+  const encontrados = redmineNums.filter(n => resolvidosAssystSet.has(n));
 
   return NextResponse.json({ resolvidos, esquecidos, encontrados, totalRedmine: redmine.length });
 }

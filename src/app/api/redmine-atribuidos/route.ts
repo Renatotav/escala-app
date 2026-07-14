@@ -55,13 +55,16 @@ export async function POST(request: NextRequest) {
     return -1;
   };
 
-  const iId     = idx(["chamadoredmine", "redmine", "", "numero", "id"]);
-  const iAssyst = idx(["assyst", "nchamado", "chamado"]);
-  const iTipo   = idx(["tipo"]);
-  const iSit    = idx(["situacao", "situac"]);
-  const iTitulo = idx(["titulo", "title"]);
-  const iDesc   = idx(["descricao", "descri", "description"]);
-  const iNota   = idx(["ultimasnota", "notas", "nota"]);
+  const iId      = idx(["chamadoredmine", "redmine", "", "numero", "id"]);
+  const iAssyst  = idx(["assyst", "nchamado", "chamado"]);
+  const iCriado  = idx(["criadoem", "criado", "data"]);
+  const iTipo    = idx(["tipo"]);
+  const iSit     = idx(["situacao", "situac"]);
+  const iTitulo  = idx(["titulo", "title"]);
+  const iAtrib   = idx(["atribuidopara", "atribuido", "responsavel"]);
+  const iPrev    = idx(["dataprevista", "prevista", "prazo"]);
+  const iDesc    = idx(["descricao", "descri", "description"]);
+  const iNota    = idx(["ultimasnota", "notas", "nota"]);
 
   const expectedCols = rows[0].length;
   const registros = [];
@@ -80,9 +83,12 @@ export async function POST(request: NextRequest) {
     registros.push({
       numeroRedmine: numeroRedmine.trim(),
       numerosAssyst: numerosAssyst.trim(),
+      criadoEm:     r[iCriado]?.trim() || null,
       tipo:         r[iTipo]?.trim()   || null,
       situacao:     r[iSit]?.trim()    || null,
       titulo:       r[iTitulo]?.trim() || null,
+      atribuidoPara: r[iAtrib]?.trim() || null,
+      dataPrevista:  r[iPrev]?.trim()  || null,
       descricao:    r[iDesc]?.trim()   || null,
       ultimasNotas: r[iNota]?.trim()   || null,
     });

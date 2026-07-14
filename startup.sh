@@ -165,13 +165,19 @@ async function migrate() {
     "id" SERIAL PRIMARY KEY,
     "numeroRedmine" TEXT NOT NULL,
     "numerosAssyst" TEXT NOT NULL,
+    "criadoEm" TEXT,
     "tipo" TEXT,
     "situacao" TEXT,
     "titulo" TEXT,
+    "atribuidoPara" TEXT,
+    "dataPrevista" TEXT,
     "descricao" TEXT,
     "ultimasNotas" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
   )`);
+  try { await client.query(`ALTER TABLE "RedmineAtribuido" ADD COLUMN IF NOT EXISTS "criadoEm" TEXT`); } catch(e) {}
+  try { await client.query(`ALTER TABLE "RedmineAtribuido" ADD COLUMN IF NOT EXISTS "atribuidoPara" TEXT`); } catch(e) {}
+  try { await client.query(`ALTER TABLE "RedmineAtribuido" ADD COLUMN IF NOT EXISTS "dataPrevista" TEXT`); } catch(e) {}
   // ConfiguracaoSistema
   await client.query(\`CREATE TABLE IF NOT EXISTS \"ConfiguracaoSistema\" (
     \"chave\" TEXT PRIMARY KEY,

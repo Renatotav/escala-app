@@ -6,9 +6,12 @@ type Atribuido = {
   id: number;
   numeroRedmine: string;
   numerosAssyst: string;
+  criadoEm: string | null;
   tipo: string | null;
   situacao: string | null;
   titulo: string | null;
+  atribuidoPara: string | null;
+  dataPrevista: string | null;
   descricao: string | null;
   ultimasNotas: string | null;
 };
@@ -114,9 +117,10 @@ export default function RedmineAtribuidosPage() {
           : nums.map(n => `<a href="${esc(assystUrl(n))}">${esc(n)}</a>`).join("<br>");
         return `<tr>
           <td>${redmineCell}</td><td>${assystCell}</td>
-          <td>${esc(r.tipo ?? "")}</td><td>${esc(r.situacao ?? "")}</td>
-          <td>${esc(r.titulo ?? "")}</td><td>${esc(r.descricao ?? "")}</td>
-          <td>${esc(r.ultimasNotas ?? "")}</td>
+          <td>${esc(r.criadoEm ?? "")}</td><td>${esc(r.tipo ?? "")}</td>
+          <td>${esc(r.situacao ?? "")}</td><td>${esc(r.titulo ?? "")}</td>
+          <td>${esc(r.atribuidoPara ?? "")}</td><td>${esc(r.dataPrevista ?? "")}</td>
+          <td>${esc(r.descricao ?? "")}</td><td>${esc(r.ultimasNotas ?? "")}</td>
         </tr>`;
       }).join("");
       const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office"
@@ -125,7 +129,7 @@ export default function RedmineAtribuidosPage() {
         <head><meta charset="UTF-8">
         <style>td{mso-wrap-text:auto;vertical-align:top;font-size:11pt;}th{background:#1e293b;color:#fff;font-size:11pt;}</style>
         </head><body><table border="1">
-          <tr><th>Redmine #</th><th>Nº Assyst</th><th>Tipo</th><th>Situação</th><th>Título</th><th>Descrição</th><th>Últimas notas</th></tr>
+          <tr><th>Redmine #</th><th>Nº Assyst</th><th>Criado em</th><th>Tipo</th><th>Situação</th><th>Título</th><th>Atribuído para</th><th>Data prevista</th><th>Descrição</th><th>Últimas notas</th></tr>
           ${rows}
         </table></body></html>`;
       const blob = new Blob([html], { type: "application/vnd.ms-excel;charset=utf-8;" });
@@ -185,9 +189,12 @@ export default function RedmineAtribuidosPage() {
               <tr className="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wide">
                 <th className="text-left px-4 py-3 whitespace-nowrap">Redmine #</th>
                 <th className="text-left px-4 py-3 whitespace-nowrap">Nº Assyst</th>
+                <th className="text-left px-4 py-3 whitespace-nowrap">Criado em</th>
                 <th className="text-left px-4 py-3 whitespace-nowrap">Tipo</th>
                 <th className="text-left px-4 py-3 whitespace-nowrap">Situação</th>
                 <th className="text-left px-4 py-3 whitespace-nowrap">Título</th>
+                <th className="text-left px-4 py-3 whitespace-nowrap">Atribuído para</th>
+                <th className="text-left px-4 py-3 whitespace-nowrap">Data prevista</th>
                 <th className="text-left px-4 py-3 whitespace-nowrap">Descrição</th>
                 <th className="text-left px-4 py-3 whitespace-nowrap">Últimas notas</th>
               </tr>
@@ -215,6 +222,7 @@ export default function RedmineAtribuidosPage() {
                         </div>
                       ) : <span className="text-gray-500">—</span>}
                     </td>
+                    <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">{r.criadoEm ?? "—"}</td>
                     <td className="px-4 py-3 text-xs text-gray-400">{r.tipo ?? "—"}</td>
                     <td className="px-4 py-3">
                       {r.situacao ? (
@@ -224,6 +232,8 @@ export default function RedmineAtribuidosPage() {
                       ) : "—"}
                     </td>
                     <td className="px-4 py-3"><CelulaTexto label="Título" texto={r.titulo} onClick={setTextoModal} /></td>
+                    <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">{r.atribuidoPara ?? "—"}</td>
+                    <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">{r.dataPrevista ?? "—"}</td>
                     <td className="px-4 py-3"><CelulaTexto label="Descrição" texto={r.descricao} onClick={setTextoModal} /></td>
                     <td className="px-4 py-3"><CelulaTexto label="Últimas notas" texto={r.ultimasNotas} onClick={setTextoModal} resolvidoId={r.id} /></td>
                   </tr>

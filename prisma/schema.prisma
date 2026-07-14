@@ -242,9 +242,12 @@ model RedmineAtribuido {
   id             Int      @id @default(autoincrement())
   numeroRedmine  String
   numerosAssyst  String
+  criadoEm      String?
   tipo           String?
   situacao       String?
   titulo         String?
+  atribuidoPara  String?
+  dataPrevista   String?
   descricao      String?
   ultimasNotas   String?
   createdAt      DateTime @default(now())

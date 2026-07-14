@@ -18,7 +18,13 @@ type Dados = {
   esquecidos: string[];
   encontrados: string[];
   totalRedmine: number;
+  chamadosMap: Record<string, string | null>;
 };
+
+function diasAberto(dataAbertura: string | null | undefined): number | null {
+  if (!dataAbertura) return null;
+  return Math.floor((Date.now() - new Date(dataAbertura).getTime()) / 86400000);
+}
 
 // Renderiza texto com #NNN como links clicáveis para o Redmine
 // Se o número estiver em resolvidosSet → badge verde "✓ Resolvido"
@@ -201,6 +207,7 @@ export default function RedmineResolvidosPage() {
   const semResolvido = dados?.esquecidos ?? [];
   const comResolvido = dados?.encontrados ?? [];
   const resolvidos = dados?.resolvidos ?? [];
+  const chamadosMap = dados?.chamadosMap ?? {};
 
   // Mapa Assyst# → Resolvido para lookup na aba Encontrados
   const resolvidoMap = new Map<string, Resolvido>();
@@ -354,13 +361,23 @@ export default function RedmineResolvidosPage() {
                     </td>
                     <td className="px-4 py-3 text-xs">
                       {nums.length > 0 ? (
-                        <div className="flex flex-col gap-0.5">
-                          {nums.map(n => (
-                            <a key={n} href={assystUrl(n)} target="_blank" rel="noopener noreferrer"
-                              className="font-mono text-blue-400 hover:text-blue-300 hover:underline transition">
-                              {n}
-                            </a>
-                          ))}
+                        <div className="flex flex-col gap-1">
+                          {nums.map(n => {
+                            const dias = diasAberto(chamadosMap[n.toUpperCase()]);
+                            return (
+                              <div key={n} className="flex items-center gap-1.5">
+                                <a href={assystUrl(n)} target="_blank" rel="noopener noreferrer"
+                                  className="font-mono text-blue-400 hover:text-blue-300 hover:underline transition">
+                                  {n}
+                                </a>
+                                {dias !== null && (
+                                  <span className="text-xs font-bold px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30 whitespace-nowrap">
+                                    ⚠ {dias}d
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       ) : <span className="text-gray-500">—</span>}
                     </td>

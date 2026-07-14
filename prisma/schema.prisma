@@ -232,6 +232,8 @@ model RedmineResolvido {
   numerosAssyst  String
   tipo           String?
   situacao       String?
+  titulo         String?
+  descricao      String?
   ultimasNotas   String?
   createdAt      DateTime @default(now())
 }

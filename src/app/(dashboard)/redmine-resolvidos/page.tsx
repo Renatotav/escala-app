@@ -8,6 +8,8 @@ type Resolvido = {
   numerosAssyst: string;
   tipo: string | null;
   situacao: string | null;
+  titulo: string | null;
+  descricao: string | null;
   ultimasNotas: string | null;
 };
 
@@ -18,14 +20,38 @@ type Dados = {
   totalRedmine: number;
 };
 
+function CelulaTexto({ label, texto, onClick }: { label: string; texto: string | null | undefined; onClick: (t: { titulo: string; corpo: string }) => void }) {
+  if (!texto) return <span className="text-gray-600">—</span>;
+  return (
+    <button onClick={() => onClick({ titulo: label, corpo: texto })}
+      className="text-left text-xs text-gray-300 hover:text-blue-400 transition max-w-[220px] truncate block underline-offset-2 hover:underline cursor-pointer">
+      {texto}
+    </button>
+  );
+}
+
+function splitAssyst(raw: string): string[] {
+  return raw.split(/[;/]/).map(s => s.trim()).filter(Boolean);
+}
+
+function assystUrl(num: string) {
+  return `https://cati.tjce.jus.br/assystnet/#events/${num}?eventType=1&currentIndex=0`;
+}
+
+function redmineUrl(num: string) {
+  return `https://redmine.tjce.jus.br/issues/${num}`;
+}
+
 export default function RedmineResolvidosPage() {
   const [dados, setDados] = useState<Dados | null>(null);
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
+  const [xlsExporting, setXlsExporting] = useState(false);
   const [importModal, setImportModal] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [importResult, setImportResult] = useState<{ count?: number; error?: string } | null>(null);
   const [aba, setAba] = useState<"esquecidos" | "encontrados" | "resolvidos">("esquecidos");
+  const [textoModal, setTextoModal] = useState<{ titulo: string; corpo: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   function load() {
@@ -65,16 +91,69 @@ export default function RedmineResolvidosPage() {
     load();
   }
 
-  // Para a aba "esquecidos", busca os detalhes do Redmine para mostrar info adicional
+  function exportXLS() {
+    if (!dados) return;
+    setXlsExporting(true);
+    try {
+      function esc(s: string) {
+        return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+      }
+
+      const rows = dados.resolvidos.map(r => {
+        const redmineCell = `<a href="${esc(redmineUrl(r.numeroRedmine))}">${esc(r.numeroRedmine)}</a>`;
+        const nums = splitAssyst(r.numerosAssyst);
+        const assystCell = nums.length === 0
+          ? esc(r.numerosAssyst)
+          : nums.map(n => `<a href="${esc(assystUrl(n))}">${esc(n)}</a>`).join("<br>");
+        return `<tr>
+          <td>${redmineCell}</td>
+          <td>${assystCell}</td>
+          <td>${esc(r.tipo ?? "")}</td>
+          <td>${esc(r.situacao ?? "")}</td>
+          <td>${esc(r.titulo ?? "")}</td>
+          <td>${esc(r.descricao ?? "")}</td>
+          <td>${esc(r.ultimasNotas ?? "")}</td>
+        </tr>`;
+      }).join("");
+
+      const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office"
+        xmlns:x="urn:schemas-microsoft-com:office:excel"
+        xmlns="http://www.w3.org/TR/REC-html40">
+        <head><meta charset="UTF-8">
+        <style>td{mso-wrap-text:auto;vertical-align:top;font-size:11pt;} th{background:#1e293b;color:#fff;font-size:11pt;}</style>
+        </head><body>
+        <table border="1">
+          <tr>
+            <th>Redmine #</th>
+            <th>Nº Assyst</th>
+            <th>Tipo</th>
+            <th>Situação</th>
+            <th>Título</th>
+            <th>Descrição</th>
+            <th>Últimas notas</th>
+          </tr>
+          ${rows}
+        </table></body></html>`;
+
+      const blob = new Blob([html], { type: "application/vnd.ms-excel;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "redmine-resolvidos.xls";
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setXlsExporting(false);
+    }
+  }
+
   const semResolvido = dados?.esquecidos ?? [];
   const comResolvido = dados?.encontrados ?? [];
   const resolvidos = dados?.resolvidos ?? [];
 
-  // Monta mapa numero→resolvido para lookup rápido
   const resolvidoMap = new Map<string, Resolvido>();
   for (const r of resolvidos) {
-    const partes = r.numerosAssyst.split(/[;/]/).map(s => s.trim().toUpperCase()).filter(Boolean);
-    for (const p of partes) resolvidoMap.set(p, r);
+    for (const p of splitAssyst(r.numerosAssyst)) resolvidoMap.set(p.toUpperCase(), r);
   }
 
   return (
@@ -86,10 +165,16 @@ export default function RedmineResolvidosPage() {
         </div>
         <div className="flex gap-2 flex-wrap">
           {dados && resolvidos.length > 0 && (
-            <button onClick={handleLimpar}
-              className="bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm font-medium px-4 py-2 rounded-lg transition">
-              Limpar resolvidos
-            </button>
+            <>
+              <button onClick={exportXLS} disabled={xlsExporting}
+                className="bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-gray-200 text-sm font-medium px-4 py-2 rounded-lg transition">
+                {xlsExporting ? "Exportando..." : "↓ Exportar XLS"}
+              </button>
+              <button onClick={handleLimpar}
+                className="bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm font-medium px-4 py-2 rounded-lg transition">
+                Limpar resolvidos
+              </button>
+            </>
           )}
           <button onClick={() => { setImportModal(true); setSelectedFile(null); setImportResult(null); }}
             className="bg-green-700 hover:bg-green-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
@@ -162,8 +247,7 @@ export default function RedmineResolvidosPage() {
               ) : semResolvido.map(num => (
                 <tr key={num} className="border-b border-gray-800 last:border-0 bg-red-950/20 hover:bg-red-950/30 transition border-l-2 border-l-red-600">
                   <td className="px-4 py-3">
-                    <a href={`https://cati.tjce.jus.br/assystnet/#events/${num}?eventType=1&currentIndex=0`}
-                      target="_blank" rel="noopener noreferrer"
+                    <a href={assystUrl(num)} target="_blank" rel="noopener noreferrer"
                       className="font-mono text-sm text-blue-400 hover:text-blue-300 hover:underline transition">
                       {num}
                     </a>
@@ -185,25 +269,25 @@ export default function RedmineResolvidosPage() {
                 <th className="text-left px-4 py-3">Redmine #</th>
                 <th className="text-left px-4 py-3">Tipo</th>
                 <th className="text-left px-4 py-3">Situação</th>
+                <th className="text-left px-4 py-3">Título</th>
+                <th className="text-left px-4 py-3">Descrição</th>
                 <th className="text-left px-4 py-3">Últimas notas</th>
               </tr>
             </thead>
             <tbody>
               {comResolvido.map(num => {
-                const r = resolvidoMap.get(num);
+                const r = resolvidoMap.get(num.toUpperCase());
                 return (
                   <tr key={num} className="border-b border-gray-800 last:border-0 hover:bg-gray-800/50 transition">
                     <td className="px-4 py-3">
-                      <a href={`https://cati.tjce.jus.br/assystnet/#events/${num}?eventType=1&currentIndex=0`}
-                        target="_blank" rel="noopener noreferrer"
+                      <a href={assystUrl(num)} target="_blank" rel="noopener noreferrer"
                         className="font-mono text-sm text-blue-400 hover:text-blue-300 hover:underline transition">
                         {num}
                       </a>
                     </td>
                     <td className="px-4 py-3">
                       {r?.numeroRedmine ? (
-                        <a href={`https://redmine.tjce.jus.br/issues/${r.numeroRedmine}`}
-                          target="_blank" rel="noopener noreferrer"
+                        <a href={redmineUrl(r.numeroRedmine)} target="_blank" rel="noopener noreferrer"
                           className="font-mono text-xs text-blue-400 hover:text-blue-300 hover:underline transition">
                           {r.numeroRedmine}
                         </a>
@@ -215,9 +299,9 @@ export default function RedmineResolvidosPage() {
                         <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30">{r.situacao}</span>
                       ) : "—"}
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-400 max-w-sm truncate" title={r?.ultimasNotas ?? ""}>
-                      {r?.ultimasNotas ?? "—"}
-                    </td>
+                    <td className="px-4 py-3"><CelulaTexto label="Título" texto={r?.titulo} onClick={setTextoModal} /></td>
+                    <td className="px-4 py-3"><CelulaTexto label="Descrição" texto={r?.descricao} onClick={setTextoModal} /></td>
+                    <td className="px-4 py-3"><CelulaTexto label="Últimas notas" texto={r?.ultimasNotas} onClick={setTextoModal} /></td>
                   </tr>
                 );
               })}
@@ -231,33 +315,66 @@ export default function RedmineResolvidosPage() {
                 <th className="text-left px-4 py-3">Nº Assyst</th>
                 <th className="text-left px-4 py-3">Tipo</th>
                 <th className="text-left px-4 py-3">Situação</th>
+                <th className="text-left px-4 py-3">Título</th>
+                <th className="text-left px-4 py-3">Descrição</th>
                 <th className="text-left px-4 py-3">Últimas notas</th>
               </tr>
             </thead>
             <tbody>
-              {resolvidos.map(r => (
-                <tr key={r.id} className="border-b border-gray-800 last:border-0 hover:bg-gray-800/50 transition">
-                  <td className="px-4 py-3">
-                    <a href={`https://redmine.tjce.jus.br/issues/${r.numeroRedmine}`}
-                      target="_blank" rel="noopener noreferrer"
-                      className="font-mono text-xs text-blue-400 hover:text-blue-300 hover:underline transition">
-                      {r.numeroRedmine}
-                    </a>
-                  </td>
-                  <td className="px-4 py-3 font-mono text-xs text-gray-300 max-w-[200px] truncate" title={r.numerosAssyst}>{r.numerosAssyst}</td>
-                  <td className="px-4 py-3 text-xs text-gray-400">{r.tipo ?? "—"}</td>
-                  <td className="px-4 py-3">
-                    {r.situacao ? (
-                      <span className="text-xs px-2 py-0.5 rounded bg-gray-700 text-gray-300">{r.situacao}</span>
-                    ) : "—"}
-                  </td>
-                  <td className="px-4 py-3 text-xs text-gray-400 max-w-sm truncate" title={r.ultimasNotas ?? ""}>{r.ultimasNotas ?? "—"}</td>
-                </tr>
-              ))}
+              {resolvidos.map(r => {
+                const nums = splitAssyst(r.numerosAssyst);
+                return (
+                  <tr key={r.id} className="border-b border-gray-800 last:border-0 hover:bg-gray-800/50 transition">
+                    <td className="px-4 py-3">
+                      <a href={redmineUrl(r.numeroRedmine)} target="_blank" rel="noopener noreferrer"
+                        className="font-mono text-xs text-blue-400 hover:text-blue-300 hover:underline transition">
+                        {r.numeroRedmine}
+                      </a>
+                    </td>
+                    <td className="px-4 py-3 text-xs">
+                      {nums.length > 0 ? (
+                        <div className="flex flex-col gap-0.5">
+                          {nums.map(n => (
+                            <a key={n} href={assystUrl(n)} target="_blank" rel="noopener noreferrer"
+                              className="font-mono text-blue-400 hover:text-blue-300 hover:underline transition">
+                              {n}
+                            </a>
+                          ))}
+                        </div>
+                      ) : <span className="text-gray-500">—</span>}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-gray-400">{r.tipo ?? "—"}</td>
+                    <td className="px-4 py-3">
+                      {r.situacao ? (
+                        <span className="text-xs px-2 py-0.5 rounded bg-gray-700 text-gray-300">{r.situacao}</span>
+                      ) : "—"}
+                    </td>
+                    <td className="px-4 py-3"><CelulaTexto label="Título" texto={r.titulo} onClick={setTextoModal} /></td>
+                    <td className="px-4 py-3"><CelulaTexto label="Descrição" texto={r.descricao} onClick={setTextoModal} /></td>
+                    <td className="px-4 py-3"><CelulaTexto label="Últimas notas" texto={r.ultimasNotas} onClick={setTextoModal} /></td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}
       </div>
+
+      {/* Modal leitura de texto */}
+      {textoModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4" onClick={() => setTextoModal(null)}>
+          <div className="bg-gray-900 border border-gray-700 rounded-xl w-full max-w-2xl max-h-[80vh] flex flex-col shadow-2xl"
+            onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-800">
+              <h3 className="text-sm font-semibold text-white">{textoModal.titulo}</h3>
+              <button onClick={() => setTextoModal(null)} className="text-gray-400 hover:text-white text-lg leading-none">✕</button>
+            </div>
+            <div className="px-5 py-4 overflow-y-auto text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">
+              {textoModal.corpo}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal Importar */}
       {importModal && (

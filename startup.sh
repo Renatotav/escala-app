@@ -153,9 +153,13 @@ async function migrate() {
     \"numerosAssyst\" TEXT NOT NULL,
     \"tipo\" TEXT,
     \"situacao\" TEXT,
+    \"titulo\" TEXT,
+    \"descricao\" TEXT,
     \"ultimasNotas\" TEXT,
     \"createdAt\" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
   )\`);
+  await client.query(\`ALTER TABLE \"RedmineResolvido\" ADD COLUMN IF NOT EXISTS \"titulo\" TEXT\`);
+  await client.query(\`ALTER TABLE \"RedmineResolvido\" ADD COLUMN IF NOT EXISTS \"descricao\" TEXT\`);
 
   // ConfiguracaoSistema
   await client.query(\`CREATE TABLE IF NOT EXISTS \"ConfiguracaoSistema\" (

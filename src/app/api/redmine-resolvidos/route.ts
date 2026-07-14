@@ -2,19 +2,24 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 function parseCsv(text: string): string[][] {
+  const clean = text.replace(/^﻿/, "");
+
+  // Detecta o delimitador real pela primeira linha (evita tratar ; dentro de célula Assyst como separador de coluna)
+  const firstLine = clean.substring(0, clean.indexOf("\n") < 0 ? clean.length : clean.indexOf("\n"));
+  const semiCount = (firstLine.match(/;/g) || []).length;
+  const commaCount = (firstLine.match(/,/g) || []).length;
+  const delim = semiCount >= commaCount ? ";" : ",";
+
   const rows: string[][] = [];
   let row: string[] = [];
   let cur = "";
   let inQ = false;
-  const clean = text.replace(/^﻿/, "");
   for (let i = 0; i < clean.length; i++) {
     const ch = clean[i];
     if (ch === '"') {
       if (inQ && clean[i + 1] === '"') { cur += '"'; i++; }
       else inQ = !inQ;
-    } else if (ch === "," && !inQ) {
-      row.push(cur.trim()); cur = "";
-    } else if (ch === ";" && !inQ) {
+    } else if (ch === delim && !inQ) {
       row.push(cur.trim()); cur = "";
     } else if (ch === "\r" && clean[i + 1] === "\n" && !inQ) {
       i++; row.push(cur.trim()); rows.push(row); row = []; cur = "";
@@ -29,7 +34,7 @@ function parseCsv(text: string): string[][] {
 }
 
 function norm(h: string) {
-  return h.toLowerCase().replace(/[^a-z0-9]/g, "");
+  return h.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]/g, "");
 }
 
 export async function GET() {
@@ -60,14 +65,21 @@ export async function POST(request: NextRequest) {
 
   const headers = rows[0].map(norm);
   const idx = (names: string[]) => {
-    for (const n of names) { const i = headers.findIndex(h => h.includes(n)); if (i >= 0) return i; }
+    for (const n of names) {
+      const i = n === ""
+        ? headers.findIndex(h => h === "")   // exact match para header "#" que vira ""
+        : headers.findIndex(h => h.includes(n));
+      if (i >= 0) return i;
+    }
     return -1;
   };
 
-  const iId = idx(["chamadoredmine", "redmine", "#", "numero", "id"]);
+  const iId = idx(["chamadoredmine", "redmine", "", "numero", "id"]);
   const iAssyst = idx(["assyst", "nchamado", "chamado"]);
   const iTipo = idx(["tipo"]);
   const iSit = idx(["situacao", "situac"]);
+  const iTitulo = idx(["titulo", "title"]);
+  const iDesc = idx(["descricao", "descri", "description"]);
   const iNota = idx(["ultimasnota", "notas", "nota"]);
 
   const registros = [];
@@ -82,6 +94,8 @@ export async function POST(request: NextRequest) {
       numerosAssyst: numerosAssyst.trim(),
       tipo: r[iTipo]?.trim() || null,
       situacao: r[iSit]?.trim() || null,
+      titulo: r[iTitulo]?.trim() || null,
+      descricao: r[iDesc]?.trim() || null,
       ultimasNotas: r[iNota]?.trim() || null,
     });
   }

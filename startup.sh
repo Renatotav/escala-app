@@ -146,6 +146,17 @@ async function migrate() {
     \"createdAt\" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
   )\`);
 
+  // RedmineResolvido
+  await client.query(\`CREATE TABLE IF NOT EXISTS \"RedmineResolvido\" (
+    \"id\" SERIAL PRIMARY KEY,
+    \"numeroRedmine\" TEXT NOT NULL,
+    \"numerosAssyst\" TEXT NOT NULL,
+    \"tipo\" TEXT,
+    \"situacao\" TEXT,
+    \"ultimasNotas\" TEXT,
+    \"createdAt\" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+  )\`);
+
   // ConfiguracaoSistema
   await client.query(\`CREATE TABLE IF NOT EXISTS \"ConfiguracaoSistema\" (
     \"chave\" TEXT PRIMARY KEY,

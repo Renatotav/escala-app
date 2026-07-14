@@ -277,19 +277,7 @@ export default function RedmineAtribuidosPage() {
         </div>
       )}
 
-      {!loading && registros.length > 0 && (
-        <div
-          ref={topScrollRef}
-          style={{ overflowX: "scroll", height: 16, marginBottom: 4 }}
-          onScroll={() => { if (tableScrollRef.current && topScrollRef.current) tableScrollRef.current.scrollLeft = topScrollRef.current.scrollLeft; }}>
-          <div style={{ minWidth: 1100, height: 1 }} />
-        </div>
-      )}
-      <div
-        ref={tableScrollRef}
-        className="bg-gray-900 rounded-xl border border-gray-800"
-        style={{ overflowX: "auto" }}
-        onScroll={() => { if (topScrollRef.current && tableScrollRef.current) topScrollRef.current.scrollLeft = tableScrollRef.current.scrollLeft; }}>
+      <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto">
         {loading ? (
           <p className="px-4 py-8 text-center text-gray-500 text-sm">Carregando...</p>
         ) : registros.length === 0 ? (

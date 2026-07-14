@@ -312,19 +312,7 @@ export default function RedmineResolvidosPage() {
       )}
 
       {/* Tabela */}
-      {!loading && aba === "resolvidos" && resolvidosNaRedmine.length > 0 && (
-        <div
-          ref={topScrollRef}
-          style={{ overflowX: "scroll", height: 16, marginBottom: 4 }}
-          onScroll={() => { if (tableScrollRef.current && topScrollRef.current) tableScrollRef.current.scrollLeft = topScrollRef.current.scrollLeft; }}>
-          <div style={{ minWidth: 900, height: 1 }} />
-        </div>
-      )}
-      <div
-        ref={tableScrollRef}
-        className="bg-gray-900 rounded-xl border border-gray-800"
-        style={{ overflowX: "auto" }}
-        onScroll={() => { if (topScrollRef.current && tableScrollRef.current) topScrollRef.current.scrollLeft = tableScrollRef.current.scrollLeft; }}>
+      <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto">
         {loading ? (
           <p className="px-4 py-8 text-center text-gray-500 text-sm">Carregando...</p>
         ) : !dados || resolvidos.length === 0 ? (

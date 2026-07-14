@@ -118,7 +118,7 @@ export default function RedmineResolvidosPage() {
         return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
       }
 
-      const rows = dados.resolvidos.map(r => {
+      const rows = resolvidosNaRedmine.map(r => {
         const redmineCell = `<a href="${esc(redmineUrl(r.numeroRedmine))}">${esc(r.numeroRedmine)}</a>`;
         const nums = splitAssyst(r.numerosAssyst);
         const assystCell = nums.length === 0

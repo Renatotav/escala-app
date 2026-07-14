@@ -179,7 +179,7 @@ export default function ChamadosRedminePage() {
           {/* Card ≥30 dias — filtro clicável */}
           <button
             onClick={() => { setFiltroAtencao(f => !f); setFiltroAtraso(false); }}
-            className={`rounded-xl p-4 border text-left transition ${
+            className={`rounded-xl p-4 border text-left transition light-card-amber ${
               filtroAtencao
                 ? "bg-yellow-700 border-yellow-400 ring-2 ring-yellow-300"
                 : totalAtencao > 0

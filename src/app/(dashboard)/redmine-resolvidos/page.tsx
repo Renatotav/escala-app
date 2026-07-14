@@ -21,36 +21,59 @@ type Dados = {
 };
 
 // Renderiza texto com #NNN como links clicáveis para o Redmine
-// Se o número estiver em resolvidosSet, mostra badge verde "✓ Resolvido"
-function TextoComLinks({ texto, resolvidosSet }: { texto: string; resolvidosSet?: Set<string> }) {
+// Se o número estiver em resolvidosSet → badge verde "✓ Resolvido"
+// Se estiver resolvido mas o chamado atual não vinculado → badge laranja "⚠ Chamado não incluído"
+function TextoComLinks({
+  texto, resolvidosSet, redmineToAssystMap, assystNums,
+}: {
+  texto: string;
+  resolvidosSet?: Set<string>;
+  redmineToAssystMap?: Map<string, Set<string>>;
+  assystNums?: string[];
+}) {
   const partes = texto.split(/(#\d{4,})/g);
   return (
     <>
-      {partes.map((parte, i) =>
-        /^#\d{4,}$/.test(parte) ? (
+      {partes.map((parte, i) => {
+        if (!/^#\d{4,}$/.test(parte)) return <span key={i}>{parte}</span>;
+        const num = parte.slice(1);
+        const isResolvido = resolvidosSet?.has(num) ?? false;
+        const assystDessaRedmine = redmineToAssystMap?.get(num);
+        const chamadoVinculado = !assystNums || !assystDessaRedmine
+          ? true
+          : assystNums.some(a => assystDessaRedmine.has(a.toUpperCase()));
+        return (
           <span key={i} className="inline-flex items-center gap-1 flex-wrap">
-            <a href={redmineUrl(parte.slice(1))} target="_blank" rel="noopener noreferrer"
+            <a href={redmineUrl(num)} target="_blank" rel="noopener noreferrer"
               className="text-blue-400 hover:text-blue-300 hover:underline font-mono">
               {parte}
             </a>
-            {resolvidosSet?.has(parte.slice(1)) && (
+            {isResolvido && chamadoVinculado && (
               <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-green-500/20 text-green-400 border border-green-500/30 whitespace-nowrap">
                 ✓ Resolvido
               </span>
             )}
+            {isResolvido && !chamadoVinculado && (
+              <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400 border border-orange-500/30 whitespace-nowrap">
+                ⚠ Chamado não incluído
+              </span>
+            )}
           </span>
-        ) : (
-          <span key={i}>{parte}</span>
-        )
-      )}
+        );
+      })}
     </>
   );
 }
 
-function CelulaTexto({ label, texto, onClick }: { label: string; texto: string | null | undefined; onClick: (t: { titulo: string; corpo: string }) => void }) {
+function CelulaTexto({ label, texto, onClick, assystNums }: {
+  label: string;
+  texto: string | null | undefined;
+  onClick: (t: { titulo: string; corpo: string; assystNums?: string[] }) => void;
+  assystNums?: string[];
+}) {
   if (!texto) return <span className="text-gray-600">—</span>;
   return (
-    <button onClick={() => onClick({ titulo: label, corpo: texto })}
+    <button onClick={() => onClick({ titulo: label, corpo: texto, assystNums })}
       className="text-left text-xs text-gray-300 hover:text-blue-400 transition max-w-[220px] truncate block underline-offset-2 hover:underline cursor-pointer">
       {texto}
     </button>
@@ -78,7 +101,7 @@ export default function RedmineResolvidosPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [importResult, setImportResult] = useState<{ count?: number; error?: string } | null>(null);
   const [aba, setAba] = useState<"esquecidos" | "resolvidos">("esquecidos");
-  const [textoModal, setTextoModal] = useState<{ titulo: string; corpo: string } | null>(null);
+  const [textoModal, setTextoModal] = useState<{ titulo: string; corpo: string; assystNums?: string[] } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   function load() {
@@ -202,6 +225,14 @@ export default function RedmineResolvidosPage() {
 
   // Set de Redmine# encontrados — usado para badge "✓ Resolvido" nas notas
   const resolvidosRedmineSet = new Set(resolvidosNaRedmine.map(r => r.numeroRedmine.trim()));
+
+  // Mapa Redmine# → Set<Assyst#> — para detectar chamado não incluído no Redmine da nota
+  const redmineToAssystMap = new Map<string, Set<string>>();
+  for (const r of resolvidosNaRedmine) {
+    const key = r.numeroRedmine.trim();
+    if (!redmineToAssystMap.has(key)) redmineToAssystMap.set(key, new Set());
+    for (const a of splitAssyst(r.numerosAssyst)) redmineToAssystMap.get(key)!.add(a.toUpperCase());
+  }
 
   return (
     <div>
@@ -352,7 +383,7 @@ export default function RedmineResolvidosPage() {
                     </td>
                     <td className="px-4 py-3"><CelulaTexto label="Título" texto={r.titulo} onClick={setTextoModal} /></td>
                     <td className="px-4 py-3"><CelulaTexto label="Descrição" texto={r.descricao} onClick={setTextoModal} /></td>
-                    <td className="px-4 py-3"><CelulaTexto label="Últimas notas" texto={r.ultimasNotas} onClick={setTextoModal} /></td>
+                    <td className="px-4 py-3"><CelulaTexto label="Últimas notas" texto={r.ultimasNotas} onClick={setTextoModal} assystNums={splitAssyst(r.numerosAssyst)} /></td>
                   </tr>
                 );
               })}
@@ -372,7 +403,12 @@ export default function RedmineResolvidosPage() {
             </div>
             <div className="px-5 py-4 overflow-y-auto text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">
               {textoModal.titulo === "Últimas notas"
-                ? <TextoComLinks texto={textoModal.corpo} resolvidosSet={resolvidosRedmineSet} />
+                ? <TextoComLinks
+                    texto={textoModal.corpo}
+                    resolvidosSet={resolvidosRedmineSet}
+                    redmineToAssystMap={redmineToAssystMap}
+                    assystNums={textoModal.assystNums}
+                  />
                 : textoModal.corpo}
             </div>
           </div>

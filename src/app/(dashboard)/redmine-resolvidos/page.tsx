@@ -22,11 +22,11 @@ type Dados = {
 
 // Renderiza texto com #NNN como links clicáveis para o Redmine
 function TextoComLinks({ texto }: { texto: string }) {
-  const partes = texto.split(/(#\d+)/g);
+  const partes = texto.split(/(#\d{4,})/g);
   return (
     <>
       {partes.map((parte, i) =>
-        /^#\d+$/.test(parte) ? (
+        /^#\d{4,}$/.test(parte) ? (
           <a key={i} href={redmineUrl(parte.slice(1))} target="_blank" rel="noopener noreferrer"
             className="text-blue-400 hover:text-blue-300 hover:underline font-mono">
             {parte}

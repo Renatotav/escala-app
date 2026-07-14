@@ -21,16 +21,24 @@ type Dados = {
 };
 
 // Renderiza texto com #NNN como links clicáveis para o Redmine
-function TextoComLinks({ texto }: { texto: string }) {
+// Se o número estiver em resolvidosSet, mostra badge verde "✓ Resolvido"
+function TextoComLinks({ texto, resolvidosSet }: { texto: string; resolvidosSet?: Set<string> }) {
   const partes = texto.split(/(#\d{4,})/g);
   return (
     <>
       {partes.map((parte, i) =>
         /^#\d{4,}$/.test(parte) ? (
-          <a key={i} href={redmineUrl(parte.slice(1))} target="_blank" rel="noopener noreferrer"
-            className="text-blue-400 hover:text-blue-300 hover:underline font-mono">
-            {parte}
-          </a>
+          <span key={i} className="inline-flex items-center gap-1 flex-wrap">
+            <a href={redmineUrl(parte.slice(1))} target="_blank" rel="noopener noreferrer"
+              className="text-blue-400 hover:text-blue-300 hover:underline font-mono">
+              {parte}
+            </a>
+            {resolvidosSet?.has(parte.slice(1)) && (
+              <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-green-500/20 text-green-400 border border-green-500/30 whitespace-nowrap">
+                ✓ Resolvido
+              </span>
+            )}
+          </span>
         ) : (
           <span key={i}>{parte}</span>
         )
@@ -186,11 +194,14 @@ export default function RedmineResolvidosPage() {
     }
   }
 
-  // "Todos Resolvidos" só mostra os que têm ao menos um Assyst presente nos Chamados Redmine
+  // "✓ Encontrados" só mostra os que têm ao menos um Assyst presente nos Chamados Redmine
   const encontradosSet = new Set(comResolvido.map(n => n.toUpperCase()));
   const resolvidosNaRedmine = resolvidos.filter(r =>
     splitAssyst(r.numerosAssyst).some(n => encontradosSet.has(n.toUpperCase()))
   );
+
+  // Set de Redmine# encontrados — usado para badge "✓ Resolvido" nas notas
+  const resolvidosRedmineSet = new Set(resolvidosNaRedmine.map(r => r.numeroRedmine.trim()));
 
   return (
     <div>
@@ -361,7 +372,7 @@ export default function RedmineResolvidosPage() {
             </div>
             <div className="px-5 py-4 overflow-y-auto text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">
               {textoModal.titulo === "Últimas notas"
-                ? <TextoComLinks texto={textoModal.corpo} />
+                ? <TextoComLinks texto={textoModal.corpo} resolvidosSet={resolvidosRedmineSet} />
                 : textoModal.corpo}
             </div>
           </div>

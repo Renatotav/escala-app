@@ -97,31 +97,52 @@ export async function POST(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const substituir = searchParams.get("substituir") !== "0";
 
-  let insertData = registros;
-  let skipped = 0;
+  // Busca todos os existentes para fazer upsert preservando marcações
+  const existing = await prisma.redmineAtribuido.findMany({
+    select: { id: true, numeroRedmine: true, solicitadoEm: true, solicitadoObs: true },
+  });
+  const existingMap = new Map(existing.map(e => [e.numeroRedmine, e]));
+  const numerosImportados = new Set(registros.map(r => r.numeroRedmine));
 
-  if (substituir) {
-    // Preserva marcações de acompanhamento antes de apagar
-    const existingMarcacoes = await prisma.redmineAtribuido.findMany({
-      select: { numeroRedmine: true, solicitadoEm: true, solicitadoObs: true },
-      where: { solicitadoEm: { not: null } },
+  const paraAtualizar = registros.filter(r => existingMap.has(r.numeroRedmine));
+  const paraInserir   = registros.filter(r => !existingMap.has(r.numeroRedmine));
+
+  // Atualiza dados Redmine dos existentes, preserva marcações manuais
+  await Promise.all(paraAtualizar.map(r => {
+    const ex = existingMap.get(r.numeroRedmine)!;
+    return prisma.redmineAtribuido.update({
+      where: { id: ex.id },
+      data: {
+        numerosAssyst: r.numerosAssyst,
+        criadoEm:      r.criadoEm,
+        alteradoEm:    r.alteradoEm,
+        tipo:          r.tipo,
+        situacao:      r.situacao,
+        titulo:        r.titulo,
+        atribuidoPara: r.atribuidoPara,
+        descricao:     r.descricao,
+        ultimasNotas:  r.ultimasNotas,
+        // solicitadoEm e solicitadoObs NÃO são tocados
+      },
     });
-    const marcacoesMap = new Map(existingMarcacoes.map(e => [e.numeroRedmine, { solicitadoEm: e.solicitadoEm, solicitadoObs: e.solicitadoObs }]));
-    await prisma.redmineAtribuido.deleteMany();
-    const dataComMarcacoes = insertData.map(r => {
-      const m = marcacoesMap.get(r.numeroRedmine);
-      return m ? { ...r, solicitadoEm: m.solicitadoEm, solicitadoObs: m.solicitadoObs } : r;
-    });
-    await prisma.redmineAtribuido.createMany({ data: dataComMarcacoes });
-  } else {
-    const existing = await prisma.redmineAtribuido.findMany({ select: { numeroRedmine: true } });
-    const existingSet = new Set(existing.map(e => e.numeroRedmine));
-    insertData = registros.filter(r => !existingSet.has(r.numeroRedmine));
-    skipped = registros.length - insertData.length;
-    await prisma.redmineAtribuido.createMany({ data: insertData });
+  }));
+
+  // Insere os novos
+  if (paraInserir.length > 0) {
+    await prisma.redmineAtribuido.createMany({ data: paraInserir });
   }
 
-  return NextResponse.json({ count: insertData.length, skipped });
+  // Substituir: remove tickets que não vieram no novo CSV (saíram da fila)
+  if (substituir) {
+    const idsParaRemover = existing
+      .filter(e => !numerosImportados.has(e.numeroRedmine))
+      .map(e => e.id);
+    if (idsParaRemover.length > 0) {
+      await prisma.redmineAtribuido.deleteMany({ where: { id: { in: idsParaRemover } } });
+    }
+  }
+
+  return NextResponse.json({ count: paraInserir.length, updated: paraAtualizar.length });
 }
 
 export async function PATCH(request: NextRequest) {

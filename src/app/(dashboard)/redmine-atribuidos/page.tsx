@@ -83,6 +83,7 @@ function CelulaTexto({ label, texto, onClick, resolvidoId }: {
 
 export default function RedmineAtribuidosPage() {
   const [registros, setRegistros] = useState<Atribuido[]>([]);
+  const [assystAtivos, setAssystAtivos] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
   const [xlsExporting, setXlsExporting] = useState(false);
@@ -101,6 +102,7 @@ export default function RedmineAtribuidosPage() {
   const [solicitandoObs, setSolicitandoObs] = useState("");
   const [solicitandoOperador, setSolicitandoOperador] = useState("");
   const [filtroAcomp, setFiltroAcomp] = useState(false);
+  const [filtroDevolverTI, setFiltroDevolverTI] = useState(false);
   const [colaboradores, setColaboradores] = useState<{ id: number; nome: string }[]>([]);
 
   useEffect(() => {
@@ -116,7 +118,11 @@ export default function RedmineAtribuidosPage() {
     setLoading(true);
     fetch("/api/redmine-atribuidos")
       .then(r => r.json())
-      .then(d => { setRegistros(d.registros ?? []); setLoading(false); });
+      .then(d => {
+        setRegistros(d.registros ?? []);
+        setAssystAtivos(new Set((d.assystAtivos ?? []).map((n: string) => n.toUpperCase())));
+        setLoading(false);
+      });
   }
 
   useEffect(() => { load(); }, []);
@@ -181,6 +187,13 @@ export default function RedmineAtribuidosPage() {
     return Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
   }
 
+  function assystEncerrado(r: Atribuido): boolean {
+    if (!r.numerosAssyst || assystAtivos.size === 0) return false;
+    const nums = splitAssyst(r.numerosAssyst).map(n => n.toUpperCase());
+    if (nums.length === 0) return false;
+    return nums.every(n => !assystAtivos.has(n));
+  }
+
   const pessoas = [...new Set(registros.map(r => r.atribuidoPara).filter(Boolean) as string[])].sort();
   const contagemPorPessoa = pessoas.map(p => ({
     nome: p,
@@ -189,6 +202,7 @@ export default function RedmineAtribuidosPage() {
   }));
   const buscaLow = busca.toLowerCase();
   const emAcompanhamento = registros.filter(r => r.solicitadoEm).length;
+  const paraDevolver = registros.filter(r => assystEncerrado(r)).length;
   const registrosFiltrados = registros
     .filter(r => !filtroPessoa || r.atribuidoPara === filtroPessoa)
     .filter(r => {
@@ -199,6 +213,7 @@ export default function RedmineAtribuidosPage() {
       return true;
     })
     .filter(r => !filtroAcomp || !!r.solicitadoEm)
+    .filter(r => !filtroDevolverTI || assystEncerrado(r))
     .filter(r => !buscaLow ||
       r.numeroRedmine.toLowerCase().includes(buscaLow) ||
       r.numerosAssyst.toLowerCase().includes(buscaLow) ||
@@ -293,10 +308,13 @@ export default function RedmineAtribuidosPage() {
               <p className={`text-3xl font-bold ${emAtencao > 0 ? "text-yellow-400" : "text-white"}`}>{emAtencao}</p>
               <p className="text-xs mt-1 text-gray-500">{filtroAtraso === "atencao" ? "✓ Filtro ativo — clique para remover" : "⚠ Clique para filtrar"}</p>
             </button>
-            <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
-              <p className="text-xs text-gray-400 mb-1">Responsáveis</p>
-              <p className="text-3xl font-bold text-purple-400">{pessoas.length}</p>
-            </div>
+            <button
+              onClick={() => setFiltroDevolverTI(f => !f)}
+              className={`rounded-xl p-4 border text-left transition cursor-pointer ${filtroDevolverTI ? "ring-2 ring-yellow-400 animate-pulse bg-yellow-950/30 border-yellow-600" : paraDevolver > 0 ? "bg-yellow-950/20 border-yellow-800 hover:border-yellow-600" : "bg-gray-900 border-gray-800 hover:border-gray-600"}`}>
+              <p className="text-xs text-gray-400 mb-1">Devolver à TI</p>
+              <p className={`text-3xl font-bold ${paraDevolver > 0 ? "text-yellow-400" : "text-white"}`}>{paraDevolver}</p>
+              <p className="text-xs mt-1 text-gray-500">{filtroDevolverTI ? "✓ Filtro ativo" : "Assyst encerrado"}</p>
+            </button>
             <button
               onClick={() => setFiltroAcomp(f => !f)}
               className={`rounded-xl p-4 border text-left transition cursor-pointer ${filtroAcomp ? "ring-2 ring-orange-500 animate-pulse bg-orange-950/30 border-orange-600" : emAcompanhamento > 0 ? "bg-orange-950/20 border-orange-800 hover:border-orange-600" : "bg-gray-900 border-gray-800 hover:border-gray-600"}`}>
@@ -426,6 +444,11 @@ export default function RedmineAtribuidosPage() {
                               {n}
                             </a>
                           ))}
+                          {assystEncerrado(r) && (
+                            <span className="mt-0.5 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 whitespace-nowrap">
+                              ⚠ Devolver à TI
+                            </span>
+                          )}
                         </div>
                       ) : <span className="text-gray-500">—</span>}
                     </td>

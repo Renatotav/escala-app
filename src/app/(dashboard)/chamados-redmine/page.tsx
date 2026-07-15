@@ -52,6 +52,7 @@ export default function ChamadosRedminePage() {
   const [importResult, setImportResult] = useState<{ count?: number; error?: string } | null>(null);
   const [filtroAtraso, setFiltroAtraso] = useState(false);
   const [filtroAtencao, setFiltroAtencao] = useState(false);
+  const [busca, setBusca] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
   function load() {
@@ -98,11 +99,12 @@ export default function ChamadosRedminePage() {
   const validos = chamados.filter(c => /^\S+$/.test(c.numero?.trim() ?? "") && !c.numero?.includes(" "));
   const totalAtraso = validos.filter(c => diasDesde(c.dataAbertura) >= 50).length;
   const totalAtencao = validos.filter(c => { const d = diasDesde(c.dataAbertura); return d >= 30 && d < 50; }).length;
-  const filtrados = filtroAtraso
+  const filtrados = (filtroAtraso
     ? validos.filter(c => diasDesde(c.dataAbertura) >= 50)
     : filtroAtencao
       ? validos.filter(c => { const d = diasDesde(c.dataAbertura); return d >= 30 && d < 50; })
-      : validos;
+      : validos
+  ).filter(c => !busca || c.numero.toLowerCase().includes(busca.toLowerCase()));
 
   const datas = validos.map(c => c.dataAbertura).filter(Boolean) as string[];
   const periodoMin = datas.length ? fmtDateTime(datas.reduce((a, b) => a < b ? a : b)) : "—";
@@ -197,6 +199,25 @@ export default function ChamadosRedminePage() {
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
             <p className="text-xs text-gray-400 mb-1">Período dos dados</p>
             <p className="text-xs font-medium text-gray-300 mt-2">{periodoMin.slice(0, 8)} → {periodoMax.slice(0, 8)}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Pesquisa */}
+      {validos.length > 0 && (
+        <div className="mb-4">
+          <div className="relative w-fit">
+            <input
+              type="text"
+              value={busca}
+              onChange={e => setBusca(e.target.value)}
+              placeholder="Pesquisar referência..."
+              className="bg-gray-900 border border-gray-700 text-white text-xs rounded-lg pl-7 pr-7 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[220px]"
+            />
+            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 text-xs pointer-events-none">🔍</span>
+            {busca && (
+              <button onClick={() => setBusca("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white text-xs">✕</button>
+            )}
           </div>
         </div>
       )}

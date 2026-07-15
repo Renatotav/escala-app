@@ -233,6 +233,7 @@ export default function ChamadosPage() {
   const [usuario, setUsuario] = useState("");
   const [equipe, setEquipe] = useState("");
   const [urgentes, setUrgentes] = useState(false);
+  const [busca, setBusca] = useState("");
   const [equipeQuant, setEquipeQuant] = useState("");
   const quantRef = useRef<HTMLDivElement>(null);
 
@@ -255,11 +256,12 @@ export default function ChamadosPage() {
     if (usuario) params.set("usuario", usuario);
     if (equipe) params.set("equipe", equipe);
     if (urgentes) params.set("urgentes", "1");
+    if (busca) params.set("busca", busca);
     fetch(`/api/chamados?${params}`)
       .then((r) => r.json())
       .then(setDados)
       .finally(() => setLoading(false));
-  }, [page, usuario, equipe, urgentes]);
+  }, [page, usuario, equipe, urgentes, busca]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -293,6 +295,7 @@ export default function ChamadosPage() {
     setUsuario("");
     setEquipe("");
     setUrgentes(false);
+    setBusca("");
     setPage(1);
   }
 
@@ -337,6 +340,7 @@ export default function ChamadosPage() {
       if (usuario) params.set("usuario", usuario);
       if (equipe) params.set("equipe", equipe);
       if (urgentes) params.set("urgentes", "1");
+      if (busca) params.set("busca", busca);
       const res = await fetch(`/api/chamados?${params}`);
       const data = await res.json() as { chamados: Array<{ referencia: string; dataRegistro: string | null; nomeDpsAtribuido: string | null; nomeUsuarioAtribuido: string | null; ultimaAcao: string | null }> };
       function esc(s: string) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
@@ -417,7 +421,7 @@ export default function ChamadosPage() {
     loadStats();
   }
 
-  const temFiltro = !!(usuario || equipe || urgentes);
+  const temFiltro = !!(usuario || equipe || urgentes || busca);
 
   function gerarPDF() {
     if (!stats) return;
@@ -678,8 +682,21 @@ export default function ChamadosPage() {
       )}
 
       {/* Lista e filtros — apenas na aba Lista */}
-      {view === "lista" && dados && dados.usuarios.length > 0 && (
+      {view === "lista" && dados && dados.total > 0 && (
         <div className="flex flex-wrap items-center gap-2 mb-4">
+          <div className="relative">
+            <input
+              type="text"
+              value={busca}
+              onChange={e => { setBusca(e.target.value); setPage(1); }}
+              placeholder="Pesquisar referência..."
+              className="bg-gray-900 border border-gray-700 text-white text-xs rounded-lg pl-7 pr-7 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[200px]"
+            />
+            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 text-xs pointer-events-none">🔍</span>
+            {busca && (
+              <button onClick={() => { setBusca(""); setPage(1); }} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white text-xs">✕</button>
+            )}
+          </div>
           {dados.equipes && dados.equipes.length > 0 && (
             <select
               value={equipe}
@@ -691,15 +708,17 @@ export default function ChamadosPage() {
               ))}
             </select>
           )}
-          <select
-            value={usuario}
-            onChange={(e) => setFilter("usuario", e.target.value)}
-            className="bg-gray-900 border border-gray-700 text-white text-xs rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[180px]">
-            <option value="">Todos os atendentes</option>
-            {dados.usuarios.map((u) => (
-              <option key={u} value={u}>{u}</option>
-            ))}
-          </select>
+          {dados.usuarios.length > 0 && (
+            <select
+              value={usuario}
+              onChange={(e) => setFilter("usuario", e.target.value)}
+              className="bg-gray-900 border border-gray-700 text-white text-xs rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[180px]">
+              <option value="">Todos os atendentes</option>
+              {dados.usuarios.map((u) => (
+                <option key={u} value={u}>{u}</option>
+              ))}
+            </select>
+          )}
           {temFiltro && (
             <button
               onClick={clearFilters}

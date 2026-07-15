@@ -90,6 +90,7 @@ export default function RedmineAtribuidosPage() {
   const [importResult, setImportResult] = useState<{ count?: number; error?: string } | null>(null);
   const [filtroPessoa, setFiltroPessoa] = useState("");
   const [filtroAtraso, setFiltroAtraso] = useState<"atraso" | "atencao" | null>(null);
+  const [busca, setBusca] = useState("");
   const [textoModal, setTextoModal] = useState<{ titulo: string; corpo: string; resolvidoId?: number } | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [editValue, setEditValue] = useState("");
@@ -141,6 +142,7 @@ export default function RedmineAtribuidosPage() {
     total: registros.filter(r => r.atribuidoPara === p).length,
     emAtraso: registros.filter(r => r.atribuidoPara === p && (parseDias(r.criadoEm) ?? 0) >= 5).length,
   }));
+  const buscaLow = busca.toLowerCase();
   const registrosFiltrados = registros
     .filter(r => !filtroPessoa || r.atribuidoPara === filtroPessoa)
     .filter(r => {
@@ -149,7 +151,13 @@ export default function RedmineAtribuidosPage() {
       if (filtroAtraso === "atraso") return d >= 5;
       if (filtroAtraso === "atencao") return d >= 3 && d < 5;
       return true;
-    });
+    })
+    .filter(r => !buscaLow ||
+      r.numeroRedmine.toLowerCase().includes(buscaLow) ||
+      r.numerosAssyst.toLowerCase().includes(buscaLow) ||
+      (r.titulo ?? "").toLowerCase().includes(buscaLow) ||
+      (r.atribuidoPara ?? "").toLowerCase().includes(buscaLow)
+    );
 
   function exportXLS() {
     setXlsExporting(true);
@@ -272,6 +280,24 @@ export default function RedmineAtribuidosPage() {
                 className="text-xs px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white border border-gray-700 transition self-center">
                 Limpar filtro
               </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {registros.length > 0 && (
+        <div className="mb-4">
+          <div className="relative w-fit">
+            <input
+              type="text"
+              value={busca}
+              onChange={e => setBusca(e.target.value)}
+              placeholder="Pesquisar chamado..."
+              className="bg-gray-900 border border-gray-700 text-white text-xs rounded-lg pl-7 pr-7 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[220px]"
+            />
+            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 text-xs pointer-events-none">🔍</span>
+            {busca && (
+              <button onClick={() => setBusca("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white text-xs">✕</button>
             )}
           </div>
         </div>

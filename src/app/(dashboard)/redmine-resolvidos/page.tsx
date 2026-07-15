@@ -117,6 +117,7 @@ export default function RedmineResolvidosPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [importResult, setImportResult] = useState<{ count?: number; error?: string } | null>(null);
   const [aba, setAba] = useState<"esquecidos" | "resolvidos">("esquecidos");
+  const [busca, setBusca] = useState("");
   const [textoModal, setTextoModal] = useState<{ titulo: string; corpo: string; assystNums?: string[]; resolvidoId?: number } | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [editValue, setEditValue] = useState("");
@@ -218,10 +219,15 @@ export default function RedmineResolvidosPage() {
     }
   }
 
-  const semResolvido = dados?.esquecidos ?? [];
+  const semResolvidoRaw = dados?.esquecidos ?? [];
   const comResolvido = dados?.encontrados ?? [];
   const resolvidos = dados?.resolvidos ?? [];
   const chamadosMap = dados?.chamadosMap ?? {};
+
+  const buscaLow = busca.toLowerCase();
+  const semResolvido = buscaLow
+    ? semResolvidoRaw.filter(n => n.toLowerCase().includes(buscaLow))
+    : semResolvidoRaw;
 
   // Mapa Assyst# → Resolvido para lookup na aba Encontrados
   const resolvidoMap = new Map<string, Resolvido>();
@@ -241,9 +247,9 @@ export default function RedmineResolvidosPage() {
 
   // "✓ Encontrados" só mostra os que têm ao menos um Assyst presente nos Chamados Redmine
   const encontradosSet = new Set(comResolvido.map(n => n.toUpperCase()));
-  const resolvidosNaRedmine = resolvidos.filter(r =>
-    splitAssyst(r.numerosAssyst).some(n => encontradosSet.has(n.toUpperCase()))
-  );
+  const resolvidosNaRedmine = resolvidos
+    .filter(r => splitAssyst(r.numerosAssyst).some(n => encontradosSet.has(n.toUpperCase())))
+    .filter(r => !buscaLow || r.numeroRedmine.toLowerCase().includes(buscaLow) || r.numerosAssyst.toLowerCase().includes(buscaLow) || (r.titulo ?? "").toLowerCase().includes(buscaLow));
 
   // Set de Redmine# encontrados — usado para badge "✓ Resolvido" nas notas
   const resolvidosRedmineSet = new Set(resolvidosNaRedmine.map(r => r.numeroRedmine.trim()));
@@ -308,6 +314,25 @@ export default function RedmineResolvidosPage() {
             <p className="text-3xl font-bold text-green-400">{comResolvido.length}</p>
             <p className="text-xs text-green-600 mt-1">Clique para ver</p>
           </button>
+        </div>
+      )}
+
+      {/* Pesquisa */}
+      {dados && resolvidos.length > 0 && (
+        <div className="mb-4">
+          <div className="relative w-fit">
+            <input
+              type="text"
+              value={busca}
+              onChange={e => setBusca(e.target.value)}
+              placeholder="Pesquisar chamado..."
+              className="bg-gray-900 border border-gray-700 text-white text-xs rounded-lg pl-7 pr-7 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[220px]"
+            />
+            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 text-xs pointer-events-none">🔍</span>
+            {busca && (
+              <button onClick={() => setBusca("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white text-xs">✕</button>
+            )}
+          </div>
         </div>
       )}
 

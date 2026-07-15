@@ -227,7 +227,7 @@ export default function RedmineAtribuidosPage() {
         const emAtraso = registros.filter(r => (parseDias(r.criadoEm) ?? 0) >= 5).length;
         const emAtencao = registros.filter(r => { const d = parseDias(r.criadoEm) ?? 0; return d >= 3 && d < 5; }).length;
         return (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
               <p className="text-xs text-gray-400 mb-1">Total importados</p>
               <p className="text-3xl font-bold text-blue-400">{registros.length}</p>

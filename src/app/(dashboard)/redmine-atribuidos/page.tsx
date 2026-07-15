@@ -101,6 +101,13 @@ export default function RedmineAtribuidosPage() {
   const [solicitandoObs, setSolicitandoObs] = useState("");
   const [solicitandoOperador, setSolicitandoOperador] = useState("");
   const [filtroAcomp, setFiltroAcomp] = useState(false);
+  const [colaboradores, setColaboradores] = useState<{ id: number; nome: string }[]>([]);
+
+  useEffect(() => {
+    fetch("/api/colaboradores?all=true")
+      .then(r => r.json())
+      .then(d => setColaboradores((d.colaboradores ?? []).filter((c: { ativo: boolean }) => c.ativo)));
+  }, []);
   const fileRef = useRef<HTMLInputElement>(null);
   const topScrollRef = useRef<HTMLDivElement>(null);
   const tableScrollRef = useRef<HTMLDivElement>(null);
@@ -523,8 +530,8 @@ export default function RedmineAtribuidosPage() {
                   className="w-full appearance-none bg-gray-800 border border-gray-600 text-sm rounded-lg px-3 py-2.5 text-gray-200 focus:outline-none focus:border-orange-500 cursor-pointer pr-8"
                 >
                   <option value="">Todos os atendentes</option>
-                  {pessoas.map(p => (
-                    <option key={p} value={p}>{p}</option>
+                  {colaboradores.map(c => (
+                    <option key={c.id} value={c.nome}>{c.nome}</option>
                   ))}
                 </select>
                 <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">▼</span>

@@ -142,14 +142,14 @@ export default function RedmineAtribuidosPage() {
   const contagemPorPessoa = pessoas.map(p => ({
     nome: p,
     total: registros.filter(r => r.atribuidoPara === p).length,
-    emAtraso: registros.filter(r => r.atribuidoPara === p && (parseDias(r.criadoEm) ?? 0) >= 5).length,
+    emAtraso: registros.filter(r => r.atribuidoPara === p && (parseDias(r.alteradoEm) ?? 0) >= 5).length,
   }));
   const buscaLow = busca.toLowerCase();
   const registrosFiltrados = registros
     .filter(r => !filtroPessoa || r.atribuidoPara === filtroPessoa)
     .filter(r => {
       if (!filtroAtraso) return true;
-      const d = parseDias(r.criadoEm) ?? 0;
+      const d = parseDias(r.alteradoEm) ?? 0;
       if (filtroAtraso === "atraso") return d >= 5;
       if (filtroAtraso === "atencao") return d >= 3 && d < 5;
       return true;
@@ -226,8 +226,8 @@ export default function RedmineAtribuidosPage() {
       </div>
 
       {registros.length > 0 && (() => {
-        const emAtraso = registros.filter(r => (parseDias(r.criadoEm) ?? 0) >= 5).length;
-        const emAtencao = registros.filter(r => { const d = parseDias(r.criadoEm) ?? 0; return d >= 3 && d < 5; }).length;
+        const emAtraso = registros.filter(r => (parseDias(r.alteradoEm) ?? 0) >= 5).length;
+        const emAtencao = registros.filter(r => { const d = parseDias(r.alteradoEm) ?? 0; return d >= 3 && d < 5; }).length;
         return (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
@@ -355,13 +355,17 @@ export default function RedmineAtribuidosPage() {
                         </div>
                       ) : <span className="text-gray-500">—</span>}
                     </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      {r.criadoEm
+                        ? <span className="text-xs px-2 py-0.5 rounded-full bg-gray-700/60 text-gray-300 border border-gray-600/40">{r.criadoEm}</span>
+                        : <span className="text-gray-600 text-xs">—</span>}
+                    </td>
                     <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">
                       <div className="flex items-center gap-1.5">
-                        <span>{r.criadoEm ?? "—"}</span>
-                        {(() => { const b = badgeDias(parseDias(r.criadoEm)); return b ? <span title="Chamado atrasado" className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold animate-pulse cursor-help ${b.cls}`}>{b.label}</span> : null; })()}
+                        <span>{r.alteradoEm ?? "—"}</span>
+                        {(() => { const b = badgeDias(parseDias(r.alteradoEm)); return b ? <span title="Chamado atrasado" className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold animate-pulse cursor-help ${b.cls}`}>{b.label}</span> : null; })()}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">{r.alteradoEm ?? "—"}</td>
                     <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">{r.tipo ?? "—"}</td>
                     <td className="px-4 py-3">
                       {r.situacao ? (

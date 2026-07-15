@@ -48,8 +48,8 @@ export default function ChamadosRedminePage() {
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
   const [importModal, setImportModal] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [importResult, setImportResult] = useState<{ count?: number; error?: string } | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [importResult, setImportResult] = useState<{ count?: number; skipped?: number; error?: string } | null>(null);
   const [filtroAtraso, setFiltroAtraso] = useState(false);
   const [filtroAtencao, setFiltroAtencao] = useState(false);
   const [busca, setBusca] = useState("");
@@ -65,29 +65,30 @@ export default function ChamadosRedminePage() {
 
   useEffect(() => { load(); }, []);
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0] ?? null;
-    setSelectedFile(file);
-    setImportResult(null);
-  }
-
   async function handleImport() {
-    if (!selectedFile) return;
+    if (selectedFiles.length === 0) return;
     setImporting(true);
     setImportResult(null);
-    const formData = new FormData();
-    formData.append("file", selectedFile);
-    formData.append("substituir", substituir ? "1" : "0");
-    const res = await fetch("/api/chamados-redmine/import", { method: "POST", body: formData });
-    const data = await res.json();
-    if (res.ok) {
-      setImportResult({ count: data.count });
-      setImportModal(false);
-      setSelectedFile(null);
-      load();
-    } else {
-      setImportResult({ error: data.error ?? "Erro ao importar" });
+    let totalCount = 0;
+    let totalSkipped = 0;
+    for (let i = 0; i < selectedFiles.length; i++) {
+      const formData = new FormData();
+      formData.append("file", selectedFiles[i]);
+      formData.append("substituir", (i === 0 && substituir) ? "1" : "0");
+      const res = await fetch("/api/chamados-redmine/import", { method: "POST", body: formData });
+      const data = await res.json();
+      if (!res.ok) {
+        setImportResult({ error: data.error ?? "Erro ao importar" });
+        setImporting(false);
+        return;
+      }
+      totalCount += data.count ?? 0;
+      totalSkipped += data.skipped ?? 0;
     }
+    setImportResult({ count: totalCount, skipped: totalSkipped });
+    setImportModal(false);
+    setSelectedFiles([]);
+    load();
     setImporting(false);
   }
 
@@ -147,7 +148,7 @@ export default function ChamadosRedminePage() {
               Limpar dados
             </button>
           )}
-          <button onClick={() => { setImportModal(true); setSelectedFile(null); setImportResult(null); }}
+          <button onClick={() => { setImportModal(true); setSelectedFiles([]); setImportResult(null); }}
             className="bg-red-700 hover:bg-red-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
             Importar chamados
           </button>
@@ -297,14 +298,18 @@ export default function ChamadosRedminePage() {
             <div className="border-2 border-dashed border-gray-700 hover:border-red-600 rounded-lg p-6 text-center cursor-pointer transition"
               onClick={() => fileRef.current?.click()}>
               <p className="text-gray-400 text-sm">
-                {selectedFile ? selectedFile.name : "Clique para selecionar o arquivo (.ods / .xlsx)"}
+                {selectedFiles.length === 0
+                  ? "Clique para selecionar arquivo(s) (.ods / .xlsx)"
+                  : selectedFiles.length === 1
+                    ? selectedFiles[0].name
+                    : `${selectedFiles.length} arquivos selecionados`}
               </p>
               {importResult?.error && (
                 <p className="text-red-400 text-xs mt-2">{importResult.error}</p>
               )}
             </div>
-            <input ref={fileRef} type="file" accept=".ods,.xlsx,.xls" className="hidden"
-              onChange={handleFileChange} />
+            <input ref={fileRef} type="file" accept=".ods,.xlsx,.xls" multiple className="hidden"
+              onChange={e => { setSelectedFiles(Array.from(e.target.files ?? [])); setImportResult(null); }} />
             <div className="mt-3 flex items-center gap-4">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="radio" name="modo-redmine" checked={substituir} onChange={() => setSubstituir(true)} className="accent-blue-500" />
@@ -317,11 +322,11 @@ export default function ChamadosRedminePage() {
             </div>
             {substituir && <p className="text-xs text-amber-500/80 mt-1.5">Os dados anteriores serão apagados antes de importar.</p>}
             <div className="flex gap-2 mt-4">
-              <button onClick={() => { setImportModal(false); setSelectedFile(null); setImportResult(null); }}
+              <button onClick={() => { setImportModal(false); setSelectedFiles([]); setImportResult(null); }}
                 className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-lg py-2 transition">
                 Cancelar
               </button>
-              <button onClick={handleImport} disabled={!selectedFile || importing}
+              <button onClick={handleImport} disabled={selectedFiles.length === 0 || importing}
                 className="flex-1 bg-red-700 hover:bg-red-600 disabled:opacity-50 text-white text-sm font-medium rounded-lg py-2 transition">
                 {importing ? "Importando..." : "Importar"}
               </button>

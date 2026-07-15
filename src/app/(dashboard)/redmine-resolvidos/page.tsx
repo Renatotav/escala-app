@@ -114,8 +114,8 @@ export default function RedmineResolvidosPage() {
   const [importing, setImporting] = useState(false);
   const [xlsExporting, setXlsExporting] = useState(false);
   const [importModal, setImportModal] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [importResult, setImportResult] = useState<{ count?: number; error?: string } | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [importResult, setImportResult] = useState<{ count?: number; skipped?: number; error?: string } | null>(null);
   const [aba, setAba] = useState<"esquecidos" | "resolvidos">("esquecidos");
   const [busca, setBusca] = useState("");
   const [substituir, setSubstituir] = useState(true);
@@ -137,20 +137,23 @@ export default function RedmineResolvidosPage() {
   useEffect(() => { load(); }, []);
 
   async function handleImport() {
-    if (!selectedFile) return;
+    if (selectedFiles.length === 0) return;
     setImporting(true);
     setImportResult(null);
-    const text = await selectedFile.text();
+    const texts = await Promise.all(selectedFiles.map(f => f.text()));
+    const combined = texts[0] + (texts.length > 1
+      ? "\n" + texts.slice(1).map(t => t.split("\n").slice(1).join("\n")).join("\n")
+      : "");
     const res = await fetch(`/api/redmine-resolvidos?substituir=${substituir ? "1" : "0"}`, {
       method: "POST",
       headers: { "Content-Type": "text/plain" },
-      body: text,
+      body: combined,
     });
     const data = await res.json();
     if (res.ok) {
-      setImportResult({ count: data.count });
+      setImportResult({ count: data.count, skipped: data.skipped });
       setImportModal(false);
-      setSelectedFile(null);
+      setSelectedFiles([]);
       load();
     } else {
       setImportResult({ error: data.error ?? "Erro ao importar" });
@@ -283,7 +286,7 @@ export default function RedmineResolvidosPage() {
               </button>
             </>
           )}
-          <button onClick={() => { setImportModal(true); setSelectedFile(null); setImportResult(null); }}
+          <button onClick={() => { setImportModal(true); setSelectedFiles([]); setImportResult(null); }}
             className="bg-green-700 hover:bg-green-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
             Importar Resolvidos
           </button>
@@ -525,17 +528,18 @@ export default function RedmineResolvidosPage() {
             <div className="border-2 border-dashed border-gray-700 hover:border-green-600 rounded-lg p-6 text-center cursor-pointer transition"
               onClick={() => fileRef.current?.click()}>
               <p className="text-gray-400 text-sm">
-                {selectedFile ? selectedFile.name : "Clique para selecionar o arquivo (.csv)"}
+                {selectedFiles.length === 0 ? "Clique para selecionar os arquivos (.csv)" : selectedFiles.length === 1 ? selectedFiles[0].name : `${selectedFiles.length} arquivos selecionados`}
               </p>
+              {selectedFiles.length > 1 && <p className="text-xs text-gray-500 mt-1">{selectedFiles.map(f => f.name).join(", ")}</p>}
               {importResult?.error && <p className="text-red-400 text-xs mt-2">{importResult.error}</p>}
             </div>
-            <input ref={fileRef} type="file" accept=".csv,.txt" className="hidden" onChange={e => { setSelectedFile(e.target.files?.[0] ?? null); setImportResult(null); }} />
+            <input ref={fileRef} type="file" accept=".csv,.txt" multiple className="hidden" onChange={e => { setSelectedFiles(Array.from(e.target.files ?? [])); setImportResult(null); }} />
             <div className="flex gap-2 mt-4">
-              <button onClick={() => { setImportModal(false); setSelectedFile(null); setImportResult(null); }}
+              <button onClick={() => { setImportModal(false); setSelectedFiles([]); setImportResult(null); }}
                 className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-lg py-2 transition">
                 Cancelar
               </button>
-              <button onClick={handleImport} disabled={!selectedFile || importing}
+              <button onClick={handleImport} disabled={selectedFiles.length === 0 || importing}
                 className="flex-1 bg-green-700 hover:bg-green-600 disabled:opacity-50 text-white text-sm font-medium rounded-lg py-2 transition">
                 {importing ? "Importando..." : "Importar"}
               </button>

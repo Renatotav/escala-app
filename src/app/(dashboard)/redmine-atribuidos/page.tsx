@@ -14,6 +14,8 @@ type Atribuido = {
   alteradoEm: string | null;
   descricao: string | null;
   ultimasNotas: string | null;
+  solicitadoEm: string | null;
+  solicitadoObs: string | null;
 };
 
 function splitAssyst(raw: string): string[] {
@@ -94,6 +96,9 @@ export default function RedmineAtribuidosPage() {
   const [editMode, setEditMode] = useState(false);
   const [editValue, setEditValue] = useState("");
   const [saving, setSaving] = useState(false);
+  const [solicitandoId, setSolicitandoId] = useState<number | null>(null);
+  const [solicitandoObs, setSolicitandoObs] = useState("");
+  const [filtroAcomp, setFiltroAcomp] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const topScrollRef = useRef<HTMLDivElement>(null);
   const tableScrollRef = useRef<HTMLDivElement>(null);
@@ -138,6 +143,33 @@ export default function RedmineAtribuidosPage() {
     load();
   }
 
+  async function salvarSolicitado(id: number, obs: string) {
+    setSaving(true);
+    await fetch("/api/redmine-atribuidos", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, solicitadoEm: new Date().toISOString(), solicitadoObs: obs }),
+    });
+    setSaving(false);
+    setSolicitandoId(null);
+    setSolicitandoObs("");
+    setRegistros(rs => rs.map(r => r.id === id ? { ...r, solicitadoEm: new Date().toISOString(), solicitadoObs: obs } : r));
+  }
+
+  async function limparSolicitado(id: number) {
+    await fetch("/api/redmine-atribuidos", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, limparSolicitado: true }),
+    });
+    setRegistros(rs => rs.map(r => r.id === id ? { ...r, solicitadoEm: null, solicitadoObs: null } : r));
+  }
+
+  function diasSolicitado(iso: string | null): number | null {
+    if (!iso) return null;
+    return Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+  }
+
   const pessoas = [...new Set(registros.map(r => r.atribuidoPara).filter(Boolean) as string[])].sort();
   const contagemPorPessoa = pessoas.map(p => ({
     nome: p,
@@ -145,6 +177,7 @@ export default function RedmineAtribuidosPage() {
     emAtraso: registros.filter(r => r.atribuidoPara === p && (parseDias(r.alteradoEm) ?? 0) >= 5).length,
   }));
   const buscaLow = busca.toLowerCase();
+  const emAcompanhamento = registros.filter(r => r.solicitadoEm).length;
   const registrosFiltrados = registros
     .filter(r => !filtroPessoa || r.atribuidoPara === filtroPessoa)
     .filter(r => {
@@ -154,6 +187,7 @@ export default function RedmineAtribuidosPage() {
       if (filtroAtraso === "atencao") return d >= 3 && d < 5;
       return true;
     })
+    .filter(r => !filtroAcomp || !!r.solicitadoEm)
     .filter(r => !buscaLow ||
       r.numeroRedmine.toLowerCase().includes(buscaLow) ||
       r.numerosAssyst.toLowerCase().includes(buscaLow) ||
@@ -229,7 +263,7 @@ export default function RedmineAtribuidosPage() {
         const emAtraso = registros.filter(r => (parseDias(r.alteradoEm) ?? 0) >= 5).length;
         const emAtencao = registros.filter(r => { const d = parseDias(r.alteradoEm) ?? 0; return d >= 3 && d < 5; }).length;
         return (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
             <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
               <p className="text-xs text-gray-400 mb-1">Total importados</p>
               <p className="text-3xl font-bold text-blue-400">{registros.length}</p>
@@ -252,6 +286,13 @@ export default function RedmineAtribuidosPage() {
               <p className="text-xs text-gray-400 mb-1">Responsáveis</p>
               <p className="text-3xl font-bold text-purple-400">{pessoas.length}</p>
             </div>
+            <button
+              onClick={() => setFiltroAcomp(f => !f)}
+              className={`rounded-xl p-4 border text-left transition cursor-pointer ${filtroAcomp ? "ring-2 ring-orange-500 animate-pulse bg-orange-950/30 border-orange-600" : emAcompanhamento > 0 ? "bg-orange-950/20 border-orange-800 hover:border-orange-600" : "bg-gray-900 border-gray-800 hover:border-gray-600"}`}>
+              <p className="text-xs text-gray-400 mb-1">Em acompanhamento</p>
+              <p className={`text-3xl font-bold ${emAcompanhamento > 0 ? "text-orange-400" : "text-white"}`}>{emAcompanhamento}</p>
+              <p className="text-xs mt-1 text-gray-500">{filtroAcomp ? "✓ Filtro ativo" : "📌 Clique para filtrar"}</p>
+            </button>
           </div>
         );
       })()}
@@ -320,6 +361,7 @@ export default function RedmineAtribuidosPage() {
           <table className="w-full min-w-[1100px] text-sm">
             <thead>
               <tr className="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wide">
+                <th className="text-left px-4 py-3 whitespace-nowrap">Acomp.</th>
                 <th className="text-left px-4 py-3 whitespace-nowrap">Redmine #</th>
                 <th className="text-left px-4 py-3 whitespace-nowrap">Nº Assyst</th>
                 <th className="text-left px-4 py-3 whitespace-nowrap">Criado em</th>
@@ -336,7 +378,27 @@ export default function RedmineAtribuidosPage() {
               {registrosFiltrados.map(r => {
                 const nums = splitAssyst(r.numerosAssyst);
                 return (
-                  <tr key={r.id} className="border-b border-gray-800 last:border-0 hover:bg-gray-800/50 transition">
+                  <tr key={r.id} className={`border-b border-gray-800 last:border-0 hover:bg-gray-800/50 transition ${r.solicitadoEm ? "border-l-2 border-l-orange-500/60" : ""}`}>
+                    <td className="px-3 py-3 whitespace-nowrap">
+                      {r.solicitadoEm ? (
+                        <div className="flex flex-col gap-1">
+                          <button
+                            title={r.solicitadoObs ?? "Em acompanhamento"}
+                            onClick={() => { setSolicitandoId(r.id); setSolicitandoObs(r.solicitadoObs ?? ""); }}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-300 border border-orange-500/30 text-xs font-medium hover:bg-orange-500/30 transition cursor-pointer">
+                            📌 {diasSolicitado(r.solicitadoEm) === 0 ? "hoje" : `${diasSolicitado(r.solicitadoEm)}d`}
+                          </button>
+                          <button onClick={() => limparSolicitado(r.id)} className="text-xs text-gray-600 hover:text-red-400 transition text-left">✕ limpar</button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => { setSolicitandoId(r.id); setSolicitandoObs(""); }}
+                          className="text-gray-600 hover:text-orange-400 transition text-lg leading-none"
+                          title="Marcar em acompanhamento">
+                          📌
+                        </button>
+                      )}
+                    </td>
                     <td className="px-4 py-3">
                       <a href={redmineUrl(r.numeroRedmine)} target="_blank" rel="noopener noreferrer"
                         className="font-mono text-xs text-blue-400 hover:text-blue-300 hover:underline transition">
@@ -437,6 +499,31 @@ export default function RedmineAtribuidosPage() {
                 {textoModal.corpo}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Modal acompanhamento */}
+      {solicitandoId !== null && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4" onClick={() => { setSolicitandoId(null); setSolicitandoObs(""); }}>
+          <div className="bg-gray-900 border border-gray-700 rounded-xl w-full max-w-md p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <h3 className="text-sm font-semibold text-white mb-1">📌 Marcar em acompanhamento</h3>
+            <p className="text-xs text-gray-400 mb-4">Descreva o que foi solicitado ao operador. A data de hoje será registrada automaticamente.</p>
+            <textarea
+              value={solicitandoObs}
+              onChange={e => setSolicitandoObs(e.target.value)}
+              placeholder="Ex: Verificando com o usuário se o problema foi resolvido após a atualização..."
+              rows={4}
+              className="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-200 resize-y focus:outline-none focus:border-orange-500 placeholder-gray-600"
+            />
+            <div className="flex gap-2 mt-4">
+              <button onClick={() => { setSolicitandoId(null); setSolicitandoObs(""); }}
+                className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-lg py-2 transition">Cancelar</button>
+              <button onClick={() => salvarSolicitado(solicitandoId, solicitandoObs)} disabled={saving}
+                className="flex-1 bg-orange-600 hover:bg-orange-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg py-2 transition">
+                {saving ? "Salvando..." : "Salvar"}
+              </button>
+            </div>
           </div>
         </div>
       )}

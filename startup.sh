@@ -180,6 +180,8 @@ async function migrate() {
   try { await client.query(\`ALTER TABLE \"RedmineAtribuido\" ADD COLUMN IF NOT EXISTS \"atribuidoPara\" TEXT\`); } catch(e) {}
   try { await client.query(\`ALTER TABLE \"RedmineAtribuido\" ADD COLUMN IF NOT EXISTS \"dataPrevista\" TEXT\`); } catch(e) {}
   try { await client.query(\`ALTER TABLE \"RedmineAtribuido\" ADD COLUMN IF NOT EXISTS \"alteradoEm\" TEXT\`); } catch(e) {}
+  try { await client.query(\`ALTER TABLE \"RedmineAtribuido\" ADD COLUMN IF NOT EXISTS \"solicitadoEm\" TIMESTAMP(3)\`); } catch(e) {}
+  try { await client.query(\`ALTER TABLE \"RedmineAtribuido\" ADD COLUMN IF NOT EXISTS \"solicitadoObs\" TEXT\`); } catch(e) {}
   // ConfiguracaoSistema
   await client.query(\`CREATE TABLE IF NOT EXISTS \"ConfiguracaoSistema\" (
     \"chave\" TEXT PRIMARY KEY,

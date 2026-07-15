@@ -251,6 +251,8 @@ model RedmineAtribuido {
   alteradoEm    String?
   descricao      String?
   ultimasNotas   String?
+  solicitadoEm   DateTime?
+  solicitadoObs  String?
   createdAt      DateTime @default(now())
 }
 

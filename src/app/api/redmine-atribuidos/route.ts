@@ -101,21 +101,38 @@ export async function POST(request: NextRequest) {
   let skipped = 0;
 
   if (substituir) {
+    // Preserva marcações de acompanhamento antes de apagar
+    const existingMarcacoes = await prisma.redmineAtribuido.findMany({
+      select: { numeroRedmine: true, solicitadoEm: true, solicitadoObs: true },
+      where: { solicitadoEm: { not: null } },
+    });
+    const marcacoesMap = new Map(existingMarcacoes.map(e => [e.numeroRedmine, { solicitadoEm: e.solicitadoEm, solicitadoObs: e.solicitadoObs }]));
     await prisma.redmineAtribuido.deleteMany();
+    const dataComMarcacoes = insertData.map(r => {
+      const m = marcacoesMap.get(r.numeroRedmine);
+      return m ? { ...r, solicitadoEm: m.solicitadoEm, solicitadoObs: m.solicitadoObs } : r;
+    });
+    await prisma.redmineAtribuido.createMany({ data: dataComMarcacoes });
   } else {
     const existing = await prisma.redmineAtribuido.findMany({ select: { numeroRedmine: true } });
     const existingSet = new Set(existing.map(e => e.numeroRedmine));
     insertData = registros.filter(r => !existingSet.has(r.numeroRedmine));
     skipped = registros.length - insertData.length;
+    await prisma.redmineAtribuido.createMany({ data: insertData });
   }
 
-  await prisma.redmineAtribuido.createMany({ data: insertData });
   return NextResponse.json({ count: insertData.length, skipped });
 }
 
 export async function PATCH(request: NextRequest) {
-  const { id, ultimasNotas } = await request.json();
-  await prisma.redmineAtribuido.update({ where: { id }, data: { ultimasNotas } });
+  const { id, ultimasNotas, solicitadoEm, solicitadoObs, limparSolicitado } = await request.json();
+  if (limparSolicitado) {
+    await prisma.redmineAtribuido.update({ where: { id }, data: { solicitadoEm: null, solicitadoObs: null } });
+  } else if (solicitadoEm !== undefined) {
+    await prisma.redmineAtribuido.update({ where: { id }, data: { solicitadoEm: new Date(solicitadoEm), solicitadoObs: solicitadoObs ?? null } });
+  } else {
+    await prisma.redmineAtribuido.update({ where: { id }, data: { ultimasNotas } });
+  }
   return NextResponse.json({ ok: true });
 }
 

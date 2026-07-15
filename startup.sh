@@ -23,6 +23,7 @@ async function migrate() {
     'ALTER TABLE \"Colaborador\" ADD COLUMN IF NOT EXISTS \"telefoneEmerg\" TEXT',
     'ALTER TABLE \"Colaborador\" ADD COLUMN IF NOT EXISTS \"nomeEmerg\" TEXT',
     'ALTER TABLE \"Colaborador\" ADD COLUMN IF NOT EXISTS \"endereco\" TEXT',
+    'ALTER TABLE \"Colaborador\" ADD COLUMN IF NOT EXISTS \"alergia\" TEXT',
   ];
   for (const sql of cols) await client.query(sql);
 

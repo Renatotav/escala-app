@@ -46,6 +46,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       telefoneEmerg: body.telefoneEmerg || null,
       nomeEmerg: body.nomeEmerg || null,
       endereco: body.endereco || null,
+      alergia: body.alergia || null,
     },
     include: { equipe: true },
   });

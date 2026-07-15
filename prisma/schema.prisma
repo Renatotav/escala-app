@@ -32,6 +32,7 @@ model Colaborador {
   telefoneEmerg   String?
   nomeEmerg       String?
   endereco        String?
+  alergia         String?
   escalas         EscalaSemana[]
   pontos          RegistroPonto[]
   folgas          Folga[]

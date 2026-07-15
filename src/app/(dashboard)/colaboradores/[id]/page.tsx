@@ -13,7 +13,7 @@ type Colaborador = {
   id: number; nome: string; cargo: string | null; matricula: string | null; ativo: boolean;
   equipe: Equipe;
   dataNascimento: string | null; cpf: string | null; email: string | null;
-  telefone: string | null; telefoneEmerg: string | null; nomeEmerg: string | null; endereco: string | null;
+  telefone: string | null; telefoneEmerg: string | null; nomeEmerg: string | null; endereco: string | null; alergia: string | null;
   tokenAtendimento: string | null; ultimoAcessoAtendimento: string | null; acessosAtendimento: number;
   plantoes: Plantao[]; atestados: Atestado[]; feedbacks: Feedback[]; ocorrencias: Ocorrencia[];
 };
@@ -37,7 +37,7 @@ export default function FichaPage() {
   const [tab, setTab] = useState<"dados" | "plantoes" | "feedbacks" | "ocorrencias" | "atestados">(initialTab);
   const [cidDescricoes, setCidDescricoes] = useState<Record<string, string>>({});
   const [editando, setEditando] = useState(false);
-  const [dadosForm, setDadosForm] = useState({ dataNascimento: "", cpf: "", email: "", telefone: "", telefoneEmerg: "", nomeEmerg: "", endereco: "" });
+  const [dadosForm, setDadosForm] = useState({ dataNascimento: "", cpf: "", email: "", telefone: "", telefoneEmerg: "", nomeEmerg: "", endereco: "", alergia: "" });
   const [saving, setSaving] = useState(false);
   const [modalFeedback, setModalFeedback] = useState(false);
   const [formFeedback, setFormFeedback] = useState(emptyFeedback);
@@ -57,6 +57,7 @@ export default function FichaPage() {
         cpf: data.cpf ?? "", email: data.email ?? "",
         telefone: data.telefone ?? "", telefoneEmerg: data.telefoneEmerg ?? "",
         nomeEmerg: data.nomeEmerg ?? "", endereco: data.endereco ?? "",
+        alergia: data.alergia ?? "",
       });
     });
   }
@@ -200,6 +201,14 @@ export default function FichaPage() {
                     onChange={e => setDadosForm(f => ({ ...f, endereco: e.target.value }))}
                     className={inputCls} />
                 : <p className="text-sm text-gray-300">{dadosForm.endereco || "—"}</p>}
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-xs text-gray-500 mb-1">Alergias</label>
+              {editando
+                ? <input value={dadosForm.alergia} placeholder="Ex: Dipirona, Penicilina, látex..."
+                    onChange={e => setDadosForm(f => ({ ...f, alergia: e.target.value }))}
+                    className={inputCls} />
+                : <p className="text-sm text-gray-300">{dadosForm.alergia || "—"}</p>}
             </div>
           </div>
         </div>

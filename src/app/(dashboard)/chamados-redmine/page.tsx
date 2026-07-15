@@ -19,7 +19,7 @@ function diasDesde(dataAbertura: string | null): number {
 function DiasBadge({ dias }: { dias: number }) {
   if (dias >= 50) {
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-600 text-white text-xs font-bold animate-pulse">
+      <span title="Chamado atrasado" className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-600 text-white text-xs font-bold animate-pulse">
         ⚠ {dias}d
       </span>
     );

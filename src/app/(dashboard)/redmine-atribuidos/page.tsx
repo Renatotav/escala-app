@@ -89,6 +89,7 @@ export default function RedmineAtribuidosPage() {
   const [filtroPessoa, setFiltroPessoa] = useState("");
   const [filtroAtraso, setFiltroAtraso] = useState<"atraso" | "atencao" | null>(null);
   const [busca, setBusca] = useState("");
+  const [substituir, setSubstituir] = useState(true);
   const [textoModal, setTextoModal] = useState<{ titulo: string; corpo: string; resolvidoId?: number } | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [editValue, setEditValue] = useState("");
@@ -111,7 +112,7 @@ export default function RedmineAtribuidosPage() {
     setImporting(true);
     setImportResult(null);
     const text = await selectedFile.text();
-    const res = await fetch("/api/redmine-atribuidos", {
+    const res = await fetch(`/api/redmine-atribuidos?substituir=${substituir ? "1" : "0"}`, {
       method: "POST",
       headers: { "Content-Type": "text/plain" },
       body: text,
@@ -438,7 +439,18 @@ export default function RedmineAtribuidosPage() {
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4">
           <div className="bg-gray-900 border border-gray-800 rounded-xl w-full max-w-md p-6">
             <h3 className="text-base font-semibold text-white mb-1">Importar Redmine Atribuídos</h3>
-            <p className="text-xs text-gray-400 mb-4">Selecione o arquivo CSV exportado do Redmine com os chamados atribuídos.</p>
+            <p className="text-xs text-gray-400 mb-3">Selecione o arquivo CSV exportado do Redmine com os chamados atribuídos.</p>
+            <div className="mb-3 flex items-center gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="modo-atribuidos" checked={substituir} onChange={() => setSubstituir(true)} className="accent-blue-500" />
+                <span className="text-sm text-gray-300">Substituir todos os dados</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="modo-atribuidos" checked={!substituir} onChange={() => setSubstituir(false)} className="accent-blue-500" />
+                <span className="text-sm text-gray-300">Adicionar aos existentes</span>
+              </label>
+            </div>
+            {substituir && <p className="text-xs text-amber-500/80 mb-3">Os dados anteriores serão apagados antes de importar.</p>}
             <div className="border-2 border-dashed border-gray-700 hover:border-blue-600 rounded-lg p-6 text-center cursor-pointer transition"
               onClick={() => fileRef.current?.click()}>
               <p className="text-gray-400 text-sm">

@@ -95,9 +95,22 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    await prisma.chamadoRedmine.deleteMany({});
+    const substituir = formData.get("substituir") !== "0";
+
+    let insertRows = rows;
+    let skipped = 0;
+
+    if (substituir) {
+      await prisma.chamadoRedmine.deleteMany({});
+    } else {
+      const existing = await prisma.chamadoRedmine.findMany({ select: { numero: true } });
+      const existingSet = new Set(existing.map(e => e.numero));
+      insertRows = rows.filter(r => !existingSet.has(r.numero));
+      skipped = rows.length - insertRows.length;
+    }
+
     await prisma.chamadoRedmine.createMany({
-      data: rows.map(r => ({
+      data: insertRows.map(r => ({
         numero: r.numero,
         dataAbertura: r.dataAbertura ? new Date(r.dataAbertura) : null,
         equipeAtribuida: r.equipeAtribuida || null,
@@ -106,7 +119,7 @@ export async function POST(request: NextRequest) {
       })),
     });
 
-    return NextResponse.json({ ok: true, count: rows.length });
+    return NextResponse.json({ ok: true, count: insertRows.length, skipped });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("Import error:", msg);

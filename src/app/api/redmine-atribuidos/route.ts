@@ -94,9 +94,23 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  await prisma.redmineAtribuido.deleteMany();
-  await prisma.redmineAtribuido.createMany({ data: registros });
-  return NextResponse.json({ count: registros.length });
+  const { searchParams } = new URL(request.url);
+  const substituir = searchParams.get("substituir") !== "0";
+
+  let insertData = registros;
+  let skipped = 0;
+
+  if (substituir) {
+    await prisma.redmineAtribuido.deleteMany();
+  } else {
+    const existing = await prisma.redmineAtribuido.findMany({ select: { numeroRedmine: true } });
+    const existingSet = new Set(existing.map(e => e.numeroRedmine));
+    insertData = registros.filter(r => !existingSet.has(r.numeroRedmine));
+    skipped = registros.length - insertData.length;
+  }
+
+  await prisma.redmineAtribuido.createMany({ data: insertData });
+  return NextResponse.json({ count: insertData.length, skipped });
 }
 
 export async function PATCH(request: NextRequest) {

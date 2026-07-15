@@ -53,6 +53,7 @@ export default function ChamadosRedminePage() {
   const [filtroAtraso, setFiltroAtraso] = useState(false);
   const [filtroAtencao, setFiltroAtencao] = useState(false);
   const [busca, setBusca] = useState("");
+  const [substituir, setSubstituir] = useState(true);
   const fileRef = useRef<HTMLInputElement>(null);
 
   function load() {
@@ -76,6 +77,7 @@ export default function ChamadosRedminePage() {
     setImportResult(null);
     const formData = new FormData();
     formData.append("file", selectedFile);
+    formData.append("substituir", substituir ? "1" : "0");
     const res = await fetch("/api/chamados-redmine/import", { method: "POST", body: formData });
     const data = await res.json();
     if (res.ok) {
@@ -291,7 +293,7 @@ export default function ChamadosRedminePage() {
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4">
           <div className="bg-gray-900 border border-gray-800 rounded-xl w-full max-w-md p-6">
             <h3 className="text-base font-semibold text-white mb-1">Importar Chamados Redmine</h3>
-            <p className="text-xs text-gray-400 mb-4">Selecione o arquivo exportado do Power BI (.ods ou .xlsx). Os dados anteriores serão substituídos.</p>
+            <p className="text-xs text-gray-400 mb-4">Selecione o arquivo exportado do Power BI (.ods ou .xlsx).</p>
             <div className="border-2 border-dashed border-gray-700 hover:border-red-600 rounded-lg p-6 text-center cursor-pointer transition"
               onClick={() => fileRef.current?.click()}>
               <p className="text-gray-400 text-sm">
@@ -303,6 +305,17 @@ export default function ChamadosRedminePage() {
             </div>
             <input ref={fileRef} type="file" accept=".ods,.xlsx,.xls" className="hidden"
               onChange={handleFileChange} />
+            <div className="mt-3 flex items-center gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="modo-redmine" checked={substituir} onChange={() => setSubstituir(true)} className="accent-blue-500" />
+                <span className="text-sm text-gray-300">Substituir todos os dados</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="modo-redmine" checked={!substituir} onChange={() => setSubstituir(false)} className="accent-blue-500" />
+                <span className="text-sm text-gray-300">Adicionar aos existentes</span>
+              </label>
+            </div>
+            {substituir && <p className="text-xs text-amber-500/80 mt-1.5">Os dados anteriores serão apagados antes de importar.</p>}
             <div className="flex gap-2 mt-4">
               <button onClick={() => { setImportModal(false); setSelectedFile(null); setImportResult(null); }}
                 className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-lg py-2 transition">

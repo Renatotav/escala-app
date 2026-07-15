@@ -248,7 +248,7 @@ model RedmineAtribuido {
   situacao       String?
   titulo         String?
   atribuidoPara  String?
-  dataPrevista   String?
+  alteradoEm    String?
   descricao      String?
   ultimasNotas   String?
   createdAt      DateTime @default(now())

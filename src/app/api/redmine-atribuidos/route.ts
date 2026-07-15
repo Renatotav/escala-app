@@ -57,12 +57,12 @@ export async function POST(request: NextRequest) {
 
   const iId      = idx(["chamadoredmine", "redmine", "", "numero", "id"]);
   const iAssyst  = idx(["assyst", "nchamado", "chamado"]);
-  const iCriado  = idx(["criadoem", "criado", "data"]);
+  const iCriado  = idx(["criadoem", "criado", "datacriacao"]);
+  const iAlter   = idx(["alteradoem", "alterado", "atualizadoem", "atualizado", "updated"]);
   const iTipo    = idx(["tipo"]);
   const iSit     = idx(["situacao", "situac"]);
   const iTitulo  = idx(["titulo", "title"]);
   const iAtrib   = idx(["atribuidopara", "atribuido", "responsavel"]);
-  const iPrev    = idx(["dataprevista", "prevista", "prazo"]);
   const iDesc    = idx(["descricao", "descri", "description"]);
   const iNota    = idx(["ultimasnota", "notas", "nota"]);
 
@@ -84,11 +84,11 @@ export async function POST(request: NextRequest) {
       numeroRedmine: numeroRedmine.trim(),
       numerosAssyst: numerosAssyst.trim(),
       criadoEm:     r[iCriado]?.trim() || null,
+      alteradoEm:   r[iAlter]?.trim()  || null,
       tipo:         r[iTipo]?.trim()   || null,
       situacao:     r[iSit]?.trim()    || null,
       titulo:       r[iTitulo]?.trim() || null,
       atribuidoPara: r[iAtrib]?.trim() || null,
-      dataPrevista:  r[iPrev]?.trim()  || null,
       descricao:    r[iDesc]?.trim()   || null,
       ultimasNotas: r[iNota]?.trim()   || null,
     });

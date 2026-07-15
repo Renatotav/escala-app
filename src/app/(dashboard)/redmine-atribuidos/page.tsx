@@ -50,11 +50,9 @@ function redmineUrl(num: string) {
 
 function corSituacao(sit: string) {
   const s = sit.toLowerCase();
-  if (s.includes("resolv") || s.includes("implant") || s.includes("fechad"))
-    return "bg-green-500/20 text-green-400 border border-green-500/30";
   if (s.includes("cancelad"))
     return "bg-gray-600/30 text-gray-400 border border-gray-500/30";
-  return "bg-blue-500/20 text-blue-400 border border-blue-500/30";
+  return "bg-green-500/20 text-green-400 border border-green-500/30";
 }
 
 function preview(texto: string, max = 55): string {
@@ -227,7 +225,7 @@ export default function RedmineAtribuidosPage() {
         const emAtraso = registros.filter(r => (parseDias(r.criadoEm) ?? 0) >= 5).length;
         const emAtencao = registros.filter(r => { const d = parseDias(r.criadoEm) ?? 0; return d >= 3 && d < 5; }).length;
         return (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
               <p className="text-xs text-gray-400 mb-1">Total importados</p>
               <p className="text-3xl font-bold text-blue-400">{registros.length}</p>
@@ -246,6 +244,10 @@ export default function RedmineAtribuidosPage() {
               <p className={`text-3xl font-bold ${emAtencao > 0 ? "text-yellow-400" : "text-white"}`}>{emAtencao}</p>
               <p className="text-xs mt-1 text-gray-500">{filtroAtraso === "atencao" ? "✓ Filtro ativo — clique para remover" : "⚠ Clique para filtrar"}</p>
             </button>
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+              <p className="text-xs text-gray-400 mb-1">Responsáveis</p>
+              <p className="text-3xl font-bold text-purple-400">{pessoas.length}</p>
+            </div>
           </div>
         );
       })()}

@@ -355,7 +355,7 @@ export default function RedmineAtribuidosPage() {
                         {(() => { const b = badgeDias(parseDias(r.criadoEm)); return b ? <span title="Chamado atrasado" className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold animate-pulse cursor-help ${b.cls}`}>{b.label}</span> : null; })()}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-400">{r.tipo ?? "—"}</td>
+                    <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">{r.tipo ?? "—"}</td>
                     <td className="px-4 py-3">
                       {r.situacao ? (
                         <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${corSituacao(r.situacao)}`}>

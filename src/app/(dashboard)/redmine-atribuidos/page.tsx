@@ -16,6 +16,7 @@ type Atribuido = {
   ultimasNotas: string | null;
   solicitadoEm: string | null;
   solicitadoObs: string | null;
+  solicitadoOperador: string | null;
 };
 
 function splitAssyst(raw: string): string[] {
@@ -98,6 +99,7 @@ export default function RedmineAtribuidosPage() {
   const [saving, setSaving] = useState(false);
   const [solicitandoId, setSolicitandoId] = useState<number | null>(null);
   const [solicitandoObs, setSolicitandoObs] = useState("");
+  const [solicitandoOperador, setSolicitandoOperador] = useState("");
   const [filtroAcomp, setFiltroAcomp] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const topScrollRef = useRef<HTMLDivElement>(null);
@@ -143,17 +145,19 @@ export default function RedmineAtribuidosPage() {
     load();
   }
 
-  async function salvarSolicitado(id: number, obs: string) {
+  async function salvarSolicitado(id: number, obs: string, operador: string) {
     setSaving(true);
+    const agora = new Date().toISOString();
     await fetch("/api/redmine-atribuidos", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, solicitadoEm: new Date().toISOString(), solicitadoObs: obs }),
+      body: JSON.stringify({ id, solicitadoEm: agora, solicitadoObs: obs, solicitadoOperador: operador || null }),
     });
     setSaving(false);
     setSolicitandoId(null);
     setSolicitandoObs("");
-    setRegistros(rs => rs.map(r => r.id === id ? { ...r, solicitadoEm: new Date().toISOString(), solicitadoObs: obs } : r));
+    setSolicitandoOperador("");
+    setRegistros(rs => rs.map(r => r.id === id ? { ...r, solicitadoEm: agora, solicitadoObs: obs, solicitadoOperador: operador || null } : r));
   }
 
   async function limparSolicitado(id: number) {
@@ -162,7 +166,7 @@ export default function RedmineAtribuidosPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, limparSolicitado: true }),
     });
-    setRegistros(rs => rs.map(r => r.id === id ? { ...r, solicitadoEm: null, solicitadoObs: null } : r));
+    setRegistros(rs => rs.map(r => r.id === id ? { ...r, solicitadoEm: null, solicitadoObs: null, solicitadoOperador: null } : r));
   }
 
   function diasSolicitado(iso: string | null): number | null {
@@ -384,15 +388,16 @@ export default function RedmineAtribuidosPage() {
                         <div className="flex flex-col gap-1">
                           <button
                             title={r.solicitadoObs ?? "Em acompanhamento"}
-                            onClick={() => { setSolicitandoId(r.id); setSolicitandoObs(r.solicitadoObs ?? ""); }}
+                            onClick={() => { setSolicitandoId(r.id); setSolicitandoObs(r.solicitadoObs ?? ""); setSolicitandoOperador(r.solicitadoOperador ?? ""); }}
                             className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-300 border border-orange-500/30 text-xs font-medium hover:bg-orange-500/30 transition cursor-pointer">
                             📌 {diasSolicitado(r.solicitadoEm) === 0 ? "hoje" : `${diasSolicitado(r.solicitadoEm)}d`}
+                            {r.solicitadoOperador && <span className="ml-0.5 opacity-80">· {r.solicitadoOperador.split(" ")[0]}</span>}
                           </button>
                           <button onClick={() => limparSolicitado(r.id)} className="text-xs text-gray-600 hover:text-red-400 transition text-left">✕ limpar</button>
                         </div>
                       ) : (
                         <button
-                          onClick={() => { setSolicitandoId(r.id); setSolicitandoObs(""); }}
+                          onClick={() => { setSolicitandoId(r.id); setSolicitandoObs(""); setSolicitandoOperador(""); }}
                           className="text-gray-600 hover:text-orange-400 transition text-lg leading-none"
                           title="Marcar em acompanhamento">
                           📌
@@ -505,21 +510,40 @@ export default function RedmineAtribuidosPage() {
 
       {/* Modal acompanhamento */}
       {solicitandoId !== null && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4" onClick={() => { setSolicitandoId(null); setSolicitandoObs(""); }}>
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4" onClick={() => { setSolicitandoId(null); setSolicitandoObs(""); setSolicitandoOperador(""); }}>
           <div className="bg-gray-900 border border-gray-700 rounded-xl w-full max-w-md p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
             <h3 className="text-sm font-semibold text-white mb-1">📌 Marcar em acompanhamento</h3>
-            <p className="text-xs text-gray-400 mb-4">Descreva o que foi solicitado ao operador. A data de hoje será registrada automaticamente.</p>
-            <textarea
-              value={solicitandoObs}
-              onChange={e => setSolicitandoObs(e.target.value)}
-              placeholder="Ex: Verificando com o usuário se o problema foi resolvido após a atualização..."
-              rows={4}
-              className="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-200 resize-y focus:outline-none focus:border-orange-500 placeholder-gray-600"
-            />
+            <p className="text-xs text-gray-400 mb-4">A data de hoje será registrada. Tickets marcados não são removidos ao sincronizar.</p>
+            <div className="mb-3">
+              <label className="block text-xs text-gray-500 mb-1.5">Operador</label>
+              <div className="relative">
+                <select
+                  value={solicitandoOperador}
+                  onChange={e => setSolicitandoOperador(e.target.value)}
+                  className="w-full appearance-none bg-gray-800 border border-gray-600 text-sm rounded-lg px-3 py-2.5 text-gray-200 focus:outline-none focus:border-orange-500 cursor-pointer pr-8"
+                >
+                  <option value="">Todos os atendentes</option>
+                  {pessoas.map(p => (
+                    <option key={p} value={p}>{p}</option>
+                  ))}
+                </select>
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">▼</span>
+              </div>
+            </div>
+            <div className="mb-1">
+              <label className="block text-xs text-gray-500 mb-1.5">Observação</label>
+              <textarea
+                value={solicitandoObs}
+                onChange={e => setSolicitandoObs(e.target.value)}
+                placeholder="Ex: Verificando com o usuário se o problema foi resolvido..."
+                rows={4}
+                className="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-200 resize-y focus:outline-none focus:border-orange-500 placeholder-gray-600"
+              />
+            </div>
             <div className="flex gap-2 mt-4">
-              <button onClick={() => { setSolicitandoId(null); setSolicitandoObs(""); }}
+              <button onClick={() => { setSolicitandoId(null); setSolicitandoObs(""); setSolicitandoOperador(""); }}
                 className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-lg py-2 transition">Cancelar</button>
-              <button onClick={() => salvarSolicitado(solicitandoId, solicitandoObs)} disabled={saving}
+              <button onClick={() => salvarSolicitado(solicitandoId, solicitandoObs, solicitandoOperador)} disabled={saving}
                 className="flex-1 bg-orange-600 hover:bg-orange-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg py-2 transition">
                 {saving ? "Salvando..." : "Salvar"}
               </button>

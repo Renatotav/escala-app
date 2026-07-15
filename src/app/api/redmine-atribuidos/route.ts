@@ -147,11 +147,11 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  const { id, ultimasNotas, solicitadoEm, solicitadoObs, limparSolicitado } = await request.json();
+  const { id, ultimasNotas, solicitadoEm, solicitadoObs, solicitadoOperador, limparSolicitado } = await request.json();
   if (limparSolicitado) {
     await prisma.redmineAtribuido.update({ where: { id }, data: { solicitadoEm: null, solicitadoObs: null } });
   } else if (solicitadoEm !== undefined) {
-    await prisma.redmineAtribuido.update({ where: { id }, data: { solicitadoEm: new Date(solicitadoEm), solicitadoObs: solicitadoObs ?? null } });
+    await prisma.redmineAtribuido.update({ where: { id }, data: { solicitadoEm: new Date(solicitadoEm), solicitadoObs: solicitadoObs ?? null, solicitadoOperador: solicitadoOperador ?? null } });
   } else {
     await prisma.redmineAtribuido.update({ where: { id }, data: { ultimasNotas } });
   }

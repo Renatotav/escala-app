@@ -364,7 +364,11 @@ export default function RedmineAtribuidosPage() {
                       ) : "—"}
                     </td>
                     <td className="px-4 py-3"><CelulaTexto label="Título" texto={r.titulo} onClick={setTextoModal} /></td>
-                    <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">{r.atribuidoPara ?? "—"}</td>
+                    <td className="px-4 py-3">
+                      {r.atribuidoPara
+                        ? <span className="text-xs px-2 py-0.5 rounded-full whitespace-nowrap bg-blue-500/20 text-blue-300 border border-blue-500/30">{r.atribuidoPara}</span>
+                        : <span className="text-gray-600 text-xs">—</span>}
+                    </td>
                     <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">{r.dataPrevista ?? "—"}</td>
                     <td className="px-4 py-3"><CelulaTexto label="Descrição" texto={r.descricao} onClick={setTextoModal} /></td>
                     <td className="px-4 py-3"><CelulaTexto label="Últimas notas" texto={r.ultimasNotas} onClick={setTextoModal} resolvidoId={r.id} /></td>

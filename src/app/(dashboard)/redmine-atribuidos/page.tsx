@@ -533,20 +533,20 @@ export default function RedmineAtribuidosPage() {
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4">
           <div className="bg-gray-900 border border-gray-800 rounded-xl w-full max-w-md p-6">
             <h3 className="text-base font-semibold text-white mb-1">Importar Redmine Atribuídos</h3>
-            <p className="text-xs text-gray-400 mb-3">Marcações 📌 são sempre preservadas independente do modo.</p>
+            <p className="text-xs text-gray-400 mb-3">Dados do Redmine são sempre atualizados. Marcações 📌 nunca são removidas automaticamente.</p>
             <div className="mb-2 flex flex-col gap-2">
               <label className="flex items-start gap-2 cursor-pointer">
                 <input type="radio" name="modo-atribuidos" checked={substituir} onChange={() => setSubstituir(true)} className="accent-blue-500 mt-0.5" />
                 <div>
                   <span className="text-sm text-gray-300">Sincronizar fila</span>
-                  <p className="text-xs text-gray-500">Atualiza todos os dados do CSV e remove tickets que saíram da sua fila</p>
+                  <p className="text-xs text-gray-500">Remove tickets sem 📌 que saíram do CSV. Tickets em trânsito (com 📌) são preservados.</p>
                 </div>
               </label>
               <label className="flex items-start gap-2 cursor-pointer">
                 <input type="radio" name="modo-atribuidos" checked={!substituir} onChange={() => setSubstituir(false)} className="accent-blue-500 mt-0.5" />
                 <div>
                   <span className="text-sm text-gray-300">Atualizar e adicionar</span>
-                  <p className="text-xs text-gray-500">Atualiza dados dos existentes, insere novos, mantém todos os anteriores</p>
+                  <p className="text-xs text-gray-500">Mantém todos os tickets anteriores, insere novos e atualiza os dados.</p>
                 </div>
               </label>
             </div>

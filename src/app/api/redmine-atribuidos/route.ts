@@ -133,9 +133,10 @@ export async function POST(request: NextRequest) {
   }
 
   // Substituir: remove tickets que não vieram no novo CSV (saíram da fila)
+  // MAS preserva tickets com 📌 marcação ativa — podem estar em trânsito com a TI
   if (substituir) {
     const idsParaRemover = existing
-      .filter(e => !numerosImportados.has(e.numeroRedmine))
+      .filter(e => !numerosImportados.has(e.numeroRedmine) && !e.solicitadoEm)
       .map(e => e.id);
     if (idsParaRemover.length > 0) {
       await prisma.redmineAtribuido.deleteMany({ where: { id: { in: idsParaRemover } } });

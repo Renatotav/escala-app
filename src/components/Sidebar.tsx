@@ -129,15 +129,12 @@ export function Sidebar() {
       {/* Sidebar desktop */}
       <aside className={`hidden md:flex flex-col shrink-0 bg-gray-900 border-r border-gray-800 h-dvh sticky top-0 relative transition-all duration-200 ${collapsed ? "w-16" : "w-60"}`}>
         {/* Cabeçalho */}
-        <div className={`border-b border-gray-800 overflow-hidden transition-all duration-200 ${collapsed ? "py-4 px-2" : "px-5 py-5"}`}>
-          {!collapsed && (
-            <>
-              <h1 className="text-sm font-semibold text-white leading-tight">Gestão da Coordenadoria de Atendimento do PJe</h1>
-              <p className="text-xs text-gray-500 mt-0.5">Painel administrativo</p>
-            </>
-          )}
-          {collapsed && <div className="h-8" />}
-        </div>
+        {!collapsed && (
+          <div className="px-5 py-5 border-b border-gray-800">
+            <h1 className="text-sm font-semibold text-white leading-tight">Gestão da Coordenadoria de Atendimento do PJe</h1>
+            <p className="text-xs text-gray-500 mt-0.5">Painel administrativo</p>
+          </div>
+        )}
 
         <NavLinks collapsed={collapsed} />
 

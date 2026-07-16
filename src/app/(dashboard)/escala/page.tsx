@@ -49,6 +49,7 @@ export default function EscalaPage() {
   const [loading, setLoading] = useState(false);
   const [modalPresencial, setModalPresencial] = useState<{ colaboradorId: number; nome: string } | null>(null);
   const [unidadeInput, setUnidadeInput] = useState("");
+  const [outroInput, setOutroInput] = useState("");
 
   useEffect(() => { fetch("/api/equipes").then(r => r.json()).then(setEquipes); }, []);
 
@@ -76,9 +77,13 @@ export default function EscalaPage() {
 
   async function confirmarPresencial() {
     if (!modalPresencial) return;
-    await handleLancar(modalPresencial.colaboradorId, "PRESENCIAL", unidadeInput.trim());
+    const unidade = unidadeInput === "__outro__"
+      ? outroInput.trim()
+      : unidadeInput.trim();
+    await handleLancar(modalPresencial.colaboradorId, "PRESENCIAL", unidade);
     setModalPresencial(null);
     setUnidadeInput("");
+    setOutroInput("");
   }
 
   function exportCSV() {
@@ -448,14 +453,26 @@ export default function EscalaPage() {
             <label className="block text-xs text-gray-400 mb-1">Local</label>
             <select
               value={unidadeInput}
-              onChange={e => setUnidadeInput(e.target.value)}
+              onChange={e => { setUnidadeInput(e.target.value); setOutroInput(""); }}
               autoFocus
-              className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               {UNIDADES_PRESENCIAL.map(u => (
                 <option key={u} value={u}>{u}</option>
               ))}
+              <option value="__outro__">Outros (digitar)</option>
             </select>
+            {unidadeInput === "__outro__" && (
+              <input
+                type="text"
+                value={outroInput}
+                onChange={e => setOutroInput(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && confirmarPresencial()}
+                placeholder="Digite a unidade..."
+                autoFocus
+                className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            )}
             <div className="flex gap-2 justify-end">
               <button onClick={() => setModalPresencial(null)}
                 className="px-4 py-2 text-sm rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 transition">

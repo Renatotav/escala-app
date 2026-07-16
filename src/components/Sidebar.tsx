@@ -116,10 +116,13 @@ export function Sidebar() {
 
       {/* Sidebar mobile */}
       <aside className={`md:hidden fixed left-0 top-0 h-full w-60 bg-gray-900 border-r border-gray-800 flex flex-col z-50 transition-transform duration-200 ${open ? "translate-x-0" : "-translate-x-full"}`}>
-        <div className="flex items-center justify-between px-5 py-5 border-b border-gray-800">
-          <div>
-            <h1 className="text-sm font-semibold text-white leading-tight">Gestão da Coordenadoria de Atendimento do PJe</h1>
-            <p className="text-xs text-gray-500 mt-0.5">Painel administrativo</p>
+        <div className="flex items-center justify-between px-4 py-4 border-b border-gray-800">
+          <div className="flex items-center gap-3">
+            <img src="/Logo-PJe-Símbolo.svg" alt="PJe" className="w-9 h-9 shrink-0" />
+            <div>
+              <h1 className="text-xs font-semibold text-white leading-tight">Gestão da Coordenadoria de Atendimento do PJe</h1>
+              <p className="text-xs text-gray-500 mt-0.5">Painel administrativo</p>
+            </div>
           </div>
           <button onClick={() => setOpen(false)} className="text-gray-400 hover:text-white text-lg leading-none ml-2 shrink-0">✕</button>
         </div>
@@ -129,10 +132,17 @@ export function Sidebar() {
       {/* Sidebar desktop */}
       <aside className={`hidden md:flex flex-col shrink-0 bg-gray-900 border-r border-gray-800 h-dvh sticky top-0 relative transition-all duration-200 ${collapsed ? "w-16" : "w-60"}`}>
         {/* Cabeçalho */}
-        {!collapsed && (
-          <div className="px-5 py-5 border-b border-gray-800">
-            <h1 className="text-sm font-semibold text-white leading-tight">Gestão da Coordenadoria de Atendimento do PJe</h1>
-            <p className="text-xs text-gray-500 mt-0.5">Painel administrativo</p>
+        {collapsed ? (
+          <div className="flex justify-center py-3 border-b border-gray-800">
+            <img src="/Logo-PJe-Símbolo.svg" alt="PJe" className="w-8 h-8" />
+          </div>
+        ) : (
+          <div className="flex items-center gap-3 px-4 py-4 border-b border-gray-800">
+            <img src="/Logo-PJe-Símbolo.svg" alt="PJe" className="w-9 h-9 shrink-0" />
+            <div>
+              <h1 className="text-xs font-semibold text-white leading-tight">Gestão da Coordenadoria de Atendimento do PJe</h1>
+              <p className="text-xs text-gray-500 mt-0.5">Painel administrativo</p>
+            </div>
           </div>
         )}
 

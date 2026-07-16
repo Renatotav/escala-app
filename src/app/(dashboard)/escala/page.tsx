@@ -118,6 +118,11 @@ export default function EscalaPage() {
 
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
 
+    // Fundo creme para combinar com o fundo da imagem do ícone
+    const CREAM: [number, number, number] = [245, 240, 228];
+    doc.setFillColor(...CREAM);
+    doc.rect(0, 0, 210, 297, "F");
+
     const [sy, sm, sd] = semana.split("-").map(Number);
     const seg = new Date(sy, sm - 1, sd);
     const sex = new Date(sy, sm - 1, sd + 4);
@@ -219,7 +224,7 @@ export default function EscalaPage() {
           lineColor: LILAC,
           lineWidth: 0.2,
           cellPadding: 1.2,
-          fillColor: [255, 255, 255],
+          fillColor: CREAM,
         },
         margin: { left: 12, right: 12 },
         didDrawPage: () => { y = 12; },

@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { sinalConfig, type Sinal } from "@/lib/eligibility";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 type Equipe = { id: number; nome: string; thresholdAmarelo: number; thresholdVerde: number };
 type ColaboradorEscala = {
@@ -96,6 +98,72 @@ export default function EscalaPage() {
     URL.revokeObjectURL(url);
   }
 
+  function gerarPDF() {
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    const geradoEm = new Date().toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+    const membros = colaboradores.filter(c => !["Supervisão", "Coordenação"].includes(c.equipe.nome));
+
+    doc.setFontSize(16);
+    doc.setTextColor(30, 30, 30);
+    doc.text("Escala Semanal", 14, 18);
+
+    doc.setFontSize(9);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Semana: ${semana}`, 14, 26);
+    doc.text(`Gerado em: ${geradoEm}`, 14, 31);
+
+    let y = 37;
+
+    const equipesAgrupadas = equipesEscala
+      .filter(eq => !equipeId || String(eq.id) === equipeId)
+      .map(eq => ({
+        equipe: eq,
+        membros: sortMembros(membros.filter(c => c.equipe.id === eq.id)),
+      }))
+      .filter(g => g.membros.length > 0);
+
+    for (const grupo of equipesAgrupadas) {
+      const rows = grupo.membros.map(c => {
+        const escala = c.escalaSemana === "PRESENCIAL"
+          ? (c.unidadePresencial ? `Presencial - ${c.unidadePresencial}` : "Presencial")
+          : c.escalaSemana === "REMOTO" ? "Remoto" : "—";
+        return [c.nome, c.cargo ?? "—", String(c.semRemoto ? "—" : c.semanasPresencial), sinalConfig[c.sinal].label, escala];
+      });
+
+      autoTable(doc, {
+        startY: y,
+        head: [[{ content: grupo.equipe.nome, colSpan: 5 }]],
+        body: rows,
+        columnStyles: {
+          2: { cellWidth: 22, halign: "center" },
+          3: { cellWidth: 28, halign: "center" },
+          4: { cellWidth: 38, halign: "center" },
+        },
+        headStyles: { fillColor: [30, 41, 59], textColor: [200, 200, 220], fontStyle: "bold", fontSize: 9 },
+        bodyStyles: { fontSize: 8.5, textColor: [40, 40, 40] },
+        alternateRowStyles: { fillColor: [248, 250, 252] },
+        margin: { left: 14, right: 14 },
+        didParseCell: (data) => {
+          if (data.section !== "body") return;
+          const c = grupo.membros[data.row.index];
+          if (!c) return;
+          if (data.column.index === 3) {
+            if (c.sinal === "VERDE") data.cell.styles.textColor = [22, 163, 74];
+            else if (c.sinal === "AMARELO") data.cell.styles.textColor = [202, 138, 4];
+            else data.cell.styles.textColor = [220, 38, 38];
+          }
+          if (data.column.index === 4 && c.escalaSemana === "REMOTO") {
+            data.cell.styles.textColor = [37, 99, 235];
+          }
+        },
+        didDrawPage: () => { y = 14; },
+      });
+      y = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 6;
+    }
+
+    doc.save(`escala-${semana}.pdf`);
+  }
+
   async function handleLimpar(colaboradorId: number) {
     await fetch(`/api/escalas?colaboradorId=${colaboradorId}&semana=${semana}`, { method: "DELETE" });
     const params = new URLSearchParams({ semana });
@@ -163,6 +231,10 @@ export default function EscalaPage() {
           <button onClick={exportCSV}
             className="bg-green-700 hover:bg-green-600 text-white text-sm rounded-lg px-3 py-2 transition">
             Exportar CSV
+          </button>
+          <button onClick={gerarPDF}
+            className="text-xs px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white border border-gray-700 transition">
+            ↓ PDF
           </button>
         </div>
       </div>

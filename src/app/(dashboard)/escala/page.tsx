@@ -399,7 +399,7 @@ export default function EscalaPage() {
                                 {!c.semRemoto && (
                                   <>
                                     <button onClick={() => {
-                                        const isTJ = /2g|erro.*falha|falha.*erro/i.test(c.equipe.nome);
+                                        const isTJ = /\b2g\b/i.test(c.equipe.nome);
                                         setUnidadeInput(isTJ ? "Tribunal de Justiça" : "Fórum Clóvis Beviláqua");
                                         setModalPresencial({ colaboradorId: c.id, nome: c.nome });
                                       }}

@@ -116,7 +116,7 @@ export default function DeclaracoesPage() {
     const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url; a.download = "declaracoes_medicas.csv"; a.click();
+    a.href = url; a.download = "declaracoes.csv"; a.click();
     URL.revokeObjectURL(url);
   }
 
@@ -126,8 +126,8 @@ export default function DeclaracoesPage() {
     <div>
       <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
         <div>
-          <h2 className="text-xl font-semibold text-white">Declarações Médicas</h2>
-          <p className="text-sm text-gray-400 mt-0.5">Registro de consultas e atendimentos médicos</p>
+          <h2 className="text-xl font-semibold text-white">Declarações</h2>
+          <p className="text-sm text-gray-400 mt-0.5">Registro de declarações e ausências</p>
         </div>
         <div className="flex gap-2">
           <button onClick={exportCSV}

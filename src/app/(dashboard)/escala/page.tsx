@@ -197,7 +197,7 @@ export default function EscalaPage() {
         doc.setFontSize(7.5);
         doc.setTextColor(255, 255, 255);
         doc.text(opcoes.horario, 104.5, y + 0.5, { align: "center" });
-        y += 7;
+        y += 4;
       }
 
       // Tabela: 2 colunas ou 1 coluna

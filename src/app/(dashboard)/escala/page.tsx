@@ -240,7 +240,7 @@ export default function EscalaPage() {
     renderSecao("Presencial - Fórum Clóvis Beviláqua", forum, { tresColunas: true });
     renderSecao("Presencial - Tribunal de Justiça", tj);
     renderSecao("Presencial - Núcleo de Custódia e das Garantias da Comarca de Fortaleza", custodia, {
-      horario: "Seg a Quinta 08:00 as 12:00 e Sexta de 08:00 as 14 horas",
+      horario: "Seg. a Quinta: 08:00 às 12:00 e Sexta: 08:00 às 14:00.",
     });
     renderSecao("Remoto", remotos);
 

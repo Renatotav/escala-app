@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { sinalConfig, type Sinal } from "@/lib/eligibility";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { ICONE_ESCALA_B64 } from "@/lib/icone-escala-b64";
 
 type Equipe = { id: number; nome: string; thresholdAmarelo: number; thresholdVerde: number };
 type ColaboradorEscala = {
@@ -144,19 +143,49 @@ export default function EscalaPage() {
     doc.setTextColor(...GREEN);
     doc.text(`Escala - ${mesCapital} de ${sex.getFullYear()}`, 198, 17, { align: "right" });
 
-    // Ícone relógio+calendário embutido (base64, sem fetch)
-    doc.addImage(ICONE_ESCALA_B64, "PNG", 12, 8, 22, 19.6);
+    // Ícone relógio vetorial — duplo anel, marcadores, ponteiros
+    const cx = 23, cy = 18, R = 9;
+    doc.setDrawColor(...GREEN);
+    // Anel externo
+    doc.setLineWidth(0.9);
+    doc.circle(cx, cy, R);
+    // Anel interno (efeito duplo)
+    doc.setLineWidth(0.35);
+    doc.circle(cx, cy, R - 1.6);
+    // 12 marcadores de hora
+    for (let h = 0; h < 12; h++) {
+      const ang = (h * 30 - 90) * (Math.PI / 180);
+      const isMain = h % 3 === 0;
+      const outerR = R - 1.9;
+      const innerR = outerR - (isMain ? 1.6 : 0.9);
+      doc.setLineWidth(isMain ? 0.55 : 0.3);
+      doc.line(
+        cx + outerR * Math.cos(ang), cy + outerR * Math.sin(ang),
+        cx + innerR * Math.cos(ang), cy + innerR * Math.sin(ang),
+      );
+    }
+    // Ponteiro dos minutos (~10h10 como no original)
+    const minAng = (300 - 90) * (Math.PI / 180);
+    doc.setLineWidth(0.5);
+    doc.line(cx, cy, cx + 5.5 * Math.cos(minAng), cy + 5.5 * Math.sin(minAng));
+    // Ponteiro das horas
+    const hourAng = (60 - 90) * (Math.PI / 180);
+    doc.setLineWidth(0.75);
+    doc.line(cx, cy, cx + 3.8 * Math.cos(hourAng), cy + 3.8 * Math.sin(hourAng));
+    // Ponto central
+    doc.setFillColor(...GREEN);
+    doc.circle(cx, cy, 0.7, "F");
 
-    // Data do período — verde, negrito, sublinhado (abaixo do ícone)
+    // Data do período — verde, negrito, sublinhado (abaixo do relógio)
     doc.setFont("helvetica", "bold");
     doc.setFontSize(11);
     doc.setTextColor(...GREEN);
-    doc.text(dataRange, 12, 31);
+    doc.text(dataRange, 12, 30);
     doc.setDrawColor(...GREEN);
     doc.setLineWidth(0.35);
-    doc.line(12, 32.5, 12 + doc.getTextWidth(dataRange), 32.5);
+    doc.line(12, 31.5, 12 + doc.getTextWidth(dataRange), 31.5);
 
-    let y = 37;
+    let y = 36;
 
     const membros = colaboradores.filter(c => !["Supervisão", "Coordenação"].includes(c.equipe.nome));
 

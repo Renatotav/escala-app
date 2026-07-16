@@ -229,7 +229,7 @@ export default function EscalaPage() {
         margin: { left: 12, right: 12 },
         didDrawPage: () => { y = 12; },
       });
-      y = (doc as DocWithTable).lastAutoTable.finalY + 5;
+      y = (doc as DocWithTable).lastAutoTable.finalY + 10;
     }
 
     // Ordem: Fórum → Núcleo → TJ → Remoto

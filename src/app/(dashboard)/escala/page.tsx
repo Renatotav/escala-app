@@ -109,15 +109,14 @@ export default function EscalaPage() {
     URL.revokeObjectURL(url);
   }
 
-  function gerarPDF() {
+  async function gerarPDF() {
     type DocWithTable = jsPDF & { lastAutoTable: { finalY: number } };
-    const GREEN: [number, number, number] = [27, 75, 75];   // #1B4B4B verde-petróleo
+    const GREEN: [number, number, number] = [27, 75, 75];
     const BLACK: [number, number, number] = [10, 10, 10];
-    const LILAC: [number, number, number] = [180, 160, 210]; // bordas lilás
+    const LILAC: [number, number, number] = [180, 160, 210];
 
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
 
-    // Intervalo da semana (seg → sex)
     const [sy, sm, sd] = semana.split("-").map(Number);
     const seg = new Date(sy, sm - 1, sd);
     const sex = new Date(sy, sm - 1, sd + 4);
@@ -127,44 +126,55 @@ export default function EscalaPage() {
     const mesCapital = mesNome.charAt(0).toUpperCase() + mesNome.slice(1);
     const dataRange = `${fmt(seg)} à ${fmt(sex)}/${sex.getFullYear()}`;
 
-    // Título principal — centralizado, negrito, preto
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(18);
-    doc.setTextColor(...BLACK);
-    doc.text(`Escala - ${mesCapital} de ${sex.getFullYear()}`, 105, 14, { align: "center" });
-
-    // Linha divisória sutil sob o título
-    doc.setDrawColor(220, 220, 220);
-    doc.setLineWidth(0.3);
-    doc.line(12, 17, 198, 17);
-
-    // Ícone de relógio desenhado à mão (circle + ponteiros)
-    const cx = 16, cy = 23.5, r = 3;
+    // === CABEÇALHO ===
+    // Linha de topo verde
     doc.setDrawColor(...GREEN);
-    doc.setLineWidth(0.5);
-    doc.circle(cx, cy, r);
-    doc.setLineWidth(0.4);
-    doc.line(cx, cy, cx, cy - 1.8);       // ponteiro dos minutos (12h)
-    doc.line(cx, cy, cx + 1.4, cy + 0.8); // ponteiro das horas (4h)
-    // Ponto central
-    doc.setFillColor(...GREEN);
-    doc.circle(cx, cy, 0.3, "F");
+    doc.setLineWidth(1.2);
+    doc.line(12, 7, 198, 7);
 
-    // Data do período — verde, negrito, sublinhado
+    // Título principal — DIREITA, negrito, VERDE
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(22);
+    doc.setTextColor(...GREEN);
+    doc.text(`Escala - ${mesCapital} de ${sex.getFullYear()}`, 198, 17, { align: "right" });
+
+    // Ícone (imagem relógio+calendário) — lado esquerdo
+    try {
+      const resp = await fetch("/Gemini_Generated_Image_qbpkzkqbpkzkqbpk.png");
+      const blob = await resp.blob();
+      const b64 = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.readAsDataURL(blob);
+      });
+      // Imagem: ~22mm wide, manter proporção 2188/1952 ≈ 1.12
+      doc.addImage(b64, "PNG", 12, 8, 22, 19.6);
+    } catch {
+      // Fallback: desenhar relógio simples se imagem falhar
+      const cx = 21, cy = 17, r = 6;
+      doc.setDrawColor(...GREEN);
+      doc.setLineWidth(0.6);
+      doc.circle(cx, cy, r);
+      doc.setLineWidth(0.45);
+      doc.line(cx, cy, cx, cy - 3.5);
+      doc.line(cx, cy, cx + 2.5, cy + 1.5);
+      doc.setFillColor(...GREEN);
+      doc.circle(cx, cy, 0.4, "F");
+    }
+
+    // Data do período — verde, negrito, sublinhado (abaixo do ícone)
     doc.setFont("helvetica", "bold");
     doc.setFontSize(11);
     doc.setTextColor(...GREEN);
-    const dateLabel = dataRange;
-    doc.text(dateLabel, 21, 24.5);
+    doc.text(dataRange, 12, 31);
     doc.setDrawColor(...GREEN);
-    doc.setLineWidth(0.3);
-    doc.line(21, 26, 21 + doc.getTextWidth(dateLabel), 26);
+    doc.setLineWidth(0.35);
+    doc.line(12, 32.5, 12 + doc.getTextWidth(dataRange), 32.5);
 
-    let y = 31;
+    let y = 37;
 
     const membros = colaboradores.filter(c => !["Supervisão", "Coordenação"].includes(c.equipe.nome));
 
-    // Buckets fixos na ordem exata do documento oficial
     const forum: string[] = [];
     const custodia: string[] = [];
     const tj: string[] = [];
@@ -175,39 +185,41 @@ export default function EscalaPage() {
         const u = c.unidadePresencial?.trim() ?? "";
         if (/cust[oó]dia/i.test(u)) custodia.push(c.nome.toUpperCase());
         else if (/tribunal|^tj$/i.test(u)) tj.push(c.nome.toUpperCase());
-        else forum.push(c.nome.toUpperCase()); // Fórum é o padrão
+        else forum.push(c.nome.toUpperCase());
       } else if (c.escalaSemana === "REMOTO") {
         remotos.push(c.nome.toUpperCase());
       }
     }
 
-    function renderSecao(titulo: string, nomes: string[], opcoes?: { tresColunas?: boolean; horario?: string }) {
+    function renderSecao(titulo: string, nomes: string[], opcoes?: { duasColunas?: boolean; horario?: string }) {
       if (nomes.length === 0) return;
 
-      // Título da seção — verde, negrito, sublinhado
+      // Título — verde, negrito, sublinhado
       doc.setFont("helvetica", "bold");
       doc.setFontSize(9);
       doc.setTextColor(...GREEN);
       doc.text(titulo, 12, y);
       doc.setDrawColor(...GREEN);
+      doc.setLineWidth(0.3);
       doc.line(12, y + 1, 12 + doc.getTextWidth(titulo), y + 1);
       y += 5;
 
-      // Faixa de horário especial (azul com texto branco)
+      // Horário como texto verde sublinhado (abaixo do título, sem faixa azul)
       if (opcoes?.horario) {
-        doc.setFillColor(37, 99, 235);
-        doc.roundedRect(12, y - 3.5, 185, 6, 1, 1, "F");
         doc.setFont("helvetica", "bold");
         doc.setFontSize(7.5);
-        doc.setTextColor(255, 255, 255);
-        doc.text(opcoes.horario, 104.5, y + 0.5, { align: "center" });
-        y += 4;
+        doc.setTextColor(...GREEN);
+        doc.text(opcoes.horario, 12, y);
+        doc.setDrawColor(...GREEN);
+        doc.setLineWidth(0.25);
+        doc.line(12, y + 1, 12 + doc.getTextWidth(opcoes.horario), y + 1);
+        y += 5;
       }
 
-      // 3 colunas (2 nomes + 1 vazia p/ assinatura) ou 1 coluna
-      const usaDuasColunas = !!opcoes?.tresColunas;
+      // Tabela: 2 colunas ou 1 coluna
+      const duas = !!opcoes?.duasColunas;
       let rows: string[][];
-      if (usaDuasColunas) {
+      if (duas) {
         const metade = Math.ceil(nomes.length / 2);
         rows = Array.from({ length: metade }, (_, i) => [nomes[i] ?? "", nomes[i + metade] ?? ""]);
       } else {
@@ -218,7 +230,7 @@ export default function EscalaPage() {
         startY: y,
         body: rows,
         theme: "grid",
-        columnStyles: usaDuasColunas
+        columnStyles: duas
           ? { 0: { cellWidth: 92 }, 1: { cellWidth: 93 } }
           : { 0: { cellWidth: 185 } },
         bodyStyles: {
@@ -236,12 +248,12 @@ export default function EscalaPage() {
       y = (doc as DocWithTable).lastAutoTable.finalY + 5;
     }
 
-    // Ordem FIXA: Fórum → TJ → Núcleo → Remoto
-    renderSecao("Presencial - Fórum Clóvis Beviláqua", forum, { tresColunas: true });
-    renderSecao("Presencial - Tribunal de Justiça", tj);
+    // Ordem: Fórum → Núcleo → TJ → Remoto
+    renderSecao("Presencial - Fórum Clóvis Beviláqua", forum, { duasColunas: true });
     renderSecao("Presencial - Núcleo de Custódia e das Garantias da Comarca de Fortaleza", custodia, {
       horario: "Seg. a Quinta: 08:00 às 12:00 e Sexta: 08:00 às 14:00.",
     });
+    renderSecao("Presencial - Tribunal de Justiça", tj);
     renderSecao("Remoto", remotos);
 
     doc.save(`escala-${semana}.pdf`);

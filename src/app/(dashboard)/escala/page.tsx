@@ -35,6 +35,12 @@ function getInitialISO(): string {
   return toLocalISO(d);
 }
 
+const UNIDADES_PRESENCIAL = [
+  "Fórum Clóvis Beviláqua",
+  "Núcleo de Custódia e das Garantias da Comarca de Fortaleza",
+  "Tribunal de Justiça",
+] as const;
+
 export default function EscalaPage() {
   const [semana, setSemana] = useState(getInitialISO());
   const [equipeId, setEquipeId] = useState("");
@@ -133,21 +139,25 @@ export default function EscalaPage() {
 
     const membros = colaboradores.filter(c => !["Supervisão", "Coordenação"].includes(c.equipe.nome));
 
-    // Agrupa presenciais por unidade, remotos separados
-    const locaisMap = new Map<string, string[]>();
+    // Buckets fixos na ordem exata do documento oficial
+    const forum: string[] = [];
+    const custodia: string[] = [];
+    const tj: string[] = [];
     const remotos: string[] = [];
 
     for (const c of [...membros].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))) {
       if (c.escalaSemana === "PRESENCIAL") {
-        const local = c.unidadePresencial?.trim() || "Presencial";
-        if (!locaisMap.has(local)) locaisMap.set(local, []);
-        locaisMap.get(local)!.push(c.nome.toUpperCase());
+        const u = c.unidadePresencial?.trim() ?? "";
+        if (/cust[oó]dia/i.test(u)) custodia.push(c.nome.toUpperCase());
+        else if (/tribunal|^tj$/i.test(u)) tj.push(c.nome.toUpperCase());
+        else forum.push(c.nome.toUpperCase()); // Fórum é o padrão
       } else if (c.escalaSemana === "REMOTO") {
         remotos.push(c.nome.toUpperCase());
       }
     }
 
-    function renderSecao(titulo: string, nomes: string[], horario?: string) {
+    function renderSecao(titulo: string, nomes: string[], opcoes?: { tresColunas?: boolean; horario?: string }) {
+      if (nomes.length === 0) return;
       if (y > 250) { doc.addPage(); y = 14; }
 
       // Título da seção — verde, negrito, sublinhado
@@ -160,18 +170,18 @@ export default function EscalaPage() {
       y += 7;
 
       // Faixa de horário especial (azul com texto branco)
-      if (horario) {
+      if (opcoes?.horario) {
         doc.setFillColor(37, 99, 235);
         doc.roundedRect(14, y - 4.5, 181, 7.5, 1, 1, "F");
         doc.setFont("helvetica", "bold");
         doc.setFontSize(9);
         doc.setTextColor(255, 255, 255);
-        doc.text(horario, 104.5, y + 0.5, { align: "center" });
+        doc.text(opcoes.horario, 104.5, y + 0.5, { align: "center" });
         y += 9;
       }
 
-      // 3 colunas para grupos grandes (2 nomes + 1 vazia p/ assinatura), 1 coluna para pequenos
-      const useTresColunas = nomes.length > 8;
+      // 3 colunas (2 nomes + 1 vazia p/ assinatura) ou 1 coluna
+      const useTresColunas = !!opcoes?.tresColunas;
       let rows: string[][];
       if (useTresColunas) {
         const metade = Math.ceil(nomes.length / 2);
@@ -202,14 +212,13 @@ export default function EscalaPage() {
       y = (doc as DocWithTable).lastAutoTable.finalY + 10;
     }
 
-    for (const [local, nomes] of locaisMap) {
-      const isCustodia = /cust[oó]dia/i.test(local);
-      const horario = isCustodia
-        ? "Seg a Quinta 08:00 as 12:00 e Sexta de 08:00 as 14 horas"
-        : undefined;
-      renderSecao(`Presencial - ${local}`, nomes, horario);
-    }
-    if (remotos.length > 0) renderSecao("Remoto", remotos);
+    // Ordem FIXA obrigatória
+    renderSecao("Presencial - Fórum Clóvis Beviláqua", forum, { tresColunas: true });
+    renderSecao("Presencial - Núcleo de Custódia e das Garantias da Comarca de Fortaleza", custodia, {
+      horario: "Seg a Quinta 08:00 as 12:00 e Sexta de 08:00 as 14 horas",
+    });
+    renderSecao("Presencial - Tribunal de Justiça", tj);
+    renderSecao("Remoto", remotos);
 
     doc.save(`escala-${semana}.pdf`);
   }
@@ -389,7 +398,11 @@ export default function EscalaPage() {
                               <div className="flex items-center justify-center gap-2">
                                 {!c.semRemoto && (
                                   <>
-                                    <button onClick={() => { setUnidadeInput(""); setModalPresencial({ colaboradorId: c.id, nome: c.nome }); }}
+                                    <button onClick={() => {
+                                        const isTJ = /2g|erro.*falha|falha.*erro/i.test(c.equipe.nome);
+                                        setUnidadeInput(isTJ ? "Tribunal de Justiça" : "Fórum Clóvis Beviláqua");
+                                        setModalPresencial({ colaboradorId: c.id, nome: c.nome });
+                                      }}
                                       className="text-xs px-2.5 py-1 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 transition">
                                       Presencial
                                     </button>
@@ -432,16 +445,17 @@ export default function EscalaPage() {
           <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-sm shadow-xl" onClick={e => e.stopPropagation()}>
             <h3 className="text-white font-semibold mb-1">Lançar como Presencial</h3>
             <p className="text-gray-400 text-sm mb-4">{modalPresencial.nome}</p>
-            <label className="block text-xs text-gray-400 mb-1">Unidade (opcional)</label>
-            <input
-              type="text"
+            <label className="block text-xs text-gray-400 mb-1">Local</label>
+            <select
               value={unidadeInput}
               onChange={e => setUnidadeInput(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && confirmarPresencial()}
-              placeholder="Ex: Núcleo de Custódia"
               autoFocus
               className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            >
+              {UNIDADES_PRESENCIAL.map(u => (
+                <option key={u} value={u}>{u}</option>
+              ))}
+            </select>
             <div className="flex gap-2 justify-end">
               <button onClick={() => setModalPresencial(null)}
                 className="px-4 py-2 text-sm rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 transition">

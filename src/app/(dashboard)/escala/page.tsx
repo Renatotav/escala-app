@@ -351,14 +351,16 @@ export default function EscalaPage() {
                                 </span>
                               )}
                             </td>
-                            <td className="px-4 py-3">
+                            <td className="px-4 py-3 max-w-[160px]">
                               {c.escalaSemana ? (
-                                <div>
+                                <div className="min-w-0">
                                   <span className={`text-xs font-medium ${c.escalaSemana === "REMOTO" ? "text-blue-400" : "text-gray-300"}`}>
                                     {c.escalaSemana === "REMOTO" ? "Remoto" : "Presencial"}
                                   </span>
                                   {c.escalaSemana === "PRESENCIAL" && c.unidadePresencial && (
-                                    <p className="text-xs text-amber-400 mt-0.5">{c.unidadePresencial}</p>
+                                    <p className="text-xs text-amber-400 mt-0.5 truncate" title={c.unidadePresencial}>
+                                      {c.unidadePresencial}
+                                    </p>
                                   )}
                                 </div>
                               ) : null}

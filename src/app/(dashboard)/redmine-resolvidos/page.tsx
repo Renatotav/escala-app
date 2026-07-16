@@ -118,6 +118,8 @@ export default function RedmineResolvidosPage() {
   const [importResult, setImportResult] = useState<{ count?: number; skipped?: number; error?: string } | null>(null);
   const [aba, setAba] = useState<"esquecidos" | "resolvidos">("esquecidos");
   const [busca, setBusca] = useState("");
+  const [pagina, setPagina] = useState(1);
+  const POR_PAGINA = 100;
   const [substituir, setSubstituir] = useState(true);
   const [textoModal, setTextoModal] = useState<{ titulo: string; corpo: string; assystNums?: string[]; resolvidoId?: number } | null>(null);
   const [editMode, setEditMode] = useState(false);
@@ -229,6 +231,7 @@ export default function RedmineResolvidosPage() {
   const chamadosMap = dados?.chamadosMap ?? {};
 
   const buscaLow = busca.toLowerCase();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const semResolvido = buscaLow
     ? semResolvidoRaw.filter(n => n.toLowerCase().includes(buscaLow))
     : semResolvidoRaw;
@@ -254,6 +257,13 @@ export default function RedmineResolvidosPage() {
   const resolvidosNaRedmine = resolvidos
     .filter(r => splitAssyst(r.numerosAssyst).some(n => encontradosSet.has(n.toUpperCase())))
     .filter(r => !buscaLow || r.numeroRedmine.toLowerCase().includes(buscaLow) || r.numerosAssyst.toLowerCase().includes(buscaLow) || (r.titulo ?? "").toLowerCase().includes(buscaLow));
+
+  // Paginação — pesquisa cobre tudo, página só fatia a exibição
+  const totalPaginasEsq = Math.max(1, Math.ceil(semResolvido.length / POR_PAGINA));
+  const totalPaginasRes = Math.max(1, Math.ceil(resolvidosNaRedmine.length / POR_PAGINA));
+  const paginaAtual = Math.min(pagina, aba === "esquecidos" ? totalPaginasEsq : totalPaginasRes);
+  const semResolvidoPag = semResolvido.slice((paginaAtual - 1) * POR_PAGINA, paginaAtual * POR_PAGINA);
+  const resolvidosPag = resolvidosNaRedmine.slice((paginaAtual - 1) * POR_PAGINA, paginaAtual * POR_PAGINA);
 
   // Set de Redmine# encontrados — usado para badge "✓ Resolvido" nas notas
   const resolvidosRedmineSet = new Set(resolvidosNaRedmine.map(r => r.numeroRedmine.trim()));
@@ -305,14 +315,14 @@ export default function RedmineResolvidosPage() {
             <p className="text-3xl font-bold text-green-400">{resolvidos.length}</p>
           </div>
           <button
-            onClick={() => setAba("esquecidos")}
+            onClick={() => { setAba("esquecidos"); setPagina(1); }}
             className={`rounded-xl p-4 border text-left transition ${aba === "esquecidos" ? "bg-red-900/40 border-red-500 ring-2 ring-red-400 animate-pulse" : semResolvido.length > 0 ? "bg-red-950/30 border-red-700 hover:bg-red-900/20" : "bg-gray-900 border-gray-800"}`}>
             <p className="text-xs text-gray-400 mb-1">Não resolvidos</p>
             <p className={`text-3xl font-bold ${semResolvido.length > 0 ? "text-red-400" : "text-white"}`}>{semResolvido.length}</p>
             {semResolvido.length > 0 && <p className="text-xs text-red-400 mt-1">⚠ Clique para ver</p>}
           </button>
           <button
-            onClick={() => setAba("resolvidos")}
+            onClick={() => { setAba("resolvidos"); setPagina(1); }}
             className={`rounded-xl p-4 border text-left transition ${aba === "resolvidos" ? "bg-green-900/40 border-green-500 ring-2 ring-green-400 animate-pulse" : "bg-gray-900 border-gray-800 hover:bg-gray-800"}`}>
             <p className="text-xs text-gray-400 mb-1">Encontrados nos Resolvidos</p>
             <p className="text-3xl font-bold text-green-400">{comResolvido.length}</p>
@@ -328,7 +338,7 @@ export default function RedmineResolvidosPage() {
             <input
               type="text"
               value={busca}
-              onChange={e => setBusca(e.target.value)}
+              onChange={e => { setBusca(e.target.value); setPagina(1); }}
               placeholder="Pesquisar chamado..."
               className="bg-gray-900 border border-gray-700 text-white text-xs rounded-lg pl-7 pr-7 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[220px]"
             />
@@ -361,7 +371,7 @@ export default function RedmineResolvidosPage() {
             <tbody>
               {semResolvido.length === 0 ? (
                 <tr><td colSpan={2} className="px-4 py-8 text-center text-green-400 text-sm">Todos os chamados foram resolvidos!</td></tr>
-              ) : semResolvido.map(num => (
+              ) : semResolvidoPag.map(num => (
                 <tr key={num} className="border-b border-gray-800 last:border-0 bg-red-950/20 hover:bg-red-950/30 transition border-l-2 border-l-red-600">
                   <td className="px-4 py-3">
                     <a href={assystUrl(num)} target="_blank" rel="noopener noreferrer"
@@ -392,7 +402,7 @@ export default function RedmineResolvidosPage() {
               </tr>
             </thead>
             <tbody>
-              {resolvidosNaRedmine.map(r => {
+              {resolvidosPag.map(r => {
                 const nums = splitAssyst(r.numerosAssyst);
                 return (
                   <tr key={r.id} className="border-b border-gray-800 last:border-0 hover:bg-gray-800/50 transition">
@@ -440,6 +450,33 @@ export default function RedmineResolvidosPage() {
           </table>
         )}
       </div>
+
+      {/* Paginação */}
+      {(() => {
+        const total = aba === "esquecidos" ? totalPaginasEsq : totalPaginasRes;
+        const count = aba === "esquecidos" ? semResolvido.length : resolvidosNaRedmine.length;
+        if (total <= 1 || count === 0) return null;
+        const inicio = (paginaAtual - 1) * POR_PAGINA + 1;
+        const fim = Math.min(paginaAtual * POR_PAGINA, count);
+        return (
+          <div className="flex items-center justify-between mt-4 px-1">
+            <p className="text-xs text-gray-500">
+              Exibindo <span className="text-gray-300">{inicio}–{fim}</span> de <span className="text-gray-300">{count}</span> registros
+            </p>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setPagina(p => Math.max(1, p - 1))} disabled={paginaAtual === 1}
+                className="px-3 py-1.5 text-xs rounded-lg bg-gray-800 hover:bg-gray-700 disabled:opacity-40 text-gray-300 transition">
+                ← Anterior
+              </button>
+              <span className="text-xs text-gray-400">Página {paginaAtual} de {total}</span>
+              <button onClick={() => setPagina(p => Math.min(total, p + 1))} disabled={paginaAtual === total}
+                className="px-3 py-1.5 text-xs rounded-lg bg-gray-800 hover:bg-gray-700 disabled:opacity-40 text-gray-300 transition">
+                Próxima →
+              </button>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Modal leitura de texto */}
       {textoModal && (

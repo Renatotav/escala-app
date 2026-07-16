@@ -100,6 +100,9 @@ export default function EscalaPage() {
 
   function gerarPDF() {
     type DocWithTable = jsPDF & { lastAutoTable: { finalY: number } };
+    const GREEN: [number, number, number] = [46, 125, 50];
+    const BLACK: [number, number, number] = [10, 10, 10];
+
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
 
     // Intervalo da semana (seg → sex)
@@ -110,22 +113,23 @@ export default function EscalaPage() {
       `${String(dt.getDate()).padStart(2, "0")}/${String(dt.getMonth() + 1).padStart(2, "0")}`;
     const mesNome = seg.toLocaleString("pt-BR", { month: "long" });
     const mesCapital = mesNome.charAt(0).toUpperCase() + mesNome.slice(1);
-    const dataRange = `${fmt(seg)} à ${fmt(sex)}/${sex.getFullYear()}`;
+    const dataRange = `${fmt(seg)} a ${fmt(sex)}/${sex.getFullYear()}`;
 
-    // Título centralizado
+    // Título principal — centralizado, grande, negrito, preto
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(18);
-    doc.setTextColor(30, 30, 30);
+    doc.setFontSize(20);
+    doc.setTextColor(...BLACK);
     doc.text(`Escala - ${mesCapital} de ${sex.getFullYear()}`, 105, 16, { align: "center" });
 
-    // Intervalo de datas em laranja sublinhado
+    // Data do período — verde, negrito, sublinhado
     doc.setFontSize(12);
-    doc.setTextColor(180, 90, 0);
-    doc.text(dataRange, 14, 26);
-    doc.setDrawColor(180, 90, 0);
-    doc.line(14, 27.5, 14 + doc.getTextWidth(dataRange), 27.5);
+    doc.setTextColor(...GREEN);
+    const dateLabel = dataRange;
+    doc.text(dateLabel, 14, 27);
+    doc.setDrawColor(...GREEN);
+    doc.line(14, 28.5, 14 + doc.getTextWidth(dateLabel), 28.5);
 
-    let y = 34;
+    let y = 36;
 
     const membros = colaboradores.filter(c => !["Supervisão", "Coordenação"].includes(c.equipe.nome));
 
@@ -143,24 +147,35 @@ export default function EscalaPage() {
       }
     }
 
-    function renderSecao(titulo: string, nomes: string[]) {
-      // Verifica espaço na página (pelo menos 20mm)
-      if (y > 260) { doc.addPage(); y = 14; }
+    function renderSecao(titulo: string, nomes: string[], horario?: string) {
+      if (y > 250) { doc.addPage(); y = 14; }
 
+      // Título da seção — verde, negrito, sublinhado
       doc.setFont("helvetica", "bold");
       doc.setFontSize(11);
-      doc.setTextColor(180, 90, 0);
+      doc.setTextColor(...GREEN);
       doc.text(titulo, 14, y);
-      doc.setDrawColor(180, 90, 0);
+      doc.setDrawColor(...GREEN);
       doc.line(14, y + 1.5, 14 + doc.getTextWidth(titulo), y + 1.5);
-      y += 6;
+      y += 7;
 
-      // 2 colunas se muitos nomes, 1 coluna se poucos
-      const useDuasColunas = nomes.length > 8;
+      // Faixa de horário especial (azul com texto branco)
+      if (horario) {
+        doc.setFillColor(37, 99, 235);
+        doc.roundedRect(14, y - 4.5, 181, 7.5, 1, 1, "F");
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9);
+        doc.setTextColor(255, 255, 255);
+        doc.text(horario, 104.5, y + 0.5, { align: "center" });
+        y += 9;
+      }
+
+      // 3 colunas para grupos grandes (2 nomes + 1 vazia p/ assinatura), 1 coluna para pequenos
+      const useTresColunas = nomes.length > 8;
       let rows: string[][];
-      if (useDuasColunas) {
+      if (useTresColunas) {
         const metade = Math.ceil(nomes.length / 2);
-        rows = Array.from({ length: metade }, (_, i) => [nomes[i] ?? "", nomes[i + metade] ?? ""]);
+        rows = Array.from({ length: metade }, (_, i) => [nomes[i] ?? "", nomes[i + metade] ?? "", ""]);
       } else {
         rows = nomes.map(n => [n]);
       }
@@ -169,25 +184,30 @@ export default function EscalaPage() {
         startY: y,
         body: rows,
         theme: "grid",
-        columnStyles: useDuasColunas
-          ? { 0: { cellWidth: 90 }, 1: { cellWidth: 90 } }
+        columnStyles: useTresColunas
+          ? { 0: { cellWidth: 74 }, 1: { cellWidth: 74 }, 2: { cellWidth: 33 } }
           : { 0: { cellWidth: 181 } },
         bodyStyles: {
           fontSize: 8,
           fontStyle: "bold",
-          textColor: [30, 30, 30],
-          lineColor: [180, 180, 180],
-          lineWidth: 0.3,
+          textColor: BLACK,
+          lineColor: BLACK,
+          lineWidth: 0.25,
           cellPadding: 2.5,
+          fillColor: [255, 255, 255],
         },
         margin: { left: 14, right: 14 },
         didDrawPage: () => { y = 14; },
       });
-      y = (doc as DocWithTable).lastAutoTable.finalY + 8;
+      y = (doc as DocWithTable).lastAutoTable.finalY + 10;
     }
 
     for (const [local, nomes] of locaisMap) {
-      renderSecao(`Presencial - ${local}`, nomes);
+      const isCustodia = /cust[oó]dia/i.test(local);
+      const horario = isCustodia
+        ? "Seg a Quinta 08:00 as 12:00 e Sexta de 08:00 as 14 horas"
+        : undefined;
+      renderSecao(`Presencial - ${local}`, nomes, horario);
     }
     if (remotos.length > 0) renderSecao("Remoto", remotos);
 

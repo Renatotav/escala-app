@@ -186,11 +186,11 @@ export default function EscalaPage() {
       }
 
       // 3 colunas (2 nomes + 1 vazia p/ assinatura) ou 1 coluna
-      const useTresColunas = !!opcoes?.tresColunas;
+      const usaDuasColunas = !!opcoes?.tresColunas;
       let rows: string[][];
-      if (useTresColunas) {
+      if (usaDuasColunas) {
         const metade = Math.ceil(nomes.length / 2);
-        rows = Array.from({ length: metade }, (_, i) => [nomes[i] ?? "", nomes[i + metade] ?? "", ""]);
+        rows = Array.from({ length: metade }, (_, i) => [nomes[i] ?? "", nomes[i + metade] ?? ""]);
       } else {
         rows = nomes.map(n => [n]);
       }
@@ -199,8 +199,8 @@ export default function EscalaPage() {
         startY: y,
         body: rows,
         theme: "grid",
-        columnStyles: useTresColunas
-          ? { 0: { cellWidth: 76 }, 1: { cellWidth: 76 }, 2: { cellWidth: 33 } }
+        columnStyles: usaDuasColunas
+          ? { 0: { cellWidth: 92 }, 1: { cellWidth: 93 } }
           : { 0: { cellWidth: 185 } },
         bodyStyles: {
           fontSize: 7,

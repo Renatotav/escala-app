@@ -99,67 +99,97 @@ export default function EscalaPage() {
   }
 
   function gerarPDF() {
+    type DocWithTable = jsPDF & { lastAutoTable: { finalY: number } };
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-    const geradoEm = new Date().toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+
+    // Intervalo da semana (seg → sex)
+    const [sy, sm, sd] = semana.split("-").map(Number);
+    const seg = new Date(sy, sm - 1, sd);
+    const sex = new Date(sy, sm - 1, sd + 4);
+    const fmt = (dt: Date) =>
+      `${String(dt.getDate()).padStart(2, "0")}/${String(dt.getMonth() + 1).padStart(2, "0")}`;
+    const mesNome = seg.toLocaleString("pt-BR", { month: "long" });
+    const mesCapital = mesNome.charAt(0).toUpperCase() + mesNome.slice(1);
+    const dataRange = `${fmt(seg)} à ${fmt(sex)}/${sex.getFullYear()}`;
+
+    // Título centralizado
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(18);
+    doc.setTextColor(30, 30, 30);
+    doc.text(`Escala - ${mesCapital} de ${sex.getFullYear()}`, 105, 16, { align: "center" });
+
+    // Intervalo de datas em laranja sublinhado
+    doc.setFontSize(12);
+    doc.setTextColor(180, 90, 0);
+    doc.text(dataRange, 14, 26);
+    doc.setDrawColor(180, 90, 0);
+    doc.line(14, 27.5, 14 + doc.getTextWidth(dataRange), 27.5);
+
+    let y = 34;
+
     const membros = colaboradores.filter(c => !["Supervisão", "Coordenação"].includes(c.equipe.nome));
 
-    doc.setFontSize(16);
-    doc.setTextColor(30, 30, 30);
-    doc.text("Escala Semanal", 14, 18);
+    // Agrupa presenciais por unidade, remotos separados
+    const locaisMap = new Map<string, string[]>();
+    const remotos: string[] = [];
 
-    doc.setFontSize(9);
-    doc.setTextColor(100, 100, 100);
-    doc.text(`Semana: ${semana}`, 14, 26);
-    doc.text(`Gerado em: ${geradoEm}`, 14, 31);
+    for (const c of [...membros].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))) {
+      if (c.escalaSemana === "PRESENCIAL") {
+        const local = c.unidadePresencial?.trim() || "Presencial";
+        if (!locaisMap.has(local)) locaisMap.set(local, []);
+        locaisMap.get(local)!.push(c.nome.toUpperCase());
+      } else if (c.escalaSemana === "REMOTO") {
+        remotos.push(c.nome.toUpperCase());
+      }
+    }
 
-    let y = 37;
+    function renderSecao(titulo: string, nomes: string[]) {
+      // Verifica espaço na página (pelo menos 20mm)
+      if (y > 260) { doc.addPage(); y = 14; }
 
-    const equipesAgrupadas = equipesEscala
-      .filter(eq => !equipeId || String(eq.id) === equipeId)
-      .map(eq => ({
-        equipe: eq,
-        membros: sortMembros(membros.filter(c => c.equipe.id === eq.id)),
-      }))
-      .filter(g => g.membros.length > 0);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.setTextColor(180, 90, 0);
+      doc.text(titulo, 14, y);
+      doc.setDrawColor(180, 90, 0);
+      doc.line(14, y + 1.5, 14 + doc.getTextWidth(titulo), y + 1.5);
+      y += 6;
 
-    for (const grupo of equipesAgrupadas) {
-      const rows = grupo.membros.map(c => {
-        const escala = c.escalaSemana === "PRESENCIAL"
-          ? (c.unidadePresencial ? `Presencial - ${c.unidadePresencial}` : "Presencial")
-          : c.escalaSemana === "REMOTO" ? "Remoto" : "—";
-        return [c.nome, c.cargo ?? "—", String(c.semRemoto ? "—" : c.semanasPresencial), sinalConfig[c.sinal].label, escala];
-      });
+      // 2 colunas se muitos nomes, 1 coluna se poucos
+      const useDuasColunas = nomes.length > 8;
+      let rows: string[][];
+      if (useDuasColunas) {
+        const metade = Math.ceil(nomes.length / 2);
+        rows = Array.from({ length: metade }, (_, i) => [nomes[i] ?? "", nomes[i + metade] ?? ""]);
+      } else {
+        rows = nomes.map(n => [n]);
+      }
 
       autoTable(doc, {
         startY: y,
-        head: [[{ content: grupo.equipe.nome, colSpan: 5 }]],
         body: rows,
-        columnStyles: {
-          2: { cellWidth: 22, halign: "center" },
-          3: { cellWidth: 28, halign: "center" },
-          4: { cellWidth: 38, halign: "center" },
+        theme: "grid",
+        columnStyles: useDuasColunas
+          ? { 0: { cellWidth: 90 }, 1: { cellWidth: 90 } }
+          : { 0: { cellWidth: 181 } },
+        bodyStyles: {
+          fontSize: 8,
+          fontStyle: "bold",
+          textColor: [30, 30, 30],
+          lineColor: [180, 180, 180],
+          lineWidth: 0.3,
+          cellPadding: 2.5,
         },
-        headStyles: { fillColor: [30, 41, 59], textColor: [200, 200, 220], fontStyle: "bold", fontSize: 9 },
-        bodyStyles: { fontSize: 8.5, textColor: [40, 40, 40] },
-        alternateRowStyles: { fillColor: [248, 250, 252] },
         margin: { left: 14, right: 14 },
-        didParseCell: (data) => {
-          if (data.section !== "body") return;
-          const c = grupo.membros[data.row.index];
-          if (!c) return;
-          if (data.column.index === 3) {
-            if (c.sinal === "VERDE") data.cell.styles.textColor = [22, 163, 74];
-            else if (c.sinal === "AMARELO") data.cell.styles.textColor = [202, 138, 4];
-            else data.cell.styles.textColor = [220, 38, 38];
-          }
-          if (data.column.index === 4 && c.escalaSemana === "REMOTO") {
-            data.cell.styles.textColor = [37, 99, 235];
-          }
-        },
         didDrawPage: () => { y = 14; },
       });
-      y = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 6;
+      y = (doc as DocWithTable).lastAutoTable.finalY + 8;
     }
+
+    for (const [local, nomes] of locaisMap) {
+      renderSecao(`Presencial - ${local}`, nomes);
+    }
+    if (remotos.length > 0) renderSecao("Remoto", remotos);
 
     doc.save(`escala-${semana}.pdf`);
   }

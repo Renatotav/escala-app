@@ -43,10 +43,10 @@ export async function GET() {
     prisma.chamadoRedmine.findMany({ select: { numero: true, dataAbertura: true } }),
   ]);
 
-  // Monta set de todos os números Assyst presentes nos Resolvidos (split por ; e /)
+  // Monta set de todos os números Assyst presentes nos Resolvidos (split por ; / e ,)
   const resolvidosAssystSet = new Set<string>();
   for (const r of resolvidos) {
-    const partes = r.numerosAssyst.split(/[;/]/).map(s => s.trim().toUpperCase()).filter(Boolean);
+    const partes = r.numerosAssyst.split(/[;/,]/).map(s => s.trim().toUpperCase()).filter(Boolean);
     for (const p of partes) resolvidosAssystSet.add(p);
   }
 

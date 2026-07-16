@@ -133,8 +133,8 @@ export function Sidebar() {
       <aside className={`hidden md:flex flex-col shrink-0 bg-gray-900 border-r border-gray-800 h-dvh sticky top-0 relative transition-all duration-200 ${collapsed ? "w-16" : "w-60"}`}>
         {/* Cabeçalho */}
         {collapsed ? (
-          <div className="flex justify-center items-center py-3 border-b border-gray-800">
-            <img src="/Logo-PJe-Símbolo.svg" alt="PJe" className="w-11 h-11" />
+          <div className="flex justify-center items-center py-2 border-b border-gray-800">
+            <img src="/Logo-PJe-Símbolo.svg" alt="PJe" className="w-14 h-14" />
           </div>
         ) : (
           <div className="flex items-center gap-3 px-4 py-4 border-b border-gray-800">

@@ -111,8 +111,9 @@ export default function EscalaPage() {
 
   function gerarPDF() {
     type DocWithTable = jsPDF & { lastAutoTable: { finalY: number } };
-    const GREEN: [number, number, number] = [46, 125, 50];
+    const GREEN: [number, number, number] = [27, 75, 75];   // #1B4B4B verde-petróleo
     const BLACK: [number, number, number] = [10, 10, 10];
+    const LILAC: [number, number, number] = [180, 160, 210]; // bordas lilás
 
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
 
@@ -206,7 +207,7 @@ export default function EscalaPage() {
           fontSize: 8,
           fontStyle: "bold",
           textColor: BLACK,
-          lineColor: BLACK,
+          lineColor: LILAC,
           lineWidth: 0.25,
           cellPadding: 2.5,
           fillColor: [255, 255, 255],
@@ -217,13 +218,13 @@ export default function EscalaPage() {
       y = (doc as DocWithTable).lastAutoTable.finalY + 10;
     }
 
-    // Ordem FIXA obrigatória
+    // Ordem FIXA: Fórum → TJ → Remoto → Núcleo
     renderSecao("Presencial - Fórum Clóvis Beviláqua", forum, { tresColunas: true });
+    renderSecao("Presencial - Tribunal de Justiça", tj);
+    renderSecao("Remoto", remotos);
     renderSecao("Presencial - Núcleo de Custódia e das Garantias da Comarca de Fortaleza", custodia, {
       horario: "Seg a Quinta 08:00 as 12:00 e Sexta de 08:00 as 14 horas",
     });
-    renderSecao("Presencial - Tribunal de Justiça", tj);
-    renderSecao("Remoto", remotos);
 
     doc.save(`escala-${semana}.pdf`);
   }

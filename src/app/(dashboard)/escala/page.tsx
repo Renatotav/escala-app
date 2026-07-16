@@ -125,23 +125,42 @@ export default function EscalaPage() {
       `${String(dt.getDate()).padStart(2, "0")}/${String(dt.getMonth() + 1).padStart(2, "0")}`;
     const mesNome = seg.toLocaleString("pt-BR", { month: "long" });
     const mesCapital = mesNome.charAt(0).toUpperCase() + mesNome.slice(1);
-    const dataRange = `${fmt(seg)} a ${fmt(sex)}/${sex.getFullYear()}`;
+    const dataRange = `${fmt(seg)} à ${fmt(sex)}/${sex.getFullYear()}`;
 
     // Título principal — centralizado, negrito, preto
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(16);
+    doc.setFontSize(18);
     doc.setTextColor(...BLACK);
-    doc.text(`Escala - ${mesCapital} de ${sex.getFullYear()}`, 105, 13, { align: "center" });
+    doc.text(`Escala - ${mesCapital} de ${sex.getFullYear()}`, 105, 14, { align: "center" });
+
+    // Linha divisória sutil sob o título
+    doc.setDrawColor(220, 220, 220);
+    doc.setLineWidth(0.3);
+    doc.line(12, 17, 198, 17);
+
+    // Ícone de relógio desenhado à mão (circle + ponteiros)
+    const cx = 16, cy = 23.5, r = 3;
+    doc.setDrawColor(...GREEN);
+    doc.setLineWidth(0.5);
+    doc.circle(cx, cy, r);
+    doc.setLineWidth(0.4);
+    doc.line(cx, cy, cx, cy - 1.8);       // ponteiro dos minutos (12h)
+    doc.line(cx, cy, cx + 1.4, cy + 0.8); // ponteiro das horas (4h)
+    // Ponto central
+    doc.setFillColor(...GREEN);
+    doc.circle(cx, cy, 0.3, "F");
 
     // Data do período — verde, negrito, sublinhado
-    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
     doc.setTextColor(...GREEN);
     const dateLabel = dataRange;
-    doc.text(dateLabel, 12, 21);
+    doc.text(dateLabel, 21, 24.5);
     doc.setDrawColor(...GREEN);
-    doc.line(12, 22.5, 12 + doc.getTextWidth(dateLabel), 22.5);
+    doc.setLineWidth(0.3);
+    doc.line(21, 26, 21 + doc.getTextWidth(dateLabel), 26);
 
-    let y = 28;
+    let y = 31;
 
     const membros = colaboradores.filter(c => !["Supervisão", "Coordenação"].includes(c.equipe.nome));
 

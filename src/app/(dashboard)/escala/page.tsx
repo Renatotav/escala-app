@@ -262,12 +262,12 @@ export default function EscalaPage() {
       // Horário como faixa azul com texto branco
       if (opcoes?.horario) {
         doc.setFillColor(37, 99, 235);
-        doc.roundedRect(12, y - 3.5, 185, 6, 1, 1, "F");
+        doc.rect(12, y - 3.5, 185, 6, "F");
         doc.setFont("helvetica", "bold");
         doc.setFontSize(7.5);
         doc.setTextColor(255, 255, 255);
         doc.text(opcoes.horario, 104.5, y + 0.5, { align: "center" });
-        y += 4;
+        y += 7;
       }
 
       // Tabela: 2 colunas ou 1 coluna

@@ -85,7 +85,7 @@ export default function EscalaPage() {
         c.equipe.nome,
         String(c.semanasPresencial),
         sinalConfig[c.sinal].label,
-        c.escalaSemana === "REMOTO" ? "Remoto" : c.escalaSemana === "PRESENCIAL" ? "Presencial" : "Não lançado",
+        c.escalaSemana === "REMOTO" ? "Remoto" : c.escalaSemana === "PRESENCIAL" ? (c.unidadePresencial ? `Presencial - ${c.unidadePresencial}` : "Presencial") : "Não lançado",
       ]);
     }
     const csv = rows.map(r => r.map(v => `"${v.replace(/"/g, '""')}"`).join(",")).join("\n");

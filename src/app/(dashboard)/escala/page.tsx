@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { sinalConfig, type Sinal } from "@/lib/eligibility";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { ICONE_ESCALA_B64 } from "@/lib/icone-escala-b64";
 
 type Equipe = { id: number; nome: string; thresholdAmarelo: number; thresholdVerde: number };
 type ColaboradorEscala = {
@@ -109,7 +110,7 @@ export default function EscalaPage() {
     URL.revokeObjectURL(url);
   }
 
-  async function gerarPDF() {
+  function gerarPDF() {
     type DocWithTable = jsPDF & { lastAutoTable: { finalY: number } };
     const GREEN: [number, number, number] = [27, 75, 75];
     const BLACK: [number, number, number] = [10, 10, 10];
@@ -138,29 +139,8 @@ export default function EscalaPage() {
     doc.setTextColor(...GREEN);
     doc.text(`Escala - ${mesCapital} de ${sex.getFullYear()}`, 198, 17, { align: "right" });
 
-    // Ícone (imagem relógio+calendário) — lado esquerdo
-    try {
-      const resp = await fetch("/Gemini_Generated_Image_qbpkzkqbpkzkqbpk.png");
-      const blob = await resp.blob();
-      const b64 = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.readAsDataURL(blob);
-      });
-      // Imagem: ~22mm wide, manter proporção 2188/1952 ≈ 1.12
-      doc.addImage(b64, "PNG", 12, 8, 22, 19.6);
-    } catch {
-      // Fallback: desenhar relógio simples se imagem falhar
-      const cx = 21, cy = 17, r = 6;
-      doc.setDrawColor(...GREEN);
-      doc.setLineWidth(0.6);
-      doc.circle(cx, cy, r);
-      doc.setLineWidth(0.45);
-      doc.line(cx, cy, cx, cy - 3.5);
-      doc.line(cx, cy, cx + 2.5, cy + 1.5);
-      doc.setFillColor(...GREEN);
-      doc.circle(cx, cy, 0.4, "F");
-    }
+    // Ícone relógio+calendário embutido (base64, sem fetch)
+    doc.addImage(ICONE_ESCALA_B64, "PNG", 12, 8, 22, 19.6);
 
     // Data do período — verde, negrito, sublinhado (abaixo do ícone)
     doc.setFont("helvetica", "bold");
@@ -204,16 +184,15 @@ export default function EscalaPage() {
       doc.line(12, y + 1, 12 + doc.getTextWidth(titulo), y + 1);
       y += 5;
 
-      // Horário como texto verde sublinhado (abaixo do título, sem faixa azul)
+      // Horário como faixa azul com texto branco
       if (opcoes?.horario) {
+        doc.setFillColor(37, 99, 235);
+        doc.roundedRect(12, y - 3.5, 185, 6, 1, 1, "F");
         doc.setFont("helvetica", "bold");
         doc.setFontSize(7.5);
-        doc.setTextColor(...GREEN);
-        doc.text(opcoes.horario, 12, y);
-        doc.setDrawColor(...GREEN);
-        doc.setLineWidth(0.25);
-        doc.line(12, y + 1, 12 + doc.getTextWidth(opcoes.horario), y + 1);
-        y += 5;
+        doc.setTextColor(255, 255, 255);
+        doc.text(opcoes.horario, 104.5, y + 0.5, { align: "center" });
+        y += 4;
       }
 
       // Tabela: 2 colunas ou 1 coluna

@@ -7,7 +7,7 @@ type Equipe = { id: number; nome: string; thresholdAmarelo: number; thresholdVer
 type ColaboradorEscala = {
   id: number; nome: string; cargo: string | null;
   equipe: Equipe; semanasPresencial: number; ajusteSemanasPresencial: number; contadoRaw: number;
-  sinal: Sinal; escalaSemana: string | null; semRemoto: boolean;
+  sinal: Sinal; escalaSemana: string | null; unidadePresencial: string | null; semRemoto: boolean;
 };
 
 function toLocalISO(d: Date): string {
@@ -39,6 +39,8 @@ export default function EscalaPage() {
   const [equipes, setEquipes] = useState<Equipe[]>([]);
   const [colaboradores, setColaboradores] = useState<ColaboradorEscala[]>([]);
   const [loading, setLoading] = useState(false);
+  const [modalPresencial, setModalPresencial] = useState<{ colaboradorId: number; nome: string } | null>(null);
+  const [unidadeInput, setUnidadeInput] = useState("");
 
   useEffect(() => { fetch("/api/equipes").then(r => r.json()).then(setEquipes); }, []);
 
@@ -52,16 +54,23 @@ export default function EscalaPage() {
       .finally(() => setLoading(false));
   }, [semana, equipeId]);
 
-  async function handleLancar(colaboradorId: number, tipo: "PRESENCIAL" | "REMOTO") {
+  async function handleLancar(colaboradorId: number, tipo: "PRESENCIAL" | "REMOTO", unidade?: string) {
     await fetch("/api/escalas", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ colaboradorId, semana, tipo }),
+      body: JSON.stringify({ colaboradorId, semana, tipo, unidade: unidade || null }),
     });
     const params = new URLSearchParams({ semana });
     if (equipeId) params.set("equipeId", equipeId);
     const data = await fetch(`/api/escalas?${params}`).then(r => r.json());
     setColaboradores(data);
+  }
+
+  async function confirmarPresencial() {
+    if (!modalPresencial) return;
+    await handleLancar(modalPresencial.colaboradorId, "PRESENCIAL", unidadeInput.trim());
+    setModalPresencial(null);
+    setUnidadeInput("");
   }
 
   function exportCSV() {
@@ -242,16 +251,21 @@ export default function EscalaPage() {
                             </td>
                             <td className="px-4 py-3">
                               {c.escalaSemana ? (
-                                <span className={`text-xs font-medium ${c.escalaSemana === "REMOTO" ? "text-blue-400" : "text-gray-300"}`}>
-                                  {c.escalaSemana === "REMOTO" ? "Remoto" : "Presencial"}
-                                </span>
+                                <div>
+                                  <span className={`text-xs font-medium ${c.escalaSemana === "REMOTO" ? "text-blue-400" : "text-gray-300"}`}>
+                                    {c.escalaSemana === "REMOTO" ? "Remoto" : "Presencial"}
+                                  </span>
+                                  {c.escalaSemana === "PRESENCIAL" && c.unidadePresencial && (
+                                    <p className="text-xs text-amber-400 mt-0.5">{c.unidadePresencial}</p>
+                                  )}
+                                </div>
                               ) : null}
                             </td>
                             <td className="px-4 py-3">
                               <div className="flex items-center justify-center gap-2">
                                 {!c.semRemoto && (
                                   <>
-                                    <button onClick={() => handleLancar(c.id, "PRESENCIAL")}
+                                    <button onClick={() => { setUnidadeInput(""); setModalPresencial({ colaboradorId: c.id, nome: c.nome }); }}
                                       className="text-xs px-2.5 py-1 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 transition">
                                       Presencial
                                     </button>
@@ -285,6 +299,36 @@ export default function EscalaPage() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Modal unidade presencial */}
+      {modalPresencial && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setModalPresencial(null)}>
+          <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-sm shadow-xl" onClick={e => e.stopPropagation()}>
+            <h3 className="text-white font-semibold mb-1">Lançar como Presencial</h3>
+            <p className="text-gray-400 text-sm mb-4">{modalPresencial.nome}</p>
+            <label className="block text-xs text-gray-400 mb-1">Unidade (opcional)</label>
+            <input
+              type="text"
+              value={unidadeInput}
+              onChange={e => setUnidadeInput(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && confirmarPresencial()}
+              placeholder="Ex: Núcleo de Custódia"
+              autoFocus
+              className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setModalPresencial(null)}
+                className="px-4 py-2 text-sm rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 transition">
+                Cancelar
+              </button>
+              <button onClick={confirmarPresencial}
+                className="px-4 py-2 text-sm rounded-lg bg-gray-600 hover:bg-gray-500 text-white font-medium transition">
+                Confirmar Presencial
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

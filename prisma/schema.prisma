@@ -81,6 +81,7 @@ model EscalaSemana {
   colaborador   Colaborador @relation(fields: [colaboradorId], references: [id])
   semana        DateTime
   tipo          TipoEscala
+  unidade       String?
   createdAt     DateTime    @default(now())
 
   @@unique([colaboradorId, semana])

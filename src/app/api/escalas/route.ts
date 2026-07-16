@@ -76,9 +76,11 @@ export async function GET(request: NextRequest) {
     const sinal = ultimaFoiRemoto
       ? ("VERDE" as const)
       : calcularSinal(semanasPresencial, c.equipe.thresholdAmarelo, c.equipe.thresholdVerde);
-    const escalaSemana = semana
-      ? c.escalas.find((e) => new Date(e.semana).toISOString().slice(0, 10) === semana)?.tipo ?? null
+    const escalaRegistro = semana
+      ? c.escalas.find((e) => new Date(e.semana).toISOString().slice(0, 10) === semana) ?? null
       : null;
+    const escalaSemana = escalaRegistro?.tipo ?? null;
+    const unidadePresencial = escalaRegistro?.unidade ?? null;
 
     return {
       id: c.id,
@@ -90,6 +92,7 @@ export async function GET(request: NextRequest) {
       contadoRaw,
       sinal,
       escalaSemana,
+      unidadePresencial,
       semRemoto: (c as unknown as { semRemoto: boolean }).semRemoto ?? false,
     };
   });
@@ -98,13 +101,13 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const { colaboradorId, semana, tipo } = await request.json();
+  const { colaboradorId, semana, tipo, unidade } = await request.json();
   const snappedSemana = snapToMonday(semana);
 
   const registro = await prisma.escalaSemana.upsert({
     where: { colaboradorId_semana: { colaboradorId, semana: new Date(snappedSemana) } },
-    create: { colaboradorId, semana: new Date(snappedSemana), tipo },
-    update: { tipo },
+    create: { colaboradorId, semana: new Date(snappedSemana), tipo, unidade: unidade || null },
+    update: { tipo, unidade: unidade || null },
   });
 
   return NextResponse.json(registro);

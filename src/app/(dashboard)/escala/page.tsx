@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { sinalConfig, type Sinal } from "@/lib/eligibility";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { ICONE_ESCALA_B64 } from "@/lib/icone-escala-b64";
 
 type Equipe = { id: number; nome: string; thresholdAmarelo: number; thresholdVerde: number };
 type ColaboradorEscala = {
@@ -143,79 +144,8 @@ export default function EscalaPage() {
     doc.setTextColor(...GREEN);
     doc.text(`Escala - ${mesCapital} de ${sex.getFullYear()}`, 198, 17, { align: "right" });
 
-    // === ÍCONE VETORIAL: RELÓGIO + CALENDÁRIO (compacto, cabe acima da data) ===
-    const PI = Math.PI;
-    const cx = 20, cy = 15, Ro = 7.5;
-
-    // --- RELÓGIO ---
-    doc.setDrawColor(...GREEN);
-    doc.setLineWidth(0.9);  doc.circle(cx, cy, Ro);
-    doc.setLineWidth(0.35); doc.circle(cx, cy, Ro - 1.3);
-    doc.setLineWidth(0.2);  doc.circle(cx, cy, Ro - 1.7);
-
-    // 12 marcadores de hora
-    for (let h = 0; h < 12; h++) {
-      const a = (h * 30 - 90) * PI / 180;
-      const big = h % 3 === 0;
-      const mOut = Ro - 2.0, mLen = big ? 1.8 : 0.9;
-      doc.setLineWidth(big ? 0.55 : 0.28);
-      doc.line(cx + mOut * Math.cos(a), cy + mOut * Math.sin(a),
-               cx + (mOut - mLen) * Math.cos(a), cy + (mOut - mLen) * Math.sin(a));
-    }
-    // Ponteiro dos minutos (~10 min)
-    const minA = (60 - 90) * PI / 180;
-    doc.setLineWidth(0.4);
-    doc.line(cx, cy, cx + 4.5 * Math.cos(minA), cy + 4.5 * Math.sin(minA));
-    // Ponteiro das horas (~11h)
-    const hrA = (330 - 90) * PI / 180;
-    doc.setLineWidth(0.7);
-    doc.line(cx, cy, cx + 3.0 * Math.cos(hrA), cy + 3.0 * Math.sin(hrA));
-    // Centro
-    doc.setFillColor(...GREEN); doc.circle(cx, cy, 0.7, "F");
-    doc.setDrawColor(...GREEN); doc.setLineWidth(0.2); doc.circle(cx, cy, 1.1);
-
-    // Pedestal
-    doc.setLineWidth(0.3);
-    for (const ox of [-2.8, -1.4, 0, 1.4, 2.8]) {
-      doc.line(cx + ox, cy + Ro - 0.3, cx + ox, cy + Ro + 2.5);
-    }
-    doc.setLineWidth(0.5);
-    doc.line(cx - 5, cy + Ro + 2.5, cx + 5, cy + Ro + 2.5);
-
-    // --- CALENDÁRIO (à direita do relógio) ---
-    const calX = cx + Ro - 2.5, calY = cy - Ro + 2;
-    const calW = 16, calH = 15;
-
-    doc.setDrawColor(...GREEN);
-    doc.setLineWidth(0.5);
-    doc.rect(calX, calY, calW, calH);
-
-    // 3 argolas no topo
-    for (let i = 0; i < 3; i++) {
-      const rx = calX + 3 + i * 4.5, ry = calY - 1.6;
-      doc.setLineWidth(0.4);  doc.circle(rx, ry, 1.6);
-      doc.setFillColor(...CREAM); doc.circle(rx, ry, 0.9, "F");
-      doc.setDrawColor(...GREEN); doc.setLineWidth(0.25); doc.circle(rx, ry, 0.9);
-    }
-
-    // Cabeçalho com divisores
-    doc.setLineWidth(0.28);
-    doc.line(calX, calY + 4.5, calX + calW, calY + 4.5);
-    doc.line(calX + calW * 0.5, calY, calX + calW * 0.5, calY + 4.5);
-    doc.setFont("helvetica", "bolditalic");
-    doc.setFontSize(3.8);
-    doc.setTextColor(...GREEN);
-    doc.text("Mês", calX + calW * 0.25, calY + 3.2, { align: "center" });
-    doc.text("Ano", calX + calW * 0.75, calY + 3.2, { align: "center" });
-
-    // Grade (5 colunas × 4 linhas)
-    const gY = calY + 4.5, gH = calH - 4.5;
-    doc.setLineWidth(0.18);
-    for (let c = 1; c <= 4; c++) doc.line(calX + c * calW / 5, gY, calX + c * calW / 5, calY + calH);
-    for (let r = 1; r <= 3; r++) doc.line(calX, gY + r * gH / 4, calX + calW, gY + r * gH / 4);
-
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(...GREEN);
+    // Ícone embutido (base64) — relógio+calendário, fundo creme combina com PDF
+    doc.addImage(ICONE_ESCALA_B64, "PNG", 12, 8, 22, 19.6);
 
     // Data do período — verde, negrito, sublinhado (abaixo do relógio)
     doc.setFont("helvetica", "bold");

@@ -236,13 +236,13 @@ export default function EscalaPage() {
       y = (doc as DocWithTable).lastAutoTable.finalY + 5;
     }
 
-    // Ordem FIXA: Fórum → TJ → Remoto → Núcleo
+    // Ordem FIXA: Fórum → TJ → Núcleo → Remoto
     renderSecao("Presencial - Fórum Clóvis Beviláqua", forum, { tresColunas: true });
     renderSecao("Presencial - Tribunal de Justiça", tj);
-    renderSecao("Remoto", remotos);
     renderSecao("Presencial - Núcleo de Custódia e das Garantias da Comarca de Fortaleza", custodia, {
       horario: "Seg a Quinta 08:00 as 12:00 e Sexta de 08:00 as 14 horas",
     });
+    renderSecao("Remoto", remotos);
 
     doc.save(`escala-${semana}.pdf`);
   }

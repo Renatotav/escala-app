@@ -201,7 +201,7 @@ export default function ChamadosRedminePage() {
 
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
             <p className="text-xs text-gray-400 mb-1">Período dos dados</p>
-            <p className="text-xs font-medium text-gray-300 mt-2">{periodoMin.slice(0, 8)} → {periodoMax.slice(0, 8)}</p>
+            <p className="text-xs font-medium text-gray-300 mt-2">{periodoMin.slice(0, 10)} → {periodoMax.slice(0, 10)}</p>
           </div>
         </div>
       )}

@@ -127,21 +127,21 @@ export default function EscalaPage() {
     const mesCapital = mesNome.charAt(0).toUpperCase() + mesNome.slice(1);
     const dataRange = `${fmt(seg)} a ${fmt(sex)}/${sex.getFullYear()}`;
 
-    // Título principal — centralizado, grande, negrito, preto
+    // Título principal — centralizado, negrito, preto
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(20);
+    doc.setFontSize(16);
     doc.setTextColor(...BLACK);
-    doc.text(`Escala - ${mesCapital} de ${sex.getFullYear()}`, 105, 16, { align: "center" });
+    doc.text(`Escala - ${mesCapital} de ${sex.getFullYear()}`, 105, 13, { align: "center" });
 
     // Data do período — verde, negrito, sublinhado
-    doc.setFontSize(12);
+    doc.setFontSize(10);
     doc.setTextColor(...GREEN);
     const dateLabel = dataRange;
-    doc.text(dateLabel, 14, 27);
+    doc.text(dateLabel, 12, 21);
     doc.setDrawColor(...GREEN);
-    doc.line(14, 28.5, 14 + doc.getTextWidth(dateLabel), 28.5);
+    doc.line(12, 22.5, 12 + doc.getTextWidth(dateLabel), 22.5);
 
-    let y = 36;
+    let y = 28;
 
     const membros = colaboradores.filter(c => !["Supervisão", "Coordenação"].includes(c.equipe.nome));
 
@@ -164,26 +164,25 @@ export default function EscalaPage() {
 
     function renderSecao(titulo: string, nomes: string[], opcoes?: { tresColunas?: boolean; horario?: string }) {
       if (nomes.length === 0) return;
-      if (y > 250) { doc.addPage(); y = 14; }
 
       // Título da seção — verde, negrito, sublinhado
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(11);
+      doc.setFontSize(9);
       doc.setTextColor(...GREEN);
-      doc.text(titulo, 14, y);
+      doc.text(titulo, 12, y);
       doc.setDrawColor(...GREEN);
-      doc.line(14, y + 1.5, 14 + doc.getTextWidth(titulo), y + 1.5);
-      y += 7;
+      doc.line(12, y + 1, 12 + doc.getTextWidth(titulo), y + 1);
+      y += 5;
 
       // Faixa de horário especial (azul com texto branco)
       if (opcoes?.horario) {
         doc.setFillColor(37, 99, 235);
-        doc.roundedRect(14, y - 4.5, 181, 7.5, 1, 1, "F");
+        doc.roundedRect(12, y - 3.5, 185, 6, 1, 1, "F");
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(9);
+        doc.setFontSize(7.5);
         doc.setTextColor(255, 255, 255);
         doc.text(opcoes.horario, 104.5, y + 0.5, { align: "center" });
-        y += 9;
+        y += 7;
       }
 
       // 3 colunas (2 nomes + 1 vazia p/ assinatura) ou 1 coluna
@@ -201,21 +200,21 @@ export default function EscalaPage() {
         body: rows,
         theme: "grid",
         columnStyles: useTresColunas
-          ? { 0: { cellWidth: 74 }, 1: { cellWidth: 74 }, 2: { cellWidth: 33 } }
-          : { 0: { cellWidth: 181 } },
+          ? { 0: { cellWidth: 76 }, 1: { cellWidth: 76 }, 2: { cellWidth: 33 } }
+          : { 0: { cellWidth: 185 } },
         bodyStyles: {
-          fontSize: 8,
+          fontSize: 7,
           fontStyle: "bold",
           textColor: BLACK,
           lineColor: LILAC,
-          lineWidth: 0.25,
-          cellPadding: 2.5,
+          lineWidth: 0.2,
+          cellPadding: 1.2,
           fillColor: [255, 255, 255],
         },
-        margin: { left: 14, right: 14 },
-        didDrawPage: () => { y = 14; },
+        margin: { left: 12, right: 12 },
+        didDrawPage: () => { y = 12; },
       });
-      y = (doc as DocWithTable).lastAutoTable.finalY + 10;
+      y = (doc as DocWithTable).lastAutoTable.finalY + 5;
     }
 
     // Ordem FIXA: Fórum → TJ → Remoto → Núcleo

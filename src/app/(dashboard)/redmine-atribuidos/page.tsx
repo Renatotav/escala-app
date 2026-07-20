@@ -103,6 +103,7 @@ export default function RedmineAtribuidosPage() {
   const [solicitandoOperador, setSolicitandoOperador] = useState("");
   const [filtroAcomp, setFiltroAcomp] = useState(false);
   const [filtroDevolverTI, setFiltroDevolverTI] = useState(false);
+  const [modalDevolverTI, setModalDevolverTI] = useState(false);
   const [colaboradores, setColaboradores] = useState<{ id: number; nome: string }[]>([]);
 
   useEffect(() => {
@@ -203,6 +204,9 @@ export default function RedmineAtribuidosPage() {
   const buscaLow = busca.toLowerCase();
   const emAcompanhamento = registros.filter(r => r.solicitadoEm).length;
   const paraDevolver = registros.filter(r => assystEncerrado(r)).length;
+  const devolverAssysts = registros
+    .filter(r => assystEncerrado(r))
+    .flatMap(r => splitAssyst(r.numerosAssyst).map(n => ({ assyst: n, redmine: r.numeroRedmine })));
   const registrosFiltrados = registros
     .filter(r => !filtroPessoa || r.atribuidoPara === filtroPessoa)
     .filter(r => {
@@ -328,19 +332,20 @@ export default function RedmineAtribuidosPage() {
 
       {/* Alerta: Assysts vinculados a Devolver à TI precisam ser encerrados em Chamados */}
       {paraDevolver > 0 && (
-        <a href="/chamados"
-          className="flex items-center gap-3 px-4 py-3 mb-6 rounded-xl border border-yellow-700 bg-yellow-950/30 hover:bg-yellow-950/50 transition cursor-pointer">
+        <button
+          onClick={() => setModalDevolverTI(true)}
+          className="w-full flex items-center gap-3 px-4 py-3 mb-6 rounded-xl border border-yellow-700 bg-yellow-950/30 hover:bg-yellow-950/50 transition cursor-pointer text-left">
           <span className="text-yellow-400 text-xl">⚠</span>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-yellow-300">
               {paraDevolver} Redmine{paraDevolver > 1 ? "s" : ""} com Assyst pendente de encerramento
             </p>
             <p className="text-xs text-yellow-600 mt-0.5">
-              O operador ainda precisa encerrar o chamado Assyst — verifique na aba Chamados
+              O operador ainda precisa encerrar o chamado Assyst — clique para ver a lista
             </p>
           </div>
-          <span className="text-yellow-600 text-xs shrink-0">Ir para Chamados →</span>
-        </a>
+          <span className="text-yellow-600 text-xs shrink-0">Ver lista →</span>
+        </button>
       )}
 
       {pessoas.length > 0 && (
@@ -503,6 +508,40 @@ export default function RedmineAtribuidosPage() {
           </table>
         )}
       </div>
+
+      {/* Modal: Assysts Devolver à TI */}
+      {modalDevolverTI && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4" onClick={() => setModalDevolverTI(false)}>
+          <div className="bg-gray-900 border border-yellow-800/50 rounded-xl w-full max-w-lg p-6 max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-base font-semibold text-yellow-300">⚠ Assysts para verificar</h3>
+                <p className="text-xs text-gray-500 mt-0.5">Vinculados a Redmines marcados como "Devolver à TI" — verifique se já podem ser encerrados</p>
+              </div>
+              <button onClick={() => setModalDevolverTI(false)} className="text-gray-600 hover:text-gray-400 transition">✕</button>
+            </div>
+            <div className="overflow-y-auto flex-1 space-y-2">
+              {devolverAssysts.map((item, i) => (
+                <div key={i} className="flex items-center justify-between px-3 py-2 rounded-lg bg-yellow-950/20 border border-yellow-900/40">
+                  <div>
+                    <a href={`https://cati.tjce.jus.br/assystnet/#events/${item.assyst}?eventType=1&currentIndex=0`}
+                      target="_blank" rel="noopener noreferrer"
+                      className="font-mono text-sm text-blue-400 hover:text-blue-300 hover:underline transition">
+                      {item.assyst}
+                    </a>
+                    <p className="text-xs text-gray-500 mt-0.5">Redmine #{item.redmine}</p>
+                  </div>
+                  <span className="text-xs text-yellow-600 font-medium">Devolver à TI</span>
+                </div>
+              ))}
+            </div>
+            <button onClick={() => setModalDevolverTI(false)}
+              className="mt-4 w-full bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-lg py-2 transition">
+              Fechar
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Modal texto */}
       {textoModal && (

@@ -310,10 +310,14 @@ export default function RedmineResolvidosPage() {
             <p className="text-xs text-gray-400 mb-1">Total Redmine</p>
             <p className="text-3xl font-bold text-white">{dados.totalRedmine}</p>
           </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
-            <p className="text-xs text-gray-400 mb-1">Resolvidos importados</p>
-            <p className="text-3xl font-bold text-green-400">{resolvidos.length}</p>
-          </div>
+          <a href="/chamados"
+            className={`rounded-xl p-4 border text-left transition block ${comResolvido.length > 0 ? "bg-orange-950/30 border-orange-600 hover:bg-orange-950/50 animate-pulse" : "bg-gray-900 border-gray-800"}`}>
+            <p className="text-xs text-gray-400 mb-1">Aguardando encerramento em Chamados</p>
+            <p className={`text-3xl font-bold ${comResolvido.length > 0 ? "text-orange-400" : "text-white"}`}>{comResolvido.length}</p>
+            {comResolvido.length > 0 && (
+              <p className="text-xs text-orange-500 mt-1">⚡ Ir para Chamados →</p>
+            )}
+          </a>
           <button
             onClick={() => { setAba("esquecidos"); setPagina(1); }}
             className={`rounded-xl p-4 border text-left transition ${aba === "esquecidos" ? "bg-red-900/40 border-red-500 ring-2 ring-red-400 animate-pulse" : semResolvido.length > 0 ? "bg-red-950/30 border-red-700 hover:bg-red-900/20" : "bg-gray-900 border-gray-800"}`}>

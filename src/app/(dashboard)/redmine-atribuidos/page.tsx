@@ -338,10 +338,10 @@ export default function RedmineAtribuidosPage() {
           <span className="text-yellow-400 text-xl">⚠</span>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-yellow-300">
-              {paraDevolver} Redmine{paraDevolver > 1 ? "s" : ""} com Assyst pendente de encerramento
+              {paraDevolver} Chamado{paraDevolver > 1 ? "s" : ""} no Assyst, verificar se não pode{paraDevolver > 1 ? "m" : ""} ser encerrado{paraDevolver > 1 ? "s" : ""}.
             </p>
             <p className="text-xs text-yellow-600 mt-0.5">
-              O operador ainda precisa encerrar o chamado Assyst — clique para ver a lista
+              O operador ainda está com o chamado em aberto no Cati — clique para ver a lista.
             </p>
           </div>
           <span className="text-yellow-600 text-xs shrink-0">Ver lista →</span>
@@ -515,8 +515,8 @@ export default function RedmineAtribuidosPage() {
           <div className="bg-gray-900 border border-yellow-800/50 rounded-xl w-full max-w-lg p-6 max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-base font-semibold text-yellow-300">⚠ Assysts para verificar</h3>
-                <p className="text-xs text-gray-500 mt-0.5">Vinculados a Redmines marcados como "Devolver à TI" — verifique se já podem ser encerrados</p>
+                <h3 className="text-base font-semibold text-yellow-300">⚠ Chamados no Assyst para verificar</h3>
+                <p className="text-xs text-gray-500 mt-0.5">O operador ainda está com esses chamados abertos no Cati — verifique se podem ser encerrados</p>
               </div>
               <button onClick={() => setModalDevolverTI(false)} className="text-gray-600 hover:text-gray-400 transition">✕</button>
             </div>

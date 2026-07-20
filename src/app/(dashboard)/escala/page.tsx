@@ -51,6 +51,7 @@ export default function EscalaPage() {
   const [modalPresencial, setModalPresencial] = useState<{ colaboradorId: number; nome: string } | null>(null);
   const [unidadeInput, setUnidadeInput] = useState("");
   const [outroInput, setOutroInput] = useState("");
+  const [horarioInput, setHorarioInput] = useState("");
 
   useEffect(() => { fetch("/api/equipes").then(r => r.json()).then(setEquipes); }, []);
 
@@ -76,15 +77,24 @@ export default function EscalaPage() {
     setColaboradores(data);
   }
 
+  const NUCLEO_HORARIO_PADRAO = "Seg. a Quinta: 08:00 às 12:00 e Sexta: 08:00 às 14:00.";
+
+  function unidadeRequerHorario(u: string) {
+    return /cust[oó]dia/i.test(u) || u === "__outro__";
+  }
+
   async function confirmarPresencial() {
     if (!modalPresencial) return;
-    const unidade = unidadeInput === "__outro__"
+    const unidadeBase = unidadeInput === "__outro__"
       ? outroInput.trim()
       : unidadeInput.trim();
+    const horario = horarioInput.trim();
+    const unidade = horario ? `${unidadeBase}||${horario}` : unidadeBase;
     await handleLancar(modalPresencial.colaboradorId, "PRESENCIAL", unidade);
     setModalPresencial(null);
     setUnidadeInput("");
     setOutroInput("");
+    setHorarioInput("");
   }
 
   function exportCSV() {
@@ -167,7 +177,7 @@ export default function EscalaPage() {
 
     for (const c of [...membros].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))) {
       if (c.escalaSemana === "PRESENCIAL") {
-        const u = c.unidadePresencial?.trim() ?? "";
+        const u = (c.unidadePresencial?.split("||")[0] ?? "").trim();
         if (/cust[oó]dia/i.test(u)) custodia.push(c.nome.toUpperCase());
         else if (/tribunal|^tj$/i.test(u)) tj.push(c.nome.toUpperCase());
         else forum.push(c.nome.toUpperCase());
@@ -232,10 +242,16 @@ export default function EscalaPage() {
       y = (doc as DocWithTable).lastAutoTable.finalY + 10;
     }
 
+    // Horário do Núcleo: usa o personalizado salvo (se houver) ou o padrão
+    const custodiaHorario = membros
+      .filter(c => c.escalaSemana === "PRESENCIAL" && /cust[oó]dia/i.test(c.unidadePresencial?.split("||")[0] ?? ""))
+      .map(c => c.unidadePresencial?.split("||")[1])
+      .find(h => h) ?? "Seg. a Quinta: 08:00 às 12:00 e Sexta: 08:00 às 14:00.";
+
     // Ordem: Fórum → Núcleo → TJ → Remoto
     renderSecao("Presencial - Fórum Clóvis Beviláqua", forum, { duasColunas: true });
     renderSecao("Presencial - Núcleo de Custódia e das Garantias da Comarca de Fortaleza", custodia, {
-      horario: "Seg. a Quinta: 08:00 às 12:00 e Sexta: 08:00 às 14:00.",
+      horario: custodiaHorario,
     });
     renderSecao("Presencial - Tribunal de Justiça", tj);
     renderSecao("Remoto", remotos);
@@ -407,8 +423,8 @@ export default function EscalaPage() {
                                     {c.escalaSemana === "REMOTO" ? "Remoto" : "Presencial"}
                                   </span>
                                   {c.escalaSemana === "PRESENCIAL" && c.unidadePresencial && (
-                                    <p className="text-xs text-amber-400 mt-0.5 truncate" title={c.unidadePresencial}>
-                                      {c.unidadePresencial}
+                                    <p className="text-xs text-amber-400 mt-0.5 truncate" title={c.unidadePresencial.split("||")[0]}>
+                                      {c.unidadePresencial.split("||")[0]}
                                     </p>
                                   )}
                                 </div>
@@ -468,7 +484,12 @@ export default function EscalaPage() {
             <label className="block text-xs text-gray-400 mb-1">Local</label>
             <select
               value={unidadeInput}
-              onChange={e => { setUnidadeInput(e.target.value); setOutroInput(""); }}
+              onChange={e => {
+                const val = e.target.value;
+                setUnidadeInput(val);
+                setOutroInput("");
+                setHorarioInput(/cust[oó]dia/i.test(val) ? NUCLEO_HORARIO_PADRAO : "");
+              }}
               autoFocus
               className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
@@ -482,11 +503,23 @@ export default function EscalaPage() {
                 type="text"
                 value={outroInput}
                 onChange={e => setOutroInput(e.target.value)}
-                onKeyDown={e => e.key === "Enter" && confirmarPresencial()}
                 placeholder="Digite a unidade..."
                 autoFocus
                 className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+            )}
+            {unidadeRequerHorario(unidadeInput) && (
+              <div className="mb-3">
+                <label className="block text-xs text-gray-400 mb-1">Horário</label>
+                <input
+                  type="text"
+                  value={horarioInput}
+                  onChange={e => setHorarioInput(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && confirmarPresencial()}
+                  placeholder="Ex: Seg. a Sexta: 08:00 às 14:00"
+                  className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
             )}
             <div className="flex gap-2 justify-end">
               <button onClick={() => setModalPresencial(null)}

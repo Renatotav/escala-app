@@ -242,6 +242,8 @@ export default function ChamadosPage() {
   const [parsed, setParsed] = useState<ChamadoParsed[]>([]);
   const [substituir, setSubstituir] = useState(true);
   const [importing, setImporting] = useState(false);
+  const [devolverAssysts, setDevolverAssysts] = useState<{ assyst: string; redmine: string }[]>([]);
+  const [modalDevolverTI, setModalDevolverTI] = useState(false);
   const [importError, setImportError] = useState("");
   const [importResult, setImportResult] = useState<{ count: number; skipped: number; parsed: number } | null>(null);
 
@@ -264,6 +266,26 @@ export default function ChamadosPage() {
   }, [page, usuario, equipe, urgentes, busca]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Carrega Assysts vinculados a Redmines "Devolver à TI"
+  useEffect(() => {
+    fetch("/api/redmine-atribuidos")
+      .then(r => r.json())
+      .then(({ registros, assystAtivos }: { registros: { numerosAssyst: string; numeroRedmine: string }[]; assystAtivos: string[] }) => {
+        const ativos = new Set(assystAtivos.map(n => n.toUpperCase()));
+        const lista: { assyst: string; redmine: string }[] = [];
+        for (const r of registros) {
+          if (!r.numerosAssyst) continue;
+          const nums = r.numerosAssyst.split(/[;/,|\\]|\s+e\s+/i).map(s => s.trim().toUpperCase()).filter(Boolean);
+          if (nums.length === 0 || ativos.size === 0) continue;
+          if (nums.every(n => !ativos.has(n))) {
+            for (const n of nums) lista.push({ assyst: n, redmine: r.numeroRedmine });
+          }
+        }
+        setDevolverAssysts(lista);
+      })
+      .catch(() => {});
+  }, []);
 
   const loadStats = useCallback(() => {
     fetch("/api/chamados?stats=1")
@@ -646,6 +668,22 @@ export default function ChamadosPage() {
         </button>
       </div>
 
+      {/* Card: Assysts vinculados a Devolver à TI */}
+      {devolverAssysts.length > 0 && (
+        <div
+          onClick={() => setModalDevolverTI(true)}
+          className="mb-4 flex items-center gap-3 px-4 py-3 rounded-xl border border-yellow-700 bg-yellow-950/30 cursor-pointer hover:bg-yellow-950/50 transition">
+          <span className="text-yellow-400 text-xl">⚠</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-yellow-300">
+              {devolverAssysts.length} Assyst{devolverAssysts.length > 1 ? "s" : ""} precisam ser verificados
+            </p>
+            <p className="text-xs text-yellow-600 mt-0.5">Vinculados a Redmines "Devolver à TI" — clique para ver a lista</p>
+          </div>
+          <span className="text-yellow-600 text-xs shrink-0">Ver lista →</span>
+        </div>
+      )}
+
       {/* Summary cards */}
       {dados && dados.total > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -940,6 +978,40 @@ export default function ChamadosPage() {
             </div>
           )}
         </>
+      )}
+
+      {/* Modal: Assysts Devolver à TI */}
+      {modalDevolverTI && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4" onClick={() => setModalDevolverTI(false)}>
+          <div className="bg-gray-900 border border-yellow-800/50 rounded-xl w-full max-w-lg p-6 max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-base font-semibold text-yellow-300">⚠ Assysts para verificar</h3>
+                <p className="text-xs text-gray-500 mt-0.5">Vinculados a Redmines marcados como "Devolver à TI" — verifique se já podem ser encerrados</p>
+              </div>
+              <button onClick={() => setModalDevolverTI(false)} className="text-gray-600 hover:text-gray-400 transition">✕</button>
+            </div>
+            <div className="overflow-y-auto flex-1 space-y-2">
+              {devolverAssysts.map((item, i) => (
+                <div key={i} className="flex items-center justify-between px-3 py-2 rounded-lg bg-yellow-950/20 border border-yellow-900/40">
+                  <div>
+                    <a href={`https://cati.tjce.jus.br/assystnet/#events/${item.assyst}?eventType=1&currentIndex=0`}
+                      target="_blank" rel="noopener noreferrer"
+                      className="font-mono text-sm text-blue-400 hover:text-blue-300 hover:underline transition">
+                      {item.assyst}
+                    </a>
+                    <p className="text-xs text-gray-500 mt-0.5">Redmine #{item.redmine}</p>
+                  </div>
+                  <span className="text-xs text-yellow-600 font-medium">Devolver à TI</span>
+                </div>
+              ))}
+            </div>
+            <button onClick={() => setModalDevolverTI(false)}
+              className="mt-4 w-full bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-lg py-2 transition">
+              Fechar
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Modal de importação */}

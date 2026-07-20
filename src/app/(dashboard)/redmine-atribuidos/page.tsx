@@ -326,6 +326,23 @@ export default function RedmineAtribuidosPage() {
         );
       })()}
 
+      {/* Alerta: Assysts vinculados a Devolver à TI precisam ser encerrados em Chamados */}
+      {paraDevolver > 0 && (
+        <a href="/chamados"
+          className="flex items-center gap-3 px-4 py-3 mb-6 rounded-xl border border-yellow-700 bg-yellow-950/30 hover:bg-yellow-950/50 transition cursor-pointer">
+          <span className="text-yellow-400 text-xl">⚠</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-yellow-300">
+              {paraDevolver} Redmine{paraDevolver > 1 ? "s" : ""} com Assyst pendente de encerramento
+            </p>
+            <p className="text-xs text-yellow-600 mt-0.5">
+              O operador ainda precisa encerrar o chamado Assyst — verifique na aba Chamados
+            </p>
+          </div>
+          <span className="text-yellow-600 text-xs shrink-0">Ir para Chamados →</span>
+        </a>
+      )}
+
       {pessoas.length > 0 && (
         <div className="mb-6">
           <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Por responsável</p>

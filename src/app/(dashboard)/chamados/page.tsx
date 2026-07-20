@@ -244,6 +244,7 @@ export default function ChamadosPage() {
   const [importing, setImporting] = useState(false);
   const [devolverAssysts, setDevolverAssysts] = useState<{ assyst: string; redmine: string }[]>([]);
   const [modalDevolverTI, setModalDevolverTI] = useState(false);
+  const [resolvidosTI, setResolvidosTI] = useState<Set<string>>(new Set());
   const [importError, setImportError] = useState("");
   const [importResult, setImportResult] = useState<{ count: number; skipped: number; parsed: number } | null>(null);
 
@@ -283,6 +284,16 @@ export default function ChamadosPage() {
           }
         }
         setDevolverAssysts(lista);
+      })
+      .catch(() => {});
+  }, []);
+
+  // Carrega Assysts com Redmine já resolvido pela TI (Encontrados nos Resolvidos)
+  useEffect(() => {
+    fetch("/api/redmine-resolvidos")
+      .then(r => r.json())
+      .then(({ encontrados }: { encontrados: string[] }) => {
+        setResolvidosTI(new Set(encontrados.map(n => n.toUpperCase())));
       })
       .catch(() => {});
   }, []);
@@ -804,19 +815,26 @@ export default function ChamadosPage() {
                       key={c.id}
                       className={`border-b border-gray-800/60 last:border-0 hover:bg-gray-800/40 transition ${urg.rowClass} ${rowExtra}`}>
                       <td className="px-4 py-2.5">
-                        <div className="flex items-center gap-1.5 flex-nowrap">
-                          <a
-                            href={`https://cati.tjce.jus.br/assystnet/#events/${c.referencia}?eventType=1&currentIndex=0`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="font-mono text-xs text-blue-400 hover:text-blue-300 hover:underline transition">
-                            {c.referencia}
-                          </a>
-                          {atrasado && dias !== null && (
-                            <span
-                              title="Chamado atrasado"
-                              className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-600 text-white leading-none cursor-help animate-pulse">
-                              ⚠ {dias}d
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-1.5 flex-nowrap">
+                            <a
+                              href={`https://cati.tjce.jus.br/assystnet/#events/${c.referencia}?eventType=1&currentIndex=0`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="font-mono text-xs text-blue-400 hover:text-blue-300 hover:underline transition">
+                              {c.referencia}
+                            </a>
+                            {atrasado && dias !== null && (
+                              <span
+                                title="Chamado atrasado"
+                                className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-600 text-white leading-none cursor-help animate-pulse">
+                                ⚠ {dias}d
+                              </span>
+                            )}
+                          </div>
+                          {resolvidosTI.has(c.referencia.toUpperCase()) && (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-300 border border-orange-500/40 animate-pulse w-fit whitespace-nowrap">
+                              ⚡ Redmine resolvido — encerre
                             </span>
                           )}
                         </div>

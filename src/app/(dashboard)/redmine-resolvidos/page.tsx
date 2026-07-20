@@ -17,6 +17,7 @@ type Dados = {
   resolvidos: Resolvido[];
   esquecidos: string[];
   encontrados: string[];
+  aguardandoEmChamados: string[];
   totalRedmine: number;
   chamadosMap: Record<string, string | null>;
 };
@@ -227,6 +228,7 @@ export default function RedmineResolvidosPage() {
 
   const semResolvidoRaw = dados?.esquecidos ?? [];
   const comResolvido = dados?.encontrados ?? [];
+  const aguardandoEmChamados = dados?.aguardandoEmChamados ?? [];
   const resolvidos = dados?.resolvidos ?? [];
   const chamadosMap = dados?.chamadosMap ?? {};
 
@@ -311,10 +313,10 @@ export default function RedmineResolvidosPage() {
             <p className="text-3xl font-bold text-white">{dados.totalRedmine}</p>
           </div>
           <a href="/chamados"
-            className={`rounded-xl p-4 border text-left transition block ${comResolvido.length > 0 ? "bg-orange-950/30 border-orange-600 hover:bg-orange-950/50 animate-pulse" : "bg-gray-900 border-gray-800"}`}>
+            className={`rounded-xl p-4 border text-left transition block ${aguardandoEmChamados.length > 0 ? "bg-orange-950/30 border-orange-600 hover:bg-orange-950/50 animate-pulse" : "bg-gray-900 border-gray-800"}`}>
             <p className="text-xs text-gray-400 mb-1">Aguardando encerramento em Chamados</p>
-            <p className={`text-3xl font-bold ${comResolvido.length > 0 ? "text-orange-400" : "text-white"}`}>{comResolvido.length}</p>
-            {comResolvido.length > 0 && (
+            <p className={`text-3xl font-bold ${aguardandoEmChamados.length > 0 ? "text-orange-400" : "text-white"}`}>{aguardandoEmChamados.length}</p>
+            {aguardandoEmChamados.length > 0 && (
               <p className="text-xs text-orange-500 mt-1">⚡ Ir para Chamados →</p>
             )}
           </a>

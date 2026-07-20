@@ -38,9 +38,10 @@ function norm(h: string) {
 }
 
 export async function GET() {
-  const [resolvidos, redmine] = await Promise.all([
+  const [resolvidos, redmine, chamadosAtivos] = await Promise.all([
     prisma.redmineResolvido.findMany({ orderBy: { id: "asc" } }),
     prisma.chamadoRedmine.findMany({ select: { numero: true, dataAbertura: true } }),
+    prisma.chamado.findMany({ select: { referencia: true } }),
   ]);
 
   // Monta set de todos os números Assyst presentes nos Resolvidos (split por ; / e ,)
@@ -55,13 +56,17 @@ export async function GET() {
   const esquecidos = redmineNums.filter(n => !resolvidosAssystSet.has(n));
   const encontrados = redmineNums.filter(n => resolvidosAssystSet.has(n));
 
+  // Aguardando encerramento: encontrados que ainda estão na fila de Chamados importados
+  const chamadosAtivoSet = new Set(chamadosAtivos.map(c => c.referencia.trim().toUpperCase()));
+  const aguardandoEmChamados = encontrados.filter(n => chamadosAtivoSet.has(n));
+
   // Mapa Assyst# → dataAbertura para exibir badge de dias em aberto
   const chamadosMap: Record<string, string | null> = {};
   for (const r of redmine) {
     chamadosMap[r.numero.trim().toUpperCase()] = r.dataAbertura ? r.dataAbertura.toISOString() : null;
   }
 
-  return NextResponse.json({ resolvidos, esquecidos, encontrados, totalRedmine: redmine.length, chamadosMap });
+  return NextResponse.json({ resolvidos, esquecidos, encontrados, aguardandoEmChamados, totalRedmine: redmine.length, chamadosMap });
 }
 
 export async function POST(request: NextRequest) {

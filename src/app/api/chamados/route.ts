@@ -112,6 +112,7 @@ export async function GET(request: NextRequest) {
   const apenasUrgentes = searchParams.get("urgentes") === "1";
   const equipeParam = searchParams.get("equipe") || null;
   const buscaParam = searchParams.get("busca") || null;
+  const refsParam = searchParams.get("refs") || null;
 
   // Resolve colaboradores e equipes para o mapeamento nome→equipe
   const [colaboradores, equipeRecords] = await Promise.all([
@@ -127,7 +128,10 @@ export async function GET(request: NextRequest) {
   const equipeNomes = equipeRecords.map((e) => e.nome);
 
   const where: Record<string, unknown> = {};
-  if (buscaParam) {
+  if (refsParam) {
+    const refs = refsParam.split(",").map(r => r.trim()).filter(Boolean);
+    where.referencia = { in: refs, mode: "insensitive" };
+  } else if (buscaParam) {
     where.referencia = { contains: buscaParam, mode: "insensitive" };
   }
   if (apenasUrgentes) {

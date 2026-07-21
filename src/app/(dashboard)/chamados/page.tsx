@@ -246,6 +246,7 @@ export default function ChamadosPage() {
   const [devolverAssysts, setDevolverAssysts] = useState<{ assyst: string; redmine: string }[]>([]);
   const [modalDevolverTI, setModalDevolverTI] = useState(false);
   const [resolvidosTI, setResolvidosTI] = useState<Set<string>>(new Set());
+  const [aguardandoCount, setAguardandoCount] = useState(0);
   const [filtroRedmineResolvido, setFiltroRedmineResolvido] = useState(false);
   const searchParams = useSearchParams();
   const [importError, setImportError] = useState("");
@@ -263,11 +264,14 @@ export default function ChamadosPage() {
     if (equipe) params.set("equipe", equipe);
     if (urgentes) params.set("urgentes", "1");
     if (busca) params.set("busca", busca);
+    if (filtroRedmineResolvido && resolvidosTI.size > 0) {
+      params.set("refs", [...resolvidosTI].join(","));
+    }
     fetch(`/api/chamados?${params}`)
       .then((r) => r.json())
       .then(setDados)
       .finally(() => setLoading(false));
-  }, [page, usuario, equipe, urgentes, busca]);
+  }, [page, usuario, equipe, urgentes, busca, filtroRedmineResolvido, resolvidosTI]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -305,8 +309,9 @@ export default function ChamadosPage() {
   useEffect(() => {
     fetch("/api/redmine-resolvidos")
       .then(r => r.json())
-      .then(({ encontrados }: { encontrados: string[] }) => {
+      .then(({ encontrados, aguardandoEmChamados }: { encontrados: string[]; aguardandoEmChamados: string[] }) => {
         setResolvidosTI(new Set(encontrados.map(n => n.toUpperCase())));
+        setAguardandoCount((aguardandoEmChamados ?? []).length);
       })
       .catch(() => {});
   }, []);
@@ -735,11 +740,11 @@ export default function ChamadosPage() {
             {urgentes && <p className="text-xs text-red-400 mt-1">Filtro ativo</p>}
           </div>
           <div
-            onClick={() => setFiltroRedmineResolvido(f => !f)}
-            className={`rounded-xl border p-4 cursor-pointer transition ${filtroRedmineResolvido ? "bg-orange-900/30 border-orange-500/50 animate-pulse" : dados.chamados.some(c => resolvidosTI.has(c.referencia.toUpperCase())) ? "bg-orange-950/20 border-orange-800 hover:border-orange-600" : "bg-gray-900 border-gray-800"}`}>
+            onClick={() => { setFiltroRedmineResolvido(f => !f); setPage(1); }}
+            className={`rounded-xl border p-4 cursor-pointer transition ${filtroRedmineResolvido ? "bg-orange-900/30 border-orange-500/50 animate-pulse" : aguardandoCount > 0 ? "bg-orange-950/20 border-orange-800 hover:border-orange-600" : "bg-gray-900 border-gray-800"}`}>
             <p className="text-xs text-gray-500 mb-1">Redmine resolvido</p>
-            <p className={`text-3xl font-bold tabular-nums ${dados.chamados.some(c => resolvidosTI.has(c.referencia.toUpperCase())) ? "text-orange-400" : "text-gray-600"}`}>
-              {dados.chamados.filter(c => resolvidosTI.has(c.referencia.toUpperCase())).length}
+            <p className={`text-3xl font-bold tabular-nums ${aguardandoCount > 0 ? "text-orange-400" : "text-gray-600"}`}>
+              {aguardandoCount}
             </p>
             <p className="text-xs mt-1 text-gray-500">{filtroRedmineResolvido ? "✓ Filtro ativo" : "⚡ Clique para filtrar"}</p>
           </div>

@@ -275,15 +275,18 @@ export default function ChamadosPage() {
   useEffect(() => {
     fetch("/api/redmine-atribuidos")
       .then(r => r.json())
-      .then(({ registros, assystAtivos }: { registros: { numerosAssyst: string; numeroRedmine: string }[]; assystAtivos: string[] }) => {
+      .then(({ registros, assystAtivos, chamadosEmFila }: { registros: { numerosAssyst: string; numeroRedmine: string }[]; assystAtivos: string[]; chamadosEmFila: string[] }) => {
         const ativos = new Set(assystAtivos.map(n => n.toUpperCase()));
+        const emFila = new Set(chamadosEmFila.map(n => n.toUpperCase()));
         const lista: { assyst: string; redmine: string }[] = [];
         for (const r of registros) {
           if (!r.numerosAssyst) continue;
           const nums = r.numerosAssyst.split(/[;/,|\\]|\s+e\s+/i).map(s => s.trim().toUpperCase()).filter(Boolean);
           if (nums.length === 0 || ativos.size === 0) continue;
           if (nums.every(n => !ativos.has(n))) {
-            for (const n of nums) lista.push({ assyst: n, redmine: r.numeroRedmine });
+            for (const n of nums) {
+              if (emFila.has(n)) lista.push({ assyst: n, redmine: r.numeroRedmine });
+            }
           }
         }
         setDevolverAssysts(lista);

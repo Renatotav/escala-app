@@ -35,12 +35,17 @@ function norm(h: string) {
 }
 
 export async function GET() {
-  const [registros, chamadosRedmine] = await Promise.all([
+  const [registros, chamadosRedmine, chamadosEmFila] = await Promise.all([
     prisma.redmineAtribuido.findMany({ orderBy: { id: "asc" } }),
     prisma.chamadoRedmine.findMany({ select: { numero: true } }),
+    prisma.chamado.findMany({ select: { referencia: true } }),
   ]);
   const assystAtivos = new Set(chamadosRedmine.map(c => c.numero.trim().toUpperCase()));
-  return NextResponse.json({ registros, assystAtivos: [...assystAtivos] });
+  return NextResponse.json({
+    registros,
+    assystAtivos: [...assystAtivos],
+    chamadosEmFila: chamadosEmFila.map(c => c.referencia.trim().toUpperCase()),
+  });
 }
 
 export async function POST(request: NextRequest) {

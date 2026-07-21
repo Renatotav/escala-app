@@ -390,7 +390,10 @@ export default function ChamadosPage() {
       const res = await fetch(`/api/chamados?${params}`);
       const data = await res.json() as { chamados: Array<{ referencia: string; dataRegistro: string | null; nomeDpsAtribuido: string | null; nomeUsuarioAtribuido: string | null; ultimaAcao: string | null }> };
       function esc(s: string) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
-      const dataRows = data.chamados.map(c => {
+      const chamadosParaExportar = filtroRedmineResolvido
+        ? data.chamados.filter(c => resolvidosTI.has(c.referencia.toUpperCase()))
+        : data.chamados;
+      const dataRows = chamadosParaExportar.map(c => {
         const url = `https://cati.tjce.jus.br/assystnet/#events/${c.referencia}?eventType=1&currentIndex=0`;
         const dias = diasDesde(c.dataRegistro) ?? "";
         const rmResolvido = resolvidosTI.has(c.referencia.toUpperCase());

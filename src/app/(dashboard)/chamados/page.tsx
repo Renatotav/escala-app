@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -245,6 +246,8 @@ export default function ChamadosPage() {
   const [devolverAssysts, setDevolverAssysts] = useState<{ assyst: string; redmine: string }[]>([]);
   const [modalDevolverTI, setModalDevolverTI] = useState(false);
   const [resolvidosTI, setResolvidosTI] = useState<Set<string>>(new Set());
+  const [filtroRedmineResolvido, setFiltroRedmineResolvido] = useState(false);
+  const searchParams = useSearchParams();
   const [importError, setImportError] = useState("");
   const [importResult, setImportResult] = useState<{ count: number; skipped: number; parsed: number } | null>(null);
 
@@ -288,6 +291,13 @@ export default function ChamadosPage() {
       .catch(() => {});
   }, []);
 
+  // Ativa filtro automaticamente se vier de Redmine Resolvidos
+  useEffect(() => {
+    if (searchParams.get("filtro") === "redmine-resolvido") {
+      setFiltroRedmineResolvido(true);
+    }
+  }, [searchParams]);
+
   // Carrega Assysts com Redmine já resolvido pela TI (Encontrados nos Resolvidos)
   useEffect(() => {
     fetch("/api/redmine-resolvidos")
@@ -329,6 +339,7 @@ export default function ChamadosPage() {
     setEquipe("");
     setUrgentes(false);
     setBusca("");
+    setFiltroRedmineResolvido(false);
     setPage(1);
   }
 
@@ -454,7 +465,7 @@ export default function ChamadosPage() {
     loadStats();
   }
 
-  const temFiltro = !!(usuario || equipe || urgentes || busca);
+  const temFiltro = !!(usuario || equipe || urgentes || busca || filtroRedmineResolvido);
 
   function gerarPDF() {
     if (!stats) return;
@@ -768,6 +779,12 @@ export default function ChamadosPage() {
               ))}
             </select>
           )}
+          {filtroRedmineResolvido && (
+            <span className="inline-flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg bg-orange-500/15 text-orange-300 border border-orange-500/30">
+              ⚡ Redmine resolvido
+              <button onClick={() => setFiltroRedmineResolvido(false)} className="hover:text-white transition">✕</button>
+            </span>
+          )}
           {temFiltro && (
             <button
               onClick={clearFilters}
@@ -804,7 +821,7 @@ export default function ChamadosPage() {
                 </tr>
               </thead>
               <tbody>
-                {dados.chamados.map((c) => {
+                {dados.chamados.filter(c => !filtroRedmineResolvido || resolvidosTI.has(c.referencia.toUpperCase())).map((c) => {
                   const urg = urgenciaCfg(c.ultimaAcao);
                   const sla = getSLADias(c.nomeDpsAtribuido);
                   const dias = diasDesde(c.dataRegistro);

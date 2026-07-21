@@ -84,6 +84,7 @@ function CelulaTexto({ label, texto, onClick, resolvidoId }: {
 export default function RedmineAtribuidosPage() {
   const [registros, setRegistros] = useState<Atribuido[]>([]);
   const [assystAtivos, setAssystAtivos] = useState<Set<string>>(new Set());
+  const [chamadosEmFila, setChamadosEmFila] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
   const [xlsExporting, setXlsExporting] = useState(false);
@@ -122,6 +123,7 @@ export default function RedmineAtribuidosPage() {
       .then(d => {
         setRegistros(d.registros ?? []);
         setAssystAtivos(new Set((d.assystAtivos ?? []).map((n: string) => n.toUpperCase())));
+        setChamadosEmFila(new Set((d.chamadosEmFila ?? []).map((n: string) => n.toUpperCase())));
         setLoading(false);
       });
   }
@@ -207,6 +209,8 @@ export default function RedmineAtribuidosPage() {
   const devolverAssysts = registros
     .filter(r => assystEncerrado(r))
     .flatMap(r => splitAssyst(r.numerosAssyst).map(n => ({ assyst: n, redmine: r.numeroRedmine })));
+  const devolverAbertos = devolverAssysts.filter(i => chamadosEmFila.has(i.assyst.toUpperCase()));
+  const devolverEncerrados = devolverAssysts.filter(i => !chamadosEmFila.has(i.assyst.toUpperCase()));
   const registrosFiltrados = registros
     .filter(r => !filtroPessoa || r.atribuidoPara === filtroPessoa)
     .filter(r => {
@@ -516,24 +520,51 @@ export default function RedmineAtribuidosPage() {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-base font-semibold text-yellow-300">⚠ Chamados no Assyst para verificar</h3>
-                <p className="text-xs text-gray-500 mt-0.5">O operador ainda está com esses chamados abertos no Cati — verifique se podem ser encerrados</p>
+                <p className="text-xs text-gray-500 mt-0.5">Redmines cujo Assyst saiu da fila — verifique a situação e devolva à TI</p>
               </div>
               <button onClick={() => setModalDevolverTI(false)} className="text-gray-600 hover:text-gray-400 transition">✕</button>
             </div>
-            <div className="overflow-y-auto flex-1 space-y-2">
-              {devolverAssysts.map((item, i) => (
-                <div key={i} className="flex items-center justify-between px-3 py-2 rounded-lg bg-yellow-950/20 border border-yellow-900/40">
-                  <div>
-                    <a href={`https://cati.tjce.jus.br/assystnet/#events/${item.assyst}?eventType=1&currentIndex=0`}
-                      target="_blank" rel="noopener noreferrer"
-                      className="font-mono text-sm text-blue-400 hover:text-blue-300 hover:underline transition">
-                      {item.assyst}
-                    </a>
-                    <p className="text-xs text-gray-500 mt-0.5">Redmine #{item.redmine}</p>
+            <div className="overflow-y-auto flex-1 space-y-4">
+              {devolverEncerrados.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-green-400 mb-2">✓ Assyst encerrado — pode fechar o Redmine ({devolverEncerrados.length})</p>
+                  <div className="space-y-2">
+                    {devolverEncerrados.map((item, i) => (
+                      <div key={i} className="flex items-center justify-between px-3 py-2 rounded-lg bg-green-950/20 border border-green-900/40">
+                        <div>
+                          <a href={`https://cati.tjce.jus.br/assystnet/#events/${item.assyst}?eventType=1&currentIndex=0`}
+                            target="_blank" rel="noopener noreferrer"
+                            className="font-mono text-sm text-blue-400 hover:text-blue-300 hover:underline transition">
+                            {item.assyst}
+                          </a>
+                          <p className="text-xs text-gray-500 mt-0.5">Redmine #{item.redmine}</p>
+                        </div>
+                        <span className="text-xs text-green-400 font-medium">✓ Fechar Redmine</span>
+                      </div>
+                    ))}
                   </div>
-                  <span className="text-xs text-yellow-600 font-medium">Devolver à TI</span>
                 </div>
-              ))}
+              )}
+              {devolverAbertos.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-yellow-400 mb-2">⚠ Ainda aberto em Chamados — cobrar operador ({devolverAbertos.length})</p>
+                  <div className="space-y-2">
+                    {devolverAbertos.map((item, i) => (
+                      <div key={i} className="flex items-center justify-between px-3 py-2 rounded-lg bg-yellow-950/20 border border-yellow-900/40">
+                        <div>
+                          <a href={`https://cati.tjce.jus.br/assystnet/#events/${item.assyst}?eventType=1&currentIndex=0`}
+                            target="_blank" rel="noopener noreferrer"
+                            className="font-mono text-sm text-blue-400 hover:text-blue-300 hover:underline transition">
+                            {item.assyst}
+                          </a>
+                          <p className="text-xs text-gray-500 mt-0.5">Redmine #{item.redmine}</p>
+                        </div>
+                        <span className="text-xs text-yellow-600 font-medium">Devolver à TI</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
             <button onClick={() => setModalDevolverTI(false)}
               className="mt-4 w-full bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-lg py-2 transition">

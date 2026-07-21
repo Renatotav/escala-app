@@ -730,10 +730,10 @@ export default function ChamadosPage() {
           </div>
           <div
             onClick={() => setFiltroRedmineResolvido(f => !f)}
-            className={`rounded-xl border p-4 cursor-pointer transition ${filtroRedmineResolvido ? "bg-orange-900/30 border-orange-500/50 animate-pulse" : resolvidosTI.size > 0 ? "bg-orange-950/20 border-orange-800 hover:border-orange-600" : "bg-gray-900 border-gray-800"}`}>
+            className={`rounded-xl border p-4 cursor-pointer transition ${filtroRedmineResolvido ? "bg-orange-900/30 border-orange-500/50 animate-pulse" : dados.chamados.some(c => resolvidosTI.has(c.referencia.toUpperCase())) ? "bg-orange-950/20 border-orange-800 hover:border-orange-600" : "bg-gray-900 border-gray-800"}`}>
             <p className="text-xs text-gray-500 mb-1">Redmine resolvido</p>
-            <p className={`text-3xl font-bold tabular-nums ${resolvidosTI.size > 0 ? "text-orange-400" : "text-gray-600"}`}>
-              {resolvidosTI.size}
+            <p className={`text-3xl font-bold tabular-nums ${dados.chamados.some(c => resolvidosTI.has(c.referencia.toUpperCase())) ? "text-orange-400" : "text-gray-600"}`}>
+              {dados.chamados.filter(c => resolvidosTI.has(c.referencia.toUpperCase())).length}
             </p>
             <p className="text-xs mt-1 text-gray-500">{filtroRedmineResolvido ? "✓ Filtro ativo" : "⚡ Clique para filtrar"}</p>
           </div>

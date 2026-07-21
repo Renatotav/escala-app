@@ -814,14 +814,14 @@ export default function ChamadosPage() {
       {/* Table — apenas na aba Lista */}
       {view === "lista" && loading ? (
         <p className="text-gray-500 text-sm">Carregando...</p>
-      ) : view === "lista" && (!dados || dados.total === 0) ? (
+      ) : view === "lista" && (!dados || dados.total === 0) && !busca && !usuario && !equipe && !urgentes ? (
         <div className="bg-gray-900 rounded-xl border border-gray-800 p-12 text-center">
           <p className="text-gray-500 text-sm mb-1">Nenhum dado importado ainda.</p>
           <p className="text-gray-600 text-xs">Clique em "Importar chamados" e selecione o arquivo CSV exportado do sistema.</p>
         </div>
-      ) : view === "lista" && dados && dados.chamados.length === 0 ? (
+      ) : view === "lista" && (!dados || dados.total === 0 || dados.chamados.length === 0) ? (
         <div className="bg-gray-900 rounded-xl border border-gray-800 p-8 text-center">
-          <p className="text-gray-500 text-sm">Nenhum chamado encontrado com os filtros aplicados.</p>
+          <p className="text-gray-500 text-sm">Nenhum chamado encontrado para a pesquisa realizada.</p>
         </div>
       ) : view === "lista" && dados ? (
         <>

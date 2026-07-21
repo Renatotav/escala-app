@@ -828,8 +828,22 @@ export default function ChamadosPage() {
           <p className="text-gray-600 text-xs">Clique em "Importar chamados" e selecione o arquivo CSV exportado do sistema.</p>
         </div>
       ) : view === "lista" && (!dados || dados.total === 0 || dados.chamados.length === 0) ? (
-        <div className="bg-gray-900 rounded-xl border border-gray-800 p-8 text-center">
+        <div className="bg-gray-900 rounded-xl border border-gray-800 p-8 text-center space-y-3">
           <p className="text-gray-500 text-sm">Nenhum chamado encontrado para a pesquisa realizada.</p>
+          {filtroRedmineResolvido && (
+            <button
+              onClick={() => { setFiltroRedmineResolvido(false); setPage(1); }}
+              className="inline-flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg bg-orange-500/15 text-orange-300 border border-orange-500/30 hover:bg-orange-500/25 transition">
+              ✕ Limpar filtro Redmine resolvido
+            </button>
+          )}
+          {(busca || usuario || equipe || urgentes) && (
+            <button
+              onClick={() => { setBusca(""); setUsuario(""); setEquipe(""); setUrgentes(false); setPage(1); }}
+              className="inline-flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg bg-gray-700 text-gray-300 border border-gray-600 hover:bg-gray-600 transition">
+              ✕ Limpar filtros
+            </button>
+          )}
         </div>
       ) : view === "lista" && dados ? (
         <>

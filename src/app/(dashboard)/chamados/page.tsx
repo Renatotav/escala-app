@@ -712,7 +712,7 @@ export default function ChamadosPage() {
 
       {/* Summary cards */}
       {dados && dados.total > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
           <div className="bg-gray-900 rounded-xl border border-gray-800 p-4">
             <p className="text-xs text-gray-500 mb-1">Total de chamados</p>
             <p className="text-3xl font-bold text-white tabular-nums">
@@ -727,6 +727,15 @@ export default function ChamadosPage() {
               {dados.totalUrgentes.toLocaleString("pt-BR")}
             </p>
             {urgentes && <p className="text-xs text-red-400 mt-1">Filtro ativo</p>}
+          </div>
+          <div
+            onClick={() => setFiltroRedmineResolvido(f => !f)}
+            className={`rounded-xl border p-4 cursor-pointer transition ${filtroRedmineResolvido ? "bg-orange-900/30 border-orange-500/50 animate-pulse" : resolvidosTI.size > 0 ? "bg-orange-950/20 border-orange-800 hover:border-orange-600" : "bg-gray-900 border-gray-800"}`}>
+            <p className="text-xs text-gray-500 mb-1">Redmine resolvido</p>
+            <p className={`text-3xl font-bold tabular-nums ${resolvidosTI.size > 0 ? "text-orange-400" : "text-gray-600"}`}>
+              {resolvidosTI.size}
+            </p>
+            <p className="text-xs mt-1 text-gray-500">{filtroRedmineResolvido ? "✓ Filtro ativo" : "⚡ Clique para filtrar"}</p>
           </div>
           <div className="bg-gray-900 rounded-xl border border-gray-800 p-4">
             <p className="text-xs text-gray-500 mb-1">Atendentes</p>

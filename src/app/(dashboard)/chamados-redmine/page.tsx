@@ -120,7 +120,7 @@ export default function ChamadosRedminePage() {
       const url = `https://cati.tjce.jus.br/assystnet/#events/${c.numero}?eventType=1&currentIndex=0`;
       return `<tr><td><a href="${esc(url)}">${esc(c.numero)}</a></td><td>${dias ?? ""}</td><td>${esc(fmtDateTime(c.dataAbertura))}</td><td>${esc(c.equipeAtribuida ?? "")}</td><td>${esc(fmtDateTime(c.dataMovimentacao))}</td><td>${esc(c.situacaoRegra ?? "")}</td></tr>`;
     }).join("");
-    const html = `<html><head><meta charset="UTF-8"><style>table{border-collapse:collapse}th,td{border:1px solid #ccc;padding:4px 8px;font-size:12px}th{background:#f0f0f0}a{color:#1155cc}</style></head><body><table><tr><th>Referência</th><th>Dias em aberto</th><th>Abertura</th><th>Equipe Atribuída</th><th>Movimentação</th><th>Situação</th></tr>${dataRows}</table></body></html>`;
+    const html = `<html><head><meta charset="UTF-8"><style>table{border-collapse:collapse}th,td{border:1px solid #ccc;padding:4px 8px;font-size:12px}th{background:#f0f0f0}a{color:#1155cc}</style></head><body><table><tr><th>Nº Chamado (Assyst)</th><th>Dias em aberto</th><th>Abertura</th><th>Equipe Atribuída</th><th>Movimentação</th><th>Situação</th></tr>${dataRows}</table></body></html>`;
     const blob = new Blob([html], { type: "application/vnd.ms-excel;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -214,7 +214,7 @@ export default function ChamadosRedminePage() {
               type="text"
               value={busca}
               onChange={e => setBusca(e.target.value)}
-              placeholder="Pesquisar referência..."
+              placeholder="Pesquisar Chamado..."
               className="bg-gray-900 border border-gray-700 text-white text-xs rounded-lg pl-7 pr-7 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[220px]"
             />
             <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 text-xs pointer-events-none">🔍</span>
@@ -230,7 +230,7 @@ export default function ChamadosRedminePage() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wide">
-              <th className="text-left px-4 py-3">Referência</th>
+              <th className="text-left px-4 py-3">Nº Chamado (Assyst)</th>
               <th className="text-left px-4 py-3">Abertura</th>
               <th className="text-left px-4 py-3">Equipe Atribuída</th>
               <th className="text-left px-4 py-3">Movimentação</th>

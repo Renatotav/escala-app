@@ -366,7 +366,7 @@ export default function ChamadosPage() {
         const rmCell = rmResolvido ? `<td style="background:#7c2d12;color:#fed7aa;font-weight:bold">⚡ Redmine resolvido — encerre</td>` : `<td></td>`;
         return `<tr><td><a href="${esc(url)}">${esc(c.referencia)}</a></td><td>${esc(fmtDateTime(c.dataRegistro))}</td><td>${esc(c.nomeDpsAtribuido ?? "")}</td><td>${dias}</td>${rmCell}</tr>`;
       }).join("");
-      const html = `<html><head><meta charset="UTF-8"><style>table{border-collapse:collapse}th,td{border:1px solid #ccc;padding:4px 8px;font-size:12px}th{background:#f0f0f0}a{color:#1155cc}</style></head><body><table><tr><th>Referência</th><th>Data/Hora</th><th>DPS Atribuído</th><th>Dias em aberto</th><th>Redmine Resolvido</th></tr>${rows}</table></body></html>`;
+      const html = `<html><head><meta charset="UTF-8"><style>table{border-collapse:collapse}th,td{border:1px solid #ccc;padding:4px 8px;font-size:12px}th{background:#f0f0f0}a{color:#1155cc}</style></head><body><table><tr><th>Nº Chamado (Assyst)</th><th>Data/Hora</th><th>DPS Atribuído</th><th>Dias em aberto</th><th>Redmine Resolvido</th></tr>${rows}</table></body></html>`;
       const blob = new Blob([html], { type: "application/vnd.ms-excel;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -400,7 +400,7 @@ export default function ChamadosPage() {
         const rmCell = rmResolvido ? `<td style="background:#7c2d12;color:#fed7aa;font-weight:bold">⚡ Redmine resolvido — encerre</td>` : `<td></td>`;
         return `<tr><td><a href="${esc(url)}">${esc(c.referencia)}</a></td><td>${esc(fmtDateTime(c.dataRegistro))}</td><td>${dias}</td><td>${esc(c.nomeDpsAtribuido ?? "")}</td><td>${esc(c.nomeUsuarioAtribuido ?? "Triagem")}</td><td>${esc(c.ultimaAcao ?? "")}</td>${rmCell}</tr>`;
       }).join("");
-      const html = `<html><head><meta charset="UTF-8"><style>table{border-collapse:collapse}th,td{border:1px solid #ccc;padding:4px 8px;font-size:12px}th{background:#f0f0f0}a{color:#1155cc}</style></head><body><table><tr><th>Referência</th><th>Data/Hora</th><th>Dias em aberto</th><th>DPS Atribuído</th><th>Usuário Atribuído</th><th>Última Ação</th><th>Redmine Resolvido</th></tr>${dataRows}</table></body></html>`;
+      const html = `<html><head><meta charset="UTF-8"><style>table{border-collapse:collapse}th,td{border:1px solid #ccc;padding:4px 8px;font-size:12px}th{background:#f0f0f0}a{color:#1155cc}</style></head><body><table><tr><th>Nº Chamado (Assyst)</th><th>Data/Hora</th><th>Dias em aberto</th><th>DPS Atribuído</th><th>Usuário Atribuído</th><th>Última Ação</th><th>Redmine Resolvido</th></tr>${dataRows}</table></body></html>`;
       const blob = new Blob([html], { type: "application/vnd.ms-excel;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -765,7 +765,7 @@ export default function ChamadosPage() {
               type="text"
               value={busca}
               onChange={e => { setBusca(e.target.value); setPage(1); }}
-              placeholder="Pesquisar referência..."
+              placeholder="Pesquisar Chamado..."
               className="bg-gray-900 border border-gray-700 text-white text-xs rounded-lg pl-7 pr-7 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[200px]"
             />
             <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 text-xs pointer-events-none">🔍</span>
@@ -829,7 +829,7 @@ export default function ChamadosPage() {
             <table className="w-full text-sm min-w-[800px]">
               <thead>
                 <tr className="border-b border-gray-700 text-gray-400 text-xs uppercase tracking-wide">
-                  <th className="text-left px-4 py-3 w-44">Referência</th>
+                  <th className="text-left px-4 py-3 w-44">Nº Chamado (Assyst)</th>
                   <th className="text-left px-4 py-3 w-36">Data/hora</th>
                   <th className="text-left px-4 py-3 w-64">Nome do DPS Atribuído</th>
                   <th className="text-left px-4 py-3 w-60">Usuário Atribuído</th>

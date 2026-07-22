@@ -129,9 +129,32 @@ export async function POST(request: NextRequest) {
 
   let insertData = registros;
   let skipped = 0;
+  let protegidos = 0;
 
   if (substituir) {
-    await prisma.redmineResolvido.deleteMany();
+    // Protege registros cujos Assysts ainda estão na fila de Chamados
+    const [chamadosAtivos, existingResolvidos] = await Promise.all([
+      prisma.chamado.findMany({ select: { referencia: true } }),
+      prisma.redmineResolvido.findMany({ select: { id: true, numeroRedmine: true, numerosAssyst: true } }),
+    ]);
+    const chamadosAtivoSet = new Set(chamadosAtivos.map(c => c.referencia.trim().toUpperCase()));
+
+    const protegidosSet = new Set<string>();
+    const idsParaRemover: number[] = [];
+    for (const r of existingResolvidos) {
+      const assysts = r.numerosAssyst.split(/[;/,|\\]|\s+e\s+/i).map(s => s.trim().toUpperCase()).filter(Boolean);
+      if (assysts.some(a => chamadosAtivoSet.has(a))) {
+        protegidosSet.add(r.numeroRedmine);
+      } else {
+        idsParaRemover.push(r.id);
+      }
+    }
+    if (idsParaRemover.length > 0) {
+      await prisma.redmineResolvido.deleteMany({ where: { id: { in: idsParaRemover } } });
+    }
+    // Não insere registros já protegidos (evita duplicata)
+    insertData = registros.filter(r => !protegidosSet.has(r.numeroRedmine));
+    protegidos = protegidosSet.size;
   } else {
     const existing = await prisma.redmineResolvido.findMany({ select: { numeroRedmine: true } });
     const existingSet = new Set(existing.map(e => e.numeroRedmine));
@@ -140,7 +163,7 @@ export async function POST(request: NextRequest) {
   }
 
   await prisma.redmineResolvido.createMany({ data: insertData });
-  return NextResponse.json({ count: insertData.length, skipped });
+  return NextResponse.json({ count: insertData.length, skipped, protegidos });
 }
 
 export async function PATCH(request: NextRequest) {

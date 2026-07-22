@@ -162,7 +162,10 @@ export async function POST(request: NextRequest) {
     skipped = registros.length - insertData.length;
   }
 
-  await prisma.redmineResolvido.createMany({ data: insertData });
+  const BATCH = 500;
+  for (let i = 0; i < insertData.length; i += BATCH) {
+    await prisma.redmineResolvido.createMany({ data: insertData.slice(i, i + BATCH) });
+  }
   return NextResponse.json({ count: insertData.length, skipped, protegidos });
 }
 

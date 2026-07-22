@@ -851,7 +851,7 @@ export default function ChamadosPage() {
             <table className="w-full text-sm min-w-[800px]">
               <thead>
                 <tr className="border-b border-gray-700 text-gray-400 text-xs uppercase tracking-wide">
-                  <th className="text-left px-4 py-3 w-44">Nº Chamado (Assyst)</th>
+                  <th className="text-left px-4 py-3 w-44 whitespace-nowrap">Nº Chamado (Assyst)</th>
                   <th className="text-left px-4 py-3 w-36">Data/hora</th>
                   <th className="text-left px-4 py-3 w-64">Nome do DPS Atribuído</th>
                   <th className="text-left px-4 py-3 w-60">Usuário Atribuído</th>

@@ -34,18 +34,126 @@ function norm(h: string) {
   return h.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]/g, "");
 }
 
-export async function GET() {
-  const [registros, chamadosRedmine, chamadosEmFila] = await Promise.all([
-    prisma.redmineAtribuido.findMany({ orderBy: { id: "asc" } }),
+function splitAssyst(raw: string): string[] {
+  return raw.split(/[;/,|\\]|\s+e\s+/i).map(s => s.trim().toUpperCase()).filter(Boolean);
+}
+
+// Parseia "DD/MM/YYYY ..." ou ISO para timestamp
+function parseAlteradoEmMs(text: string | null): number | null {
+  if (!text) return null;
+  const match = text.trim().match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+  if (match) {
+    const d = new Date(Number(match[3]), Number(match[2]) - 1, Number(match[1]));
+    if (!isNaN(d.getTime())) return d.getTime();
+  }
+  const d = new Date(text.trim());
+  return isNaN(d.getTime()) ? null : d.getTime();
+}
+
+const PAGE_SIZE = 100;
+
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const page = Math.max(1, Number(searchParams.get("page") ?? "1"));
+  const busca = searchParams.get("busca")?.trim() || null;
+  const pessoa = searchParams.get("pessoa")?.trim() || null;
+  const acomp = searchParams.get("acomp") === "1";
+  const filtroAtraso = searchParams.get("filtroAtraso") || null; // "atraso" | "atencao"
+  const devolver = searchParams.get("devolver") === "1";
+  const exportAll = searchParams.get("export") === "1";
+
+  // Dados auxiliares leves — sempre retornados em full
+  const [chamadosRedmine, chamadosEmFila, todosLeve] = await Promise.all([
     prisma.chamadoRedmine.findMany({ select: { numero: true } }),
     prisma.chamado.findMany({ select: { referencia: true } }),
+    // Consulta leve: campos suficientes para calcular todos os stats sem carregar texto grande
+    prisma.redmineAtribuido.findMany({
+      select: { id: true, numerosAssyst: true, numeroRedmine: true, alteradoEm: true, atribuidoPara: true, solicitadoEm: true },
+    }),
   ]);
+
   const assystAtivos = new Set(chamadosRedmine.map(c => c.numero.trim().toUpperCase()));
-  return NextResponse.json({
-    registros,
+  const chamadosEmFilaSet = new Set(chamadosEmFila.map(c => c.referencia.trim().toUpperCase()));
+
+  const agora = Date.now();
+  const ms5 = agora - 5 * 86400000;
+  const ms3 = agora - 3 * 86400000;
+
+  // Classifica cada registro por atraso e devolver (via texto, sem SQL raw)
+  const idsAtraso: number[] = [];
+  const idsAtencao: number[] = [];
+  const idsDevolver: number[] = [];
+  const devolverInfo: { assyst: string; redmine: string }[] = [];
+
+  for (const r of todosLeve) {
+    const ts = parseAlteradoEmMs(r.alteradoEm);
+    if (ts !== null && ts < ms5) idsAtraso.push(r.id);
+    else if (ts !== null && ts >= ms3 && ts < ms5) idsAtencao.push(r.id);
+
+    const nums = splitAssyst(r.numerosAssyst);
+    if (nums.length > 0 && nums.every(n => !assystAtivos.has(n))) {
+      idsDevolver.push(r.id);
+      for (const n of nums) devolverInfo.push({ assyst: n, redmine: r.numeroRedmine });
+    }
+  }
+
+  // Stats server-side
+  const emAcompanhamento = todosLeve.filter(r => r.solicitadoEm).length;
+  const contagemPorPessoa = Object.values(
+    todosLeve.reduce<Record<string, { nome: string; total: number; emAtraso: number }>>((acc, r) => {
+      const nome = r.atribuidoPara ?? "";
+      if (!nome) return acc;
+      if (!acc[nome]) acc[nome] = { nome, total: 0, emAtraso: 0 };
+      acc[nome].total++;
+      const ts = parseAlteradoEmMs(r.alteradoEm);
+      if (ts !== null && ts < ms5) acc[nome].emAtraso++;
+      return acc;
+    }, {})
+  ).sort((a, b) => a.nome.localeCompare(b.nome));
+
+  const stats = {
+    totalGeral: todosLeve.length,
+    emAcompanhamento,
+    emAtrasoTotal: idsAtraso.length,
+    emAtencaoTotal: idsAtencao.length,
+    paraDevolver: idsDevolver.length,
     assystAtivos: [...assystAtivos],
-    chamadosEmFila: chamadosEmFila.map(c => c.referencia.trim().toUpperCase()),
-  });
+    chamadosEmFila: [...chamadosEmFilaSet],
+    contagemPorPessoa,
+    idsDevolver,
+    devolverInfo,
+  };
+
+  // Monta where para listagem paginada
+  const conditions: Record<string, unknown>[] = [];
+  if (pessoa) conditions.push({ atribuidoPara: pessoa });
+  if (acomp) conditions.push({ solicitadoEm: { not: null } });
+  if (filtroAtraso === "atraso" && idsAtraso.length > 0) conditions.push({ id: { in: idsAtraso } });
+  if (filtroAtraso === "atencao" && idsAtencao.length > 0) conditions.push({ id: { in: idsAtencao } });
+  if (devolver && idsDevolver.length > 0) conditions.push({ id: { in: idsDevolver } });
+  if (busca) {
+    conditions.push({
+      OR: [
+        { numeroRedmine: { contains: busca, mode: "insensitive" } },
+        { numerosAssyst: { contains: busca, mode: "insensitive" } },
+        { titulo: { contains: busca, mode: "insensitive" } },
+        { atribuidoPara: { contains: busca, mode: "insensitive" } },
+      ],
+    });
+  }
+  const where = conditions.length === 0 ? {} : conditions.length === 1 ? conditions[0] : { AND: conditions };
+
+  if (exportAll) {
+    const registros = await prisma.redmineAtribuido.findMany({ where, orderBy: { id: "asc" } });
+    return NextResponse.json({ registros, total: registros.length, page: 1, totalPages: 1, ...stats });
+  }
+
+  const [total, registros] = await Promise.all([
+    prisma.redmineAtribuido.count({ where }),
+    prisma.redmineAtribuido.findMany({ where, orderBy: { id: "asc" }, skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE }),
+  ]);
+
+  return NextResponse.json({ registros, total, page, totalPages: Math.max(1, Math.ceil(total / PAGE_SIZE)), ...stats });
 }
 
 export async function POST(request: NextRequest) {
@@ -56,9 +164,7 @@ export async function POST(request: NextRequest) {
   const headers = rows[0].map(norm);
   const idx = (names: string[]) => {
     for (const n of names) {
-      const i = n === ""
-        ? headers.findIndex(h => h === "")
-        : headers.findIndex(h => h.includes(n));
+      const i = n === "" ? headers.findIndex(h => h === "") : headers.findIndex(h => h.includes(n));
       if (i >= 0) return i;
     }
     return -1;
@@ -106,7 +212,6 @@ export async function POST(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const substituir = searchParams.get("substituir") !== "0";
 
-  // Busca todos os existentes para fazer upsert preservando marcações
   const existing = await prisma.redmineAtribuido.findMany({
     select: { id: true, numeroRedmine: true, solicitadoEm: true, solicitadoObs: true },
   });
@@ -116,40 +221,19 @@ export async function POST(request: NextRequest) {
   const paraAtualizar = registros.filter(r => existingMap.has(r.numeroRedmine));
   const paraInserir   = registros.filter(r => !existingMap.has(r.numeroRedmine));
 
-  // Atualiza dados Redmine dos existentes, preserva marcações manuais
   await Promise.all(paraAtualizar.map(r => {
     const ex = existingMap.get(r.numeroRedmine)!;
     return prisma.redmineAtribuido.update({
       where: { id: ex.id },
-      data: {
-        numerosAssyst: r.numerosAssyst,
-        criadoEm:      r.criadoEm,
-        alteradoEm:    r.alteradoEm,
-        tipo:          r.tipo,
-        situacao:      r.situacao,
-        titulo:        r.titulo,
-        atribuidoPara: r.atribuidoPara,
-        descricao:     r.descricao,
-        ultimasNotas:  r.ultimasNotas,
-        // solicitadoEm e solicitadoObs NÃO são tocados
-      },
+      data: { numerosAssyst: r.numerosAssyst, criadoEm: r.criadoEm, alteradoEm: r.alteradoEm, tipo: r.tipo, situacao: r.situacao, titulo: r.titulo, atribuidoPara: r.atribuidoPara, descricao: r.descricao, ultimasNotas: r.ultimasNotas },
     });
   }));
 
-  // Insere os novos
-  if (paraInserir.length > 0) {
-    await prisma.redmineAtribuido.createMany({ data: paraInserir });
-  }
+  if (paraInserir.length > 0) await prisma.redmineAtribuido.createMany({ data: paraInserir });
 
-  // Substituir: remove tickets que não vieram no novo CSV (saíram da fila)
-  // MAS preserva tickets com 📌 marcação ativa — podem estar em trânsito com a TI
   if (substituir) {
-    const idsParaRemover = existing
-      .filter(e => !numerosImportados.has(e.numeroRedmine) && !e.solicitadoEm)
-      .map(e => e.id);
-    if (idsParaRemover.length > 0) {
-      await prisma.redmineAtribuido.deleteMany({ where: { id: { in: idsParaRemover } } });
-    }
+    const idsParaRemover = existing.filter(e => !numerosImportados.has(e.numeroRedmine) && !e.solicitadoEm).map(e => e.id);
+    if (idsParaRemover.length > 0) await prisma.redmineAtribuido.deleteMany({ where: { id: { in: idsParaRemover } } });
   }
 
   return NextResponse.json({ count: paraInserir.length, updated: paraAtualizar.length });

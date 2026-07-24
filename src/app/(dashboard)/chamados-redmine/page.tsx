@@ -11,6 +11,18 @@ type ChamadoRedmine = {
   situacaoRegra: string | null;
 };
 
+type Dados = {
+  chamados: ChamadoRedmine[];
+  total: number;
+  page: number;
+  totalPages: number;
+  totalValidos: number;
+  totalAtraso: number;
+  totalAtencao: number;
+  periodoMin: string | null;
+  periodoMax: string | null;
+};
+
 function diasDesde(dataAbertura: string | null): number {
   if (!dataAbertura) return 0;
   return Math.floor((Date.now() - new Date(dataAbertura).getTime()) / 86400000);
@@ -44,26 +56,42 @@ function fmtDateTime(iso: string | null) {
 }
 
 export default function ChamadosRedminePage() {
-  const [chamados, setChamados] = useState<ChamadoRedmine[]>([]);
+  const [dados, setDados] = useState<Dados | null>(null);
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
+  const [xlsExporting, setXlsExporting] = useState(false);
   const [importModal, setImportModal] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [importResult, setImportResult] = useState<{ count?: number; skipped?: number; error?: string } | null>(null);
-  const [filtroAtraso, setFiltroAtraso] = useState(false);
-  const [filtroAtencao, setFiltroAtencao] = useState(false);
+  const [filtro, setFiltro] = useState<"atraso" | "atencao" | null>(null);
   const [busca, setBusca] = useState("");
   const [substituir, setSubstituir] = useState(true);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  function load() {
+  function load(pg = 1, buscaQ = "", filtroQ: string | null = null) {
     setLoading(true);
-    fetch("/api/chamados-redmine")
+    const params = new URLSearchParams({ page: String(pg) });
+    if (buscaQ) params.set("busca", buscaQ);
+    if (filtroQ) params.set("filtro", filtroQ);
+    fetch(`/api/chamados-redmine?${params}`)
       .then(r => r.json())
-      .then((data: ChamadoRedmine[]) => { setChamados(data); setLoading(false); });
+      .then((d: Dados) => { setDados(d); setLoading(false); });
   }
 
   useEffect(() => { load(); }, []);
+
+  // Debounce busca — só recarrega se não houver filtro de data ativo (filtros de data já fazem reload imediato)
+  useEffect(() => {
+    const t = setTimeout(() => load(1, busca, filtro), 300);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [busca]);
+
+  function handleFiltro(f: "atraso" | "atencao") {
+    const novo = filtro === f ? null : f;
+    setFiltro(novo);
+    load(1, busca, novo);
+  }
 
   async function handleImport() {
     if (selectedFiles.length === 0) return;
@@ -88,7 +116,7 @@ export default function ChamadosRedminePage() {
     setImportResult({ count: totalCount, skipped: totalSkipped });
     setImportModal(false);
     setSelectedFiles([]);
-    load();
+    load(1, busca, filtro);
     setImporting(false);
   }
 
@@ -98,35 +126,38 @@ export default function ChamadosRedminePage() {
     load();
   }
 
-  // Exclui linhas de metadados do Power BI: número não pode ter espaços
-  const validos = chamados.filter(c => /^\S+$/.test(c.numero?.trim() ?? "") && !c.numero?.includes(" "));
-  const totalAtraso = validos.filter(c => diasDesde(c.dataAbertura) >= 50).length;
-  const totalAtencao = validos.filter(c => { const d = diasDesde(c.dataAbertura); return d >= 30 && d < 50; }).length;
-  const filtrados = (filtroAtraso
-    ? validos.filter(c => diasDesde(c.dataAbertura) >= 50)
-    : filtroAtencao
-      ? validos.filter(c => { const d = diasDesde(c.dataAbertura); return d >= 30 && d < 50; })
-      : validos
-  ).filter(c => !busca || c.numero.toLowerCase().includes(busca.toLowerCase()));
+  async function exportXLS() {
+    setXlsExporting(true);
+    try {
+      const params = new URLSearchParams({ export: "1" });
+      if (filtro) params.set("filtro", filtro);
+      if (busca) params.set("busca", busca);
+      const res = await fetch(`/api/chamados-redmine?${params}`);
+      const data = await res.json();
+      const todos: ChamadoRedmine[] = data.chamados ?? [];
 
-  const datas = validos.map(c => c.dataAbertura).filter(Boolean) as string[];
-  const periodoMin = datas.length ? fmtDateTime(datas.reduce((a, b) => a < b ? a : b)) : "—";
-  const periodoMax = datas.length ? fmtDateTime(datas.reduce((a, b) => a > b ? a : b)) : "—";
-
-  function exportCSV() {
-    function esc(s: string) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
-    const dataRows = filtrados.map(c => {
-      const dias = diasDesde(c.dataAbertura);
-      const url = `https://cati.tjce.jus.br/assystnet/#events/${c.numero}?eventType=1&currentIndex=0`;
-      return `<tr><td><a href="${esc(url)}">${esc(c.numero)}</a></td><td>${dias ?? ""}</td><td>${esc(fmtDateTime(c.dataAbertura))}</td><td>${esc(c.equipeAtribuida ?? "")}</td><td>${esc(fmtDateTime(c.dataMovimentacao))}</td><td>${esc(c.situacaoRegra ?? "")}</td></tr>`;
-    }).join("");
-    const html = `<html><head><meta charset="UTF-8"><style>table{border-collapse:collapse}th,td{border:1px solid #ccc;padding:4px 8px;font-size:12px}th{background:#f0f0f0}a{color:#1155cc}</style></head><body><table><tr><th>Nº Chamado (Assyst)</th><th>Dias em aberto</th><th>Abertura</th><th>Equipe Atribuída</th><th>Movimentação</th><th>Situação</th></tr>${dataRows}</table></body></html>`;
-    const blob = new Blob([html], { type: "application/vnd.ms-excel;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = "chamados_redmine.xls"; a.click();
-    URL.revokeObjectURL(url);
+      function esc(s: string) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+      const dataRows = todos.map(c => {
+        const dias = diasDesde(c.dataAbertura);
+        const url = `https://cati.tjce.jus.br/assystnet/#events/${c.numero}?eventType=1&currentIndex=0`;
+        return `<tr><td><a href="${esc(url)}">${esc(c.numero)}</a></td><td>${dias ?? ""}</td><td>${esc(fmtDateTime(c.dataAbertura))}</td><td>${esc(c.equipeAtribuida ?? "")}</td><td>${esc(fmtDateTime(c.dataMovimentacao))}</td><td>${esc(c.situacaoRegra ?? "")}</td></tr>`;
+      }).join("");
+      const html = `<html><head><meta charset="UTF-8"><style>table{border-collapse:collapse}th,td{border:1px solid #ccc;padding:4px 8px;font-size:12px}th{background:#f0f0f0}a{color:#1155cc}</style></head><body><table><tr><th>Nº Chamado (Assyst)</th><th>Dias em aberto</th><th>Abertura</th><th>Equipe Atribuída</th><th>Movimentação</th><th>Situação</th></tr>${dataRows}</table></body></html>`;
+      const blob = new Blob([html], { type: "application/vnd.ms-excel;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = "chamados_redmine.xls"; a.click();
+      URL.revokeObjectURL(url);
+    } finally { setXlsExporting(false); }
   }
+
+  const totalValidos = dados?.totalValidos ?? 0;
+  const totalAtraso = dados?.totalAtraso ?? 0;
+  const totalAtencao = dados?.totalAtencao ?? 0;
+  const chamados = dados?.chamados ?? [];
+  const page = dados?.page ?? 1;
+  const totalPages = dados?.totalPages ?? 1;
+  const total = dados?.total ?? 0;
 
   return (
     <div>
@@ -136,13 +167,13 @@ export default function ChamadosRedminePage() {
           <p className="text-sm text-gray-400 mt-0.5">Listagem de chamados por equipe</p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          {validos.length > 0 && (
-            <button onClick={exportCSV}
-              className="bg-green-700 hover:bg-green-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
-              ↓ Exportar XLS
+          {totalValidos > 0 && (
+            <button onClick={exportXLS} disabled={xlsExporting}
+              className="bg-green-700 hover:bg-green-600 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
+              {xlsExporting ? "Exportando..." : "↓ Exportar XLS"}
             </button>
           )}
-          {chamados.length > 0 && (
+          {totalValidos > 0 && (
             <button onClick={handleLimpar}
               className="bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm font-medium px-4 py-2 rounded-lg transition">
               Limpar dados
@@ -156,18 +187,17 @@ export default function ChamadosRedminePage() {
       </div>
 
       {/* Stats */}
-      {chamados.length > 0 && (
+      {dados && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
             <p className="text-xs text-gray-400 mb-1">Total de chamados</p>
-            <p className="text-3xl font-bold text-white">{validos.length.toLocaleString("pt-BR")}</p>
+            <p className="text-3xl font-bold text-white">{totalValidos.toLocaleString("pt-BR")}</p>
           </div>
 
-          {/* Card ≥50 dias — filtro clicável */}
           <button
-            onClick={() => { setFiltroAtraso(f => !f); setFiltroAtencao(false); }}
-            className={`rounded-xl p-4 border text-left transition light-card-red ${
-              filtroAtraso
+            onClick={() => handleFiltro("atraso")}
+            className={`rounded-xl p-4 border text-left transition ${
+              filtro === "atraso"
                 ? "bg-red-800 border-red-500 ring-2 ring-red-400 animate-pulse"
                 : totalAtraso > 0
                   ? "bg-red-950 border-red-700 hover:bg-red-900"
@@ -177,15 +207,14 @@ export default function ChamadosRedminePage() {
             <p className="text-xs text-gray-400 mb-1">Em atraso (≥50 dias)</p>
             <p className={`text-3xl font-bold ${totalAtraso > 0 ? "text-red-400" : "text-white"}`}>{totalAtraso}</p>
             <p className="text-xs text-red-400 mt-1">
-              {filtroAtraso ? "✓ Filtro ativo — clique para remover" : "⚠ Clique para filtrar"}
+              {filtro === "atraso" ? "✓ Filtro ativo — clique para remover" : "⚠ Clique para filtrar"}
             </p>
           </button>
 
-          {/* Card ≥30 dias — filtro clicável */}
           <button
-            onClick={() => { setFiltroAtencao(f => !f); setFiltroAtraso(false); }}
-            className={`rounded-xl p-4 border text-left transition light-card-amber ${
-              filtroAtencao
+            onClick={() => handleFiltro("atencao")}
+            className={`rounded-xl p-4 border text-left transition ${
+              filtro === "atencao"
                 ? "bg-yellow-700 border-yellow-400 ring-2 ring-yellow-300 animate-pulse"
                 : totalAtencao > 0
                   ? "bg-yellow-950/40 border-yellow-700 hover:bg-yellow-900/30"
@@ -195,19 +224,21 @@ export default function ChamadosRedminePage() {
             <p className="text-xs text-gray-400 mb-1">Em atenção (≥30 dias)</p>
             <p className={`text-3xl font-bold ${totalAtencao > 0 ? "text-yellow-400" : "text-white"}`}>{totalAtencao}</p>
             <p className="text-xs text-yellow-500 mt-1">
-              {filtroAtencao ? "✓ Filtro ativo — clique para remover" : "Clique para filtrar"}
+              {filtro === "atencao" ? "✓ Filtro ativo — clique para remover" : "Clique para filtrar"}
             </p>
           </button>
 
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
             <p className="text-xs text-gray-400 mb-1">Período dos dados</p>
-            <p className="text-xs font-medium text-gray-300 mt-2">{periodoMin.slice(0, 10)} → {periodoMax.slice(0, 10)}</p>
+            <p className="text-xs font-medium text-gray-300 mt-2">
+              {dados.periodoMin ? fmtDateTime(dados.periodoMin).slice(0, 10) : "—"} → {dados.periodoMax ? fmtDateTime(dados.periodoMax).slice(0, 10) : "—"}
+            </p>
           </div>
         </div>
       )}
 
       {/* Pesquisa */}
-      {validos.length > 0 && (
+      {totalValidos > 0 && (
         <div className="mb-4">
           <div className="relative w-fit">
             <input
@@ -241,12 +272,12 @@ export default function ChamadosRedminePage() {
             {loading && (
               <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-500">Carregando...</td></tr>
             )}
-            {!loading && filtrados.length === 0 && (
+            {!loading && chamados.length === 0 && (
               <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-500">
-                {chamados.length === 0 ? "Nenhum chamado importado" : "Nenhum chamado em atraso"}
+                {totalValidos === 0 ? "Nenhum chamado importado" : "Nenhum chamado encontrado"}
               </td></tr>
             )}
-            {filtrados.map(c => {
+            {chamados.map(c => {
               const dias = diasDesde(c.dataAbertura);
               const atrasado = dias >= 50;
               return (
@@ -288,6 +319,26 @@ export default function ChamadosRedminePage() {
           </tbody>
         </table>
       </div>
+
+      {/* Paginação */}
+      {totalPages > 1 && total > 0 && (
+        <div className="flex items-center justify-between mt-4 px-1">
+          <p className="text-xs text-gray-500">
+            Exibindo <span className="text-gray-300">{(page - 1) * 100 + 1}–{Math.min(page * 100, total)}</span> de <span className="text-gray-300">{total.toLocaleString("pt-BR")}</span> registros
+          </p>
+          <div className="flex items-center gap-2">
+            <button onClick={() => load(page - 1, busca, filtro)} disabled={page === 1}
+              className="px-3 py-1.5 text-xs rounded-lg bg-gray-800 hover:bg-gray-700 disabled:opacity-40 text-gray-300 transition">
+              ← Anterior
+            </button>
+            <span className="text-xs text-gray-400">Página {page} de {totalPages}</span>
+            <button onClick={() => load(page + 1, busca, filtro)} disabled={page === totalPages}
+              className="px-3 py-1.5 text-xs rounded-lg bg-gray-800 hover:bg-gray-700 disabled:opacity-40 text-gray-300 transition">
+              Próxima →
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Modal Importar */}
       {importModal && (

@@ -20,14 +20,14 @@ export async function GET(request: NextRequest) {
   const [totalValidos, totalAtraso, totalAtencao, range] = await Promise.all([
     prisma.chamadoRedmine.count({ where: VALIDO }),
     prisma.chamadoRedmine.count({ where: { ...VALIDO, dataAbertura: { lt: d50 } } }),
-    prisma.chamadoRedmine.count({ where: { ...VALIDO, dataAbertura: { gte: d30, lt: d50 } } }),
+    prisma.chamadoRedmine.count({ where: { ...VALIDO, dataAbertura: { gte: d50, lt: d30 } } }),
     prisma.chamadoRedmine.aggregate({ where: VALIDO, _min: { dataAbertura: true }, _max: { dataAbertura: true } }),
   ]);
 
   // Monta where para listagem
   const conditions: Record<string, unknown>[] = [VALIDO];
   if (filtro === "atraso") conditions.push({ dataAbertura: { lt: d50 } });
-  else if (filtro === "atencao") conditions.push({ dataAbertura: { gte: d30, lt: d50 } });
+  else if (filtro === "atencao") conditions.push({ dataAbertura: { gte: d50, lt: d30 } });
   if (busca) conditions.push({ numero: { contains: busca, mode: "insensitive" } });
   const where = conditions.length === 1 ? conditions[0] : { AND: conditions };
 

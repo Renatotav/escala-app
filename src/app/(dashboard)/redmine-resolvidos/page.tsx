@@ -131,16 +131,22 @@ export default function RedmineResolvidosPage() {
   const [editValue, setEditValue] = useState("");
   const [saving, setSaving] = useState(false);
   const [marcador, setMarcadorState] = useState<string | null>(null);
+  const [marcadorRes, setMarcadorResState] = useState<{ redmine: string; page: number } | null>(null);
   const marcadorRef = useRef<HTMLTableRowElement>(null);
+  const marcadorResRef = useRef<HTMLTableRowElement>(null);
+  const marcadorResNavigated = useRef(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const topScrollRef = useRef<HTMLDivElement>(null);
   const tableScrollRef = useRef<HTMLDivElement>(null);
 
   const MARKER_KEY = "redmine-resolvidos-marcador";
+  const MARKER_RES_KEY = "redmine-resolvidos-marcador-res";
 
   useEffect(() => {
     const saved = localStorage.getItem(MARKER_KEY);
     if (saved) setMarcadorState(saved);
+    const savedRes = localStorage.getItem(MARKER_RES_KEY);
+    if (savedRes) { try { setMarcadorResState(JSON.parse(savedRes)); } catch {} }
   }, []);
 
   function toggleMarcador(num: string) {
@@ -150,6 +156,17 @@ export default function RedmineResolvidosPage() {
     } else {
       localStorage.setItem(MARKER_KEY, num);
       setMarcadorState(num);
+    }
+  }
+
+  function toggleMarcadorRes(redmine: string, page: number) {
+    if (marcadorRes?.redmine === redmine) {
+      localStorage.removeItem(MARKER_RES_KEY);
+      setMarcadorResState(null);
+    } else {
+      const val = { redmine, page };
+      localStorage.setItem(MARKER_RES_KEY, JSON.stringify(val));
+      setMarcadorResState(val);
     }
   }
 
@@ -172,24 +189,39 @@ export default function RedmineResolvidosPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [busca, aba]);
 
-  // Navega para a página do marcador quando dados carregam (usa lista sem filtro de busca)
+  // Navega para a página do marcador (esquecidos) quando dados carregam
   useEffect(() => {
     if (!dados || !marcador) return;
     const idx = semResolvidoRaw.indexOf(marcador);
     if (idx < 0) return;
     const pg = Math.floor(idx / POR_PAGINA) + 1;
-    setBusca(""); // limpa busca para garantir visibilidade do marcador
+    setBusca("");
     setPaginaEsq(pg);
     setAba("esquecidos");
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dados, marcador]);
 
-  // Scrolla até o marcador após renderizar
+  // Navega para a página do marcador (resolvidos) quando dados carregam — só uma vez
+  useEffect(() => {
+    if (!dados || !marcadorRes || marcadorResNavigated.current) return;
+    marcadorResNavigated.current = true;
+    setAba("resolvidos");
+    load(marcadorRes.page, "");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dados, marcadorRes]);
+
+  // Scrolla até o marcador após mudar de página
   useEffect(() => {
     if (marcadorRef.current) {
       setTimeout(() => marcadorRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 100);
     }
   }, [paginaEsq]);
+
+  useEffect(() => {
+    if (aba === "resolvidos" && marcadorResRef.current) {
+      setTimeout(() => marcadorResRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 150);
+    }
+  }, [paginaResAtual, aba]);
 
   async function handleImport() {
     if (selectedFiles.length === 0) return;
@@ -415,47 +447,49 @@ export default function RedmineResolvidosPage() {
             <tbody>
               {semResolvido.length === 0 ? (
                 <tr><td colSpan={3} className="px-4 py-8 text-center text-green-400 text-sm">Todos os chamados foram resolvidos!</td></tr>
-              ) : semResolvidoPag.map(num => {
+              ) : semResolvidoPag.flatMap(num => {
                 const esMarcado = num === marcador;
-                return (
-                  <>
-                    {esMarcado && (
-                      <tr key={`div-${num}`}>
-                        <td colSpan={3} className="px-4 py-2 bg-blue-950/50 border-y border-blue-500/40">
-                          <span className="text-xs text-blue-300 font-semibold flex items-center gap-2">
-                            📍 Você parou aqui — continue a partir deste chamado
-                          </span>
-                        </td>
-                      </tr>
-                    )}
-                    <tr ref={esMarcado ? marcadorRef : undefined} key={num}
-                      className={`border-b border-gray-800 last:border-0 transition border-l-2 ${esMarcado ? "bg-blue-950/20 border-l-blue-500 hover:bg-blue-950/30" : "bg-red-950/20 border-l-red-600 hover:bg-red-950/30"}`}>
-                      <td className="px-3 py-3">
-                        <button onClick={() => toggleMarcador(num)} title={esMarcado ? "Remover marcador" : "Marcar posição aqui"}
-                          className={`text-base leading-none transition ${esMarcado ? "text-blue-400 hover:text-gray-500" : "text-gray-700 hover:text-blue-400"}`}>
-                          📍
-                        </button>
-                      </td>
-                      <td className="px-4 py-3">
-                        <a href={assystUrl(num)} target="_blank" rel="noopener noreferrer"
-                          className="font-mono text-sm text-blue-400 hover:text-blue-300 hover:underline transition">
-                          {num}
-                        </a>
-                      </td>
-                      <td className="px-4 py-3">
-                        {esMarcado ? (
-                          <span className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full bg-blue-600/30 text-blue-300 border border-blue-500/40">
-                            📍 Marcado
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full bg-red-600 text-white animate-pulse">
-                            ⚠ Ainda não resolvido
-                          </span>
-                        )}
+                const rows = [];
+                if (esMarcado) {
+                  rows.push(
+                    <tr key={`div-${num}`}>
+                      <td colSpan={3} className="px-4 py-2 bg-blue-950/50 border-y border-blue-500/40">
+                        <span className="text-xs text-blue-300 font-semibold flex items-center gap-2">
+                          📍 Você parou aqui — continue a partir deste chamado
+                        </span>
                       </td>
                     </tr>
-                  </>
+                  );
+                }
+                rows.push(
+                  <tr ref={esMarcado ? marcadorRef : undefined} key={num}
+                    className={`border-b border-gray-800 last:border-0 transition border-l-2 ${esMarcado ? "bg-blue-950/20 border-l-blue-500 hover:bg-blue-950/30" : "bg-red-950/20 border-l-red-600 hover:bg-red-950/30"}`}>
+                    <td className="px-3 py-3">
+                      <button onClick={() => toggleMarcador(num)} title={esMarcado ? "Remover marcador" : "Marcar posição aqui"}
+                        className={`text-base leading-none transition ${esMarcado ? "text-blue-400 hover:text-gray-500" : "text-gray-700 hover:text-blue-400"}`}>
+                        📍
+                      </button>
+                    </td>
+                    <td className="px-4 py-3">
+                      <a href={assystUrl(num)} target="_blank" rel="noopener noreferrer"
+                        className="font-mono text-sm text-blue-400 hover:text-blue-300 hover:underline transition">
+                        {num}
+                      </a>
+                    </td>
+                    <td className="px-4 py-3">
+                      {esMarcado ? (
+                        <span className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full bg-blue-600/30 text-blue-300 border border-blue-500/40">
+                          📍 Marcado
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full bg-red-600 text-white animate-pulse">
+                          ⚠ Ainda não resolvido
+                        </span>
+                      )}
+                    </td>
+                  </tr>
                 );
+                return rows;
               })}
             </tbody>
           </table>
@@ -463,6 +497,7 @@ export default function RedmineResolvidosPage() {
           <table className="w-full min-w-[900px] text-sm">
             <thead>
               <tr className="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wide">
+                <th className="text-left px-3 py-3 w-8"></th>
                 <th className="text-left px-4 py-3 whitespace-nowrap">Redmine #</th>
                 <th className="text-left px-4 py-3 whitespace-nowrap">Nº Assyst</th>
                 <th className="text-left px-4 py-3 whitespace-nowrap">Tipo</th>
@@ -473,10 +508,31 @@ export default function RedmineResolvidosPage() {
               </tr>
             </thead>
             <tbody>
-              {resolvidosPag.map(r => {
+              {resolvidosPag.flatMap(r => {
                 const nums = splitAssyst(r.numerosAssyst);
-                return (
-                  <tr key={r.id} className="border-b border-gray-800 last:border-0 hover:bg-gray-800/50 transition">
+                const esMarcado = marcadorRes?.redmine === r.numeroRedmine;
+                const rows = [];
+                if (esMarcado) {
+                  rows.push(
+                    <tr key={`div-${r.id}`}>
+                      <td colSpan={8} className="px-4 py-2 bg-blue-950/50 border-y border-blue-500/40">
+                        <span className="text-xs text-blue-300 font-semibold flex items-center gap-2">
+                          📍 Você parou aqui — continue a partir deste chamado
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                }
+                rows.push(
+                  <tr key={r.id} ref={esMarcado ? marcadorResRef : undefined}
+                    className={`border-b border-gray-800 last:border-0 transition border-l-2 ${esMarcado ? "bg-blue-950/20 border-l-blue-500 hover:bg-blue-950/30" : "border-l-transparent hover:bg-gray-800/50"}`}>
+                    <td className="px-3 py-3">
+                      <button onClick={() => toggleMarcadorRes(r.numeroRedmine, paginaResAtual)}
+                        title={esMarcado ? "Remover marcador" : "Marcar posição aqui"}
+                        className={`text-base leading-none transition ${esMarcado ? "text-blue-400 hover:text-gray-500" : "text-gray-700 hover:text-blue-400"}`}>
+                        📍
+                      </button>
+                    </td>
                     <td className="px-4 py-3">
                       <a href={redmineUrl(r.numeroRedmine)} target="_blank" rel="noopener noreferrer"
                         className="font-mono text-xs text-blue-400 hover:text-blue-300 hover:underline transition">
@@ -516,6 +572,7 @@ export default function RedmineResolvidosPage() {
                     <td className="px-4 py-3"><CelulaTexto label="Últimas notas" texto={r.ultimasNotas} onClick={setTextoModal} assystNums={splitAssyst(r.numerosAssyst)} resolvidoId={r.id} /></td>
                   </tr>
                 );
+                return rows;
               })}
             </tbody>
           </table>

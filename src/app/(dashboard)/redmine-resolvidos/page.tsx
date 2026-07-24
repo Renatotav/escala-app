@@ -557,10 +557,21 @@ export default function RedmineResolvidosPage() {
           <div className="bg-gray-900 border border-gray-800 rounded-xl w-full max-w-md p-6">
             <h3 className="text-base font-semibold text-white mb-1">Importar Redmine Resolvidos</h3>
             <p className="text-xs text-gray-400 mb-3">Selecione o arquivo CSV exportado do Redmine com os chamados resolvidos.</p>
-            <div className="mb-3 rounded-lg bg-blue-950/40 border border-blue-800/40 p-3 space-y-1">
-              <p className="text-xs text-blue-300 font-medium">Regra de importação</p>
-              <p className="text-xs text-gray-400">Os dados existentes serão substituídos pelo novo arquivo.</p>
-              <p className="text-xs text-green-400">✓ Registros cujos chamados ainda estão ativos na fila do Assyst são protegidos automaticamente e não serão removidos.</p>
+            <div className="mb-3 flex gap-3">
+              <label className={`flex-1 flex items-start gap-2 cursor-pointer rounded-lg border p-3 transition ${substituir ? "border-blue-500 bg-blue-950/30" : "border-gray-700 hover:border-gray-600"}`}>
+                <input type="radio" name="modo-resolvidos" checked={substituir} onChange={() => setSubstituir(true)} className="accent-blue-500 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-xs text-white font-medium">Substituir dados</p>
+                  <p className="text-[11px] text-gray-400 mt-0.5">Substitui tudo. Chamados ativos no Assyst são protegidos automaticamente.</p>
+                </div>
+              </label>
+              <label className={`flex-1 flex items-start gap-2 cursor-pointer rounded-lg border p-3 transition ${!substituir ? "border-green-500 bg-green-950/30" : "border-gray-700 hover:border-gray-600"}`}>
+                <input type="radio" name="modo-resolvidos" checked={!substituir} onChange={() => setSubstituir(false)} className="accent-green-500 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-xs text-white font-medium">Adicionar aos existentes</p>
+                  <p className="text-[11px] text-gray-400 mt-0.5">Insere apenas registros novos. Nada é removido. Ideal para lotes históricos.</p>
+                </div>
+              </label>
             </div>
             <div className="border-2 border-dashed border-gray-700 hover:border-green-600 rounded-lg p-6 text-center cursor-pointer transition"
               onClick={() => fileRef.current?.click()}>

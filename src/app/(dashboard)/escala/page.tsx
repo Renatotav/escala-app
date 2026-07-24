@@ -150,7 +150,7 @@ export default function EscalaPage() {
   }
 
   function exportCSV() {
-    const rows = [["Colaborador", "Cargo", "Equipe", "Semanas Presencial", "Elegibilidade", "Esta Semana"]];
+    const rows = [["Colaborador", "Cargo", "Equipe", "Semanas Presencial", "Elegibilidade", "Esta Semana", "Operador WhatsApp"]];
     const membros = colaboradores.filter(c => !equipesExcluidas.includes(c.equipe.nome));
     for (const c of membros) {
       rows.push([
@@ -159,7 +159,8 @@ export default function EscalaPage() {
         c.equipe.nome,
         String(c.semanasPresencial),
         sinalConfig[c.sinal].label,
-        c.escalaSemana === "REMOTO" ? "Remoto" : c.escalaSemana === "PRESENCIAL" ? (c.unidadePresencial ? `Presencial - ${c.unidadePresencial}` : "Presencial") : "Não lançado",
+        c.escalaSemana === "REMOTO" ? "Remoto" : c.escalaSemana === "PRESENCIAL" ? (c.unidadePresencial ? `Presencial - ${c.unidadePresencial.split("||")[0]}` : "Presencial") : "Não lançado",
+        c.whatsapp ? "Sim" : "",
       ]);
     }
     const csv = rows.map(r => r.map(v => `"${v.replace(/"/g, '""')}"`).join(",")).join("\n");

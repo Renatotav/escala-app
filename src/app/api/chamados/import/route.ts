@@ -25,10 +25,11 @@ export async function POST(request: NextRequest) {
   }
 
   // 1. Deduplicar dentro do próprio lote por referencia
+  // Rejeita referências sem dígito — cabeçalho CSV ("Referencia") não tem número
   const seenRefs = new Set<string>();
   const dedupedInput = chamados.filter((c) => {
     const ref = c.referencia?.trim();
-    if (!ref || seenRefs.has(ref)) return false;
+    if (!ref || !/\d/.test(ref) || seenRefs.has(ref)) return false;
     seenRefs.add(ref);
     return true;
   });

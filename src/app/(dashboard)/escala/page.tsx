@@ -656,7 +656,7 @@ export default function EscalaPage() {
 
               {settingsTab === "horarios" && (
                 <>
-                  <p className="text-xs text-gray-400 mb-3">Horário padrão exibido no PDF para o Núcleo de Custódia.</p>
+                  <p className="text-xs text-gray-400 mb-3">Horário padrão exibido no PDF para as Unidades de Atendimento.</p>
                   <textarea
                     value={editNucleoHorario}
                     onChange={e => setEditNucleoHorario(e.target.value)}

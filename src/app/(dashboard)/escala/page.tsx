@@ -309,15 +309,7 @@ export default function EscalaPage() {
     // Responsável WhatsApp — logo após o Núcleo
     const whatsappOp = membros.find(c => c.whatsapp);
     if (whatsappOp) {
-      y -= 6; // reduz gap deixado pelo renderSecao
-      const WGREEN: [number, number, number] = [22, 101, 52];
-      doc.setFillColor(...WGREEN);
-      doc.roundedRect(12, y, 185, 9, 1.5, 1.5, "F");
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(8.5);
-      doc.setTextColor(255, 255, 255);
-      doc.text(`Operador - WhatsApp: ${whatsappOp.nome.toUpperCase()}`, 16, y + 6);
-      y += 14;
+      renderSecao("Operador - WhatsApp", [whatsappOp.nome]);
     }
 
     renderSecao("Presencial - Tribunal de Justiça", tj);

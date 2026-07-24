@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
   for (const r of todosLeve) {
     const ts = parseAlteradoEmMs(r.alteradoEm);
     if (ts !== null && ts < ms5) idsAtraso.push(r.id);
-    else if (ts !== null && ts >= ms3 && ts < ms5) idsAtencao.push(r.id);
+    else if (ts !== null && ts >= ms5 && ts < ms3) idsAtencao.push(r.id);
 
     const nums = splitAssyst(r.numerosAssyst);
     if (nums.length > 0 && nums.every(n => !assystAtivos.has(n))) {

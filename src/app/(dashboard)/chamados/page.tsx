@@ -830,7 +830,7 @@ export default function ChamadosPage() {
             className={`text-xs px-3 py-1.5 rounded transition ${subViewQuant === "lista" ? "bg-gray-700 text-white font-medium" : "text-gray-500 hover:text-gray-300"}`}>
             Lista
           </button>
-          <button onClick={() => { setSubViewQuant("graficos"); if (!equipeGrafico && stats?.porEquipe[0]) setEquipeGrafico(stats.porEquipe[0].equipe); }}
+          <button onClick={() => { setSubViewQuant("graficos"); setEquipeGrafico(""); }}
             className={`text-xs px-3 py-1.5 rounded transition ${subViewQuant === "graficos" ? "bg-gray-700 text-white font-medium" : "text-gray-500 hover:text-gray-300"}`}>
             Gráficos
           </button>

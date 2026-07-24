@@ -37,11 +37,13 @@ function getInitialISO(): string {
   return toLocalISO(d);
 }
 
-const UNIDADES_PRESENCIAL = [
+const UNIDADES_PADRAO = [
   "Fórum Clóvis Beviláqua",
   "Núcleo de Custódia e das Garantias da Comarca de Fortaleza",
   "Tribunal de Justiça",
-] as const;
+];
+const EQUIPES_EXCLUIDAS_PADRAO = ["Supervisão", "Coordenação"];
+const NUCLEO_HORARIO_PADRAO_DEFAULT = "Seg. a Quinta: 08:00 às 12:00 e Sexta: 08:00 às 14:00.";
 
 export default function EscalaPage() {
   const [semana, setSemana] = useState(getInitialISO());
@@ -54,7 +56,32 @@ export default function EscalaPage() {
   const [outroInput, setOutroInput] = useState("");
   const [horarioInput, setHorarioInput] = useState("");
 
+  // Configurações dinâmicas
+  const [unidadesPresencial, setUnidadesPresencial] = useState<string[]>(UNIDADES_PADRAO);
+  const [equipesExcluidas, setEquipesExcluidas] = useState<string[]>(EQUIPES_EXCLUIDAS_PADRAO);
+  const [nucleoHorario, setNucleoHorario] = useState(NUCLEO_HORARIO_PADRAO_DEFAULT);
+
+  // Modal de configurações
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsTab, setSettingsTab] = useState<"locais" | "equipes" | "horarios">("locais");
+  const [savingConfig, setSavingConfig] = useState(false);
+
+  // Edição local dentro do modal
+  const [editUnidades, setEditUnidades] = useState<string[]>([]);
+  const [editEquipesExcluidas, setEditEquipesExcluidas] = useState<string[]>([]);
+  const [editNucleoHorario, setEditNucleoHorario] = useState("");
+  const [novaUnidade, setNovaUnidade] = useState("");
+  const [novaEquipe, setNovaEquipe] = useState("");
+
   useEffect(() => { fetch("/api/equipes").then(r => r.json()).then(setEquipes); }, []);
+
+  useEffect(() => {
+    fetch("/api/configuracoes?prefixo=escala.").then(r => r.json()).then((cfg: Record<string, unknown>) => {
+      if (Array.isArray(cfg["escala.unidades"])) setUnidadesPresencial(cfg["escala.unidades"] as string[]);
+      if (Array.isArray(cfg["escala.equipes_excluidas"])) setEquipesExcluidas(cfg["escala.equipes_excluidas"] as string[]);
+      if (typeof cfg["escala.nucleo_horario"] === "string") setNucleoHorario(cfg["escala.nucleo_horario"] as string);
+    }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -78,7 +105,31 @@ export default function EscalaPage() {
     setColaboradores(data);
   }
 
-  const NUCLEO_HORARIO_PADRAO = "Seg. a Quinta: 08:00 às 12:00 e Sexta: 08:00 às 14:00.";
+  const NUCLEO_HORARIO_PADRAO = nucleoHorario;
+
+  function abrirSettings() {
+    setEditUnidades([...unidadesPresencial]);
+    setEditEquipesExcluidas([...equipesExcluidas]);
+    setEditNucleoHorario(nucleoHorario);
+    setNovaUnidade("");
+    setNovaEquipe("");
+    setSettingsTab("locais");
+    setSettingsOpen(true);
+  }
+
+  async function salvarConfig() {
+    setSavingConfig(true);
+    await Promise.all([
+      fetch("/api/configuracoes", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ chave: "escala.unidades", valor: editUnidades }) }),
+      fetch("/api/configuracoes", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ chave: "escala.equipes_excluidas", valor: editEquipesExcluidas }) }),
+      fetch("/api/configuracoes", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ chave: "escala.nucleo_horario", valor: editNucleoHorario }) }),
+    ]);
+    setUnidadesPresencial([...editUnidades]);
+    setEquipesExcluidas([...editEquipesExcluidas]);
+    setNucleoHorario(editNucleoHorario);
+    setSavingConfig(false);
+    setSettingsOpen(false);
+  }
 
   function unidadeRequerHorario(u: string) {
     return /cust[oó]dia/i.test(u) || u === "__outro__";
@@ -100,7 +151,7 @@ export default function EscalaPage() {
 
   function exportCSV() {
     const rows = [["Colaborador", "Cargo", "Equipe", "Semanas Presencial", "Elegibilidade", "Esta Semana"]];
-    const membros = colaboradores.filter(c => !["Supervisão", "Coordenação"].includes(c.equipe.nome));
+    const membros = colaboradores.filter(c => !equipesExcluidas.includes(c.equipe.nome));
     for (const c of membros) {
       rows.push([
         c.nome,
@@ -169,7 +220,7 @@ export default function EscalaPage() {
 
     let y = 36;
 
-    const membros = colaboradores.filter(c => !["Supervisão", "Coordenação"].includes(c.equipe.nome));
+    const membros = colaboradores.filter(c => !equipesExcluidas.includes(c.equipe.nome));
 
     const forum: string[] = [];
     const custodia: string[] = [];
@@ -307,9 +358,7 @@ export default function EscalaPage() {
   }
 
 
-  const EQUIPES_EXCLUIDAS = ["Supervisão", "Coordenação"];
-
-  const equipesEscala = equipes.filter(eq => !EQUIPES_EXCLUIDAS.includes(eq.nome));
+  const equipesEscala = equipes.filter(eq => !equipesExcluidas.includes(eq.nome));
 
   function sortMembros(list: ColaboradorEscala[]) {
     const order: Record<Sinal, number> = { VERDE: 0, AMARELO: 1, VERMELHO: 2 };
@@ -328,7 +377,7 @@ export default function EscalaPage() {
         equipe: eq,
         membros: sortMembros(colaboradores.filter(c => c.equipe.id === eq.id)),
       })).filter(g => g.membros.length > 0)
-    : [{ equipe: null, membros: sortMembros(colaboradores.filter(c => !EQUIPES_EXCLUIDAS.includes(c.equipe.nome))) }];
+    : [{ equipe: null, membros: sortMembros(colaboradores.filter(c => !equipesExcluidas.includes(c.equipe.nome))) }];
 
   return (
     <div>
@@ -357,6 +406,11 @@ export default function EscalaPage() {
           <button onClick={gerarPDF}
             className="text-xs px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white border border-gray-700 transition">
             ↓ PDF
+          </button>
+          <button onClick={abrirSettings}
+            title="Configurações da Escala"
+            className="text-sm px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white border border-gray-700 transition">
+            ⚙
           </button>
         </div>
       </div>
@@ -515,6 +569,117 @@ export default function EscalaPage() {
         </div>
       )}
 
+      {/* Modal Configurações da Escala */}
+      {settingsOpen && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setSettingsOpen(false)}>
+          <div className="bg-gray-900 border border-gray-700 rounded-xl w-full max-w-lg shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 pt-5 pb-3 border-b border-gray-800">
+              <h3 className="text-white font-semibold flex items-center gap-2">⚙ Configurações da Escala</h3>
+              <button onClick={() => setSettingsOpen(false)} className="text-gray-500 hover:text-white transition text-lg leading-none">✕</button>
+            </div>
+
+            {/* Abas */}
+            <div className="flex border-b border-gray-800 px-6">
+              {([["locais", "📍 Locais"], ["equipes", "👥 Equipes"], ["horarios", "🕐 Horários"]] as const).map(([tab, label]) => (
+                <button key={tab} onClick={() => setSettingsTab(tab)}
+                  className={`text-xs py-3 px-3 border-b-2 transition ${settingsTab === tab ? "border-blue-500 text-white" : "border-transparent text-gray-500 hover:text-gray-300"}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            <div className="p-6 space-y-3 max-h-[60vh] overflow-y-auto">
+              {settingsTab === "locais" && (
+                <>
+                  <p className="text-xs text-gray-400 mb-3">Locais disponíveis para lançamento presencial.</p>
+                  <div className="space-y-2">
+                    {editUnidades.map((u, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <input
+                          value={u}
+                          onChange={e => setEditUnidades(prev => prev.map((x, j) => j === i ? e.target.value : x))}
+                          className="flex-1 bg-gray-800 border border-gray-700 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        <button onClick={() => setEditUnidades(prev => prev.filter((_, j) => j !== i))}
+                          className="text-red-400 hover:text-red-300 text-lg px-1 transition">✕</button>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex gap-2 mt-3">
+                    <input
+                      value={novaUnidade}
+                      onChange={e => setNovaUnidade(e.target.value)}
+                      onKeyDown={e => { if (e.key === "Enter" && novaUnidade.trim()) { setEditUnidades(p => [...p, novaUnidade.trim()]); setNovaUnidade(""); } }}
+                      placeholder="Novo local..."
+                      className="flex-1 bg-gray-800 border border-gray-700 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <button onClick={() => { if (novaUnidade.trim()) { setEditUnidades(p => [...p, novaUnidade.trim()]); setNovaUnidade(""); } }}
+                      className="px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm transition">
+                      + Adicionar
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {settingsTab === "equipes" && (
+                <>
+                  <p className="text-xs text-gray-400 mb-3">Equipes que <strong className="text-white">não aparecem</strong> na escala semanal.</p>
+                  <div className="space-y-2">
+                    {editEquipesExcluidas.map((eq, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <input
+                          value={eq}
+                          onChange={e => setEditEquipesExcluidas(prev => prev.map((x, j) => j === i ? e.target.value : x))}
+                          className="flex-1 bg-gray-800 border border-gray-700 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        <button onClick={() => setEditEquipesExcluidas(prev => prev.filter((_, j) => j !== i))}
+                          className="text-red-400 hover:text-red-300 text-lg px-1 transition">✕</button>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex gap-2 mt-3">
+                    <input
+                      value={novaEquipe}
+                      onChange={e => setNovaEquipe(e.target.value)}
+                      onKeyDown={e => { if (e.key === "Enter" && novaEquipe.trim()) { setEditEquipesExcluidas(p => [...p, novaEquipe.trim()]); setNovaEquipe(""); } }}
+                      placeholder="Nome da equipe a excluir..."
+                      className="flex-1 bg-gray-800 border border-gray-700 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <button onClick={() => { if (novaEquipe.trim()) { setEditEquipesExcluidas(p => [...p, novaEquipe.trim()]); setNovaEquipe(""); } }}
+                      className="px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm transition">
+                      + Adicionar
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {settingsTab === "horarios" && (
+                <>
+                  <p className="text-xs text-gray-400 mb-3">Horário padrão exibido no PDF para o Núcleo de Custódia.</p>
+                  <textarea
+                    value={editNucleoHorario}
+                    onChange={e => setEditNucleoHorario(e.target.value)}
+                    rows={3}
+                    className="w-full bg-gray-800 border border-gray-700 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  />
+                </>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-2 px-6 py-4 border-t border-gray-800">
+              <button onClick={() => setSettingsOpen(false)}
+                className="px-4 py-2 text-sm rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 transition">
+                Cancelar
+              </button>
+              <button onClick={salvarConfig} disabled={savingConfig}
+                className="px-4 py-2 text-sm rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium transition disabled:opacity-50">
+                {savingConfig ? "Salvando..." : "Salvar configurações"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal unidade presencial */}
       {modalPresencial && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setModalPresencial(null)}>
@@ -533,7 +698,7 @@ export default function EscalaPage() {
               autoFocus
               className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              {UNIDADES_PRESENCIAL.map(u => (
+              {unidadesPresencial.map(u => (
                 <option key={u} value={u}>{u}</option>
               ))}
               <option value="__outro__">Outros (digitar)</option>

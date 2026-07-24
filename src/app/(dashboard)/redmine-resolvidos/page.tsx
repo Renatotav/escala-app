@@ -131,7 +131,7 @@ export default function RedmineResolvidosPage() {
   const [editValue, setEditValue] = useState("");
   const [saving, setSaving] = useState(false);
   const [marcador, setMarcadorState] = useState<string | null>(null);
-  const [marcadorRes, setMarcadorResState] = useState<{ redmine: string; page: number } | null>(null);
+  const [marcadorRes, setMarcadorResState] = useState<{ assyst: string; page: number } | null>(null);
   const marcadorRef = useRef<HTMLTableRowElement>(null);
   const marcadorResRef = useRef<HTMLTableRowElement>(null);
   const marcadorResNavigated = useRef(false);
@@ -159,12 +159,13 @@ export default function RedmineResolvidosPage() {
     }
   }
 
-  function toggleMarcadorRes(redmine: string, page: number) {
-    if (marcadorRes?.redmine === redmine) {
+  function toggleMarcadorRes(assyst: string, page: number) {
+    const key = assyst.toUpperCase();
+    if (marcadorRes?.assyst === key) {
       localStorage.removeItem(MARKER_RES_KEY);
       setMarcadorResState(null);
     } else {
-      const val = { redmine, page };
+      const val = { assyst: key, page };
       localStorage.setItem(MARKER_RES_KEY, JSON.stringify(val));
       setMarcadorResState(val);
     }
@@ -497,7 +498,6 @@ export default function RedmineResolvidosPage() {
           <table className="w-full min-w-[900px] text-sm">
             <thead>
               <tr className="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wide">
-                <th className="text-left px-3 py-3 w-8"></th>
                 <th className="text-left px-4 py-3 whitespace-nowrap">Redmine #</th>
                 <th className="text-left px-4 py-3 whitespace-nowrap">Nº Assyst</th>
                 <th className="text-left px-4 py-3 whitespace-nowrap">Tipo</th>
@@ -510,12 +510,12 @@ export default function RedmineResolvidosPage() {
             <tbody>
               {resolvidosPag.flatMap(r => {
                 const nums = splitAssyst(r.numerosAssyst);
-                const esMarcado = marcadorRes?.redmine === r.numeroRedmine;
+                const esMarcado = marcadorRes ? nums.some(n => n.toUpperCase() === marcadorRes.assyst) : false;
                 const rows = [];
                 if (esMarcado) {
                   rows.push(
                     <tr key={`div-${r.id}`}>
-                      <td colSpan={8} className="px-4 py-2 bg-blue-950/50 border-y border-blue-500/40">
+                      <td colSpan={7} className="px-4 py-2 bg-blue-950/50 border-y border-blue-500/40">
                         <span className="text-xs text-blue-300 font-semibold flex items-center gap-2">
                           📍 Você parou aqui — continue a partir deste chamado
                         </span>
@@ -526,13 +526,6 @@ export default function RedmineResolvidosPage() {
                 rows.push(
                   <tr key={r.id} ref={esMarcado ? marcadorResRef : undefined}
                     className={`border-b border-gray-800 last:border-0 transition border-l-2 ${esMarcado ? "bg-blue-950/20 border-l-blue-500 hover:bg-blue-950/30" : "border-l-transparent hover:bg-gray-800/50"}`}>
-                    <td className="px-3 py-3">
-                      <button onClick={() => toggleMarcadorRes(r.numeroRedmine, paginaResAtual)}
-                        title={esMarcado ? "Remover marcador" : "Marcar posição aqui"}
-                        className={`text-base leading-none transition ${esMarcado ? "text-blue-400 hover:text-gray-500" : "text-gray-700 hover:text-blue-400"}`}>
-                        📍
-                      </button>
-                    </td>
                     <td className="px-4 py-3">
                       <a href={redmineUrl(r.numeroRedmine)} target="_blank" rel="noopener noreferrer"
                         className="font-mono text-xs text-blue-400 hover:text-blue-300 hover:underline transition">
@@ -544,10 +537,16 @@ export default function RedmineResolvidosPage() {
                         <div className="flex flex-col gap-1">
                           {nums.map(n => {
                             const dias = diasAberto(chamadosMap[n.toUpperCase()]);
+                            const esMarcadoAssyst = marcadorRes?.assyst === n.toUpperCase();
                             return (
                               <div key={n} className="flex items-center gap-1.5">
+                                <button onClick={() => toggleMarcadorRes(n, paginaResAtual)}
+                                  title={esMarcadoAssyst ? "Remover marcador" : "Marcar posição aqui"}
+                                  className={`text-sm leading-none transition shrink-0 ${esMarcadoAssyst ? "text-blue-400 hover:text-gray-500" : "text-gray-700 hover:text-blue-400"}`}>
+                                  📍
+                                </button>
                                 <a href={assystUrl(n)} target="_blank" rel="noopener noreferrer"
-                                  className="font-mono text-blue-400 hover:text-blue-300 hover:underline transition">
+                                  className={`font-mono hover:underline transition ${esMarcadoAssyst ? "text-blue-300 font-bold" : "text-blue-400 hover:text-blue-300"}`}>
                                   {n}
                                 </a>
                                 {dias !== null && (

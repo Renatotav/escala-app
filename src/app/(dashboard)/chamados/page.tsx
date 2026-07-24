@@ -223,6 +223,73 @@ function diasDesde(dataRegistro: string | null): number | null {
   return Math.floor((Date.now() - new Date(dataRegistro).getTime()) / 86_400_000);
 }
 
+// ─── Pizza chart ─────────────────────────────────────────────────────────────
+
+const CORES_PIZZA = [
+  "#3b82f6","#10b981","#f59e0b","#ef4444","#8b5cf6",
+  "#06b6d4","#f97316","#ec4899","#84cc16","#6366f1",
+  "#14b8a6","#e11d48","#a855f7","#0ea5e9","#22c55e",
+];
+
+function PizzaChart({ itens, onSelect, selecionado }: {
+  itens: { label: string; value: number }[];
+  onSelect?: (label: string) => void;
+  selecionado?: string;
+}) {
+  const total = itens.reduce((s, d) => s + d.value, 0);
+  if (total === 0) return null;
+  const cx = 150, cy = 150, r = 128;
+  let ang = -Math.PI / 2;
+  const fatias = itens.map((d, i) => {
+    const frac = d.value / total;
+    const sa = ang, ea = ang + frac * 2 * Math.PI;
+    ang = ea;
+    const x1 = cx + r * Math.cos(sa), y1 = cy + r * Math.sin(sa);
+    const x2 = cx + r * Math.cos(ea), y2 = cy + r * Math.sin(ea);
+    const ma = sa + (ea - sa) / 2, lr = r * 0.65;
+    return {
+      label: d.label, value: d.value,
+      path: `M${cx},${cy} L${x1.toFixed(1)},${y1.toFixed(1)} A${r},${r} 0 ${ea-sa>Math.PI?1:0} 1 ${x2.toFixed(1)},${y2.toFixed(1)} Z`,
+      cor: CORES_PIZZA[i % CORES_PIZZA.length],
+      pct: (frac * 100).toFixed(1),
+      lx: (cx + lr * Math.cos(ma)).toFixed(1),
+      ly: (cy + lr * Math.sin(ma)).toFixed(1),
+      show: frac > 0.04,
+    };
+  });
+  return (
+    <div className="flex flex-col gap-3">
+      <svg viewBox="0 0 300 300" className="w-full max-w-[260px] mx-auto drop-shadow-lg">
+        {fatias.map((f, i) => (
+          <path key={i} d={f.path} fill={f.cor}
+            stroke={f.label === selecionado ? "#fff" : "#0f172a"} strokeWidth={f.label === selecionado ? 3 : 1}
+            className={onSelect ? "cursor-pointer hover:opacity-80 transition-opacity" : ""}
+            onClick={() => onSelect?.(f.label === selecionado ? "" : f.label)} />
+        ))}
+        {fatias.filter(f => f.show).map((f, i) => (
+          <text key={i} x={f.lx} y={f.ly} textAnchor="middle" dominantBaseline="middle"
+            fontSize="11" fontWeight="700" fill="white" style={{ pointerEvents: "none" }}>
+            {f.pct}%
+          </text>
+        ))}
+      </svg>
+      <div className="space-y-1">
+        {fatias.map((f, i) => (
+          <div key={i} onClick={() => onSelect?.(f.label === selecionado ? "" : f.label)}
+            className={`flex items-center gap-2 px-2 py-1 rounded text-xs transition
+              ${onSelect ? "cursor-pointer hover:bg-gray-800/60" : ""}
+              ${f.label === selecionado ? "bg-gray-800 ring-1 ring-gray-600" : ""}`}>
+            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: f.cor }} />
+            <span className="flex-1 text-gray-300 truncate" title={f.label}>{f.label}</span>
+            <span className="font-mono font-bold text-white tabular-nums">{f.value.toLocaleString("pt-BR")}</span>
+            <span className="text-gray-500 w-11 text-right">{f.pct}%</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function ChamadosPage() {
@@ -236,6 +303,8 @@ export default function ChamadosPage() {
   const [urgentes, setUrgentes] = useState(false);
   const [busca, setBusca] = useState("");
   const [equipeQuant, setEquipeQuant] = useState("");
+  const [subViewQuant, setSubViewQuant] = useState<"lista" | "graficos">("lista");
+  const [equipeGrafico, setEquipeGrafico] = useState("");
   const quantRef = useRef<HTMLDivElement>(null);
 
   const [importModal, setImportModal] = useState(false);
@@ -705,6 +774,20 @@ export default function ChamadosPage() {
         </button>
       </div>
 
+      {/* Sub-abas do Quantitativo */}
+      {view === "quantitativo" && stats && stats.total > 0 && (
+        <div className="flex gap-1 mb-4 bg-gray-900 border border-gray-800 rounded-lg p-1 w-fit">
+          <button onClick={() => setSubViewQuant("lista")}
+            className={`text-xs px-3 py-1.5 rounded transition ${subViewQuant === "lista" ? "bg-gray-700 text-white font-medium" : "text-gray-500 hover:text-gray-300"}`}>
+            Lista
+          </button>
+          <button onClick={() => setSubViewQuant("graficos")}
+            className={`text-xs px-3 py-1.5 rounded transition ${subViewQuant === "graficos" ? "bg-gray-700 text-white font-medium" : "text-gray-500 hover:text-gray-300"}`}>
+            Gráficos
+          </button>
+        </div>
+      )}
+
       {/* Card: Assysts vinculados a Devolver à TI */}
       {devolverAssysts.length > 0 && (
         <div
@@ -980,12 +1063,45 @@ export default function ChamadosPage() {
         </>
       ) : null}
 
-      {/* Tabela quantitativa */}
+      {/* Tabela / Gráficos quantitativos */}
       {view === "quantitativo" && (
         <>
           {!stats || stats.total === 0 ? (
             <div className="bg-gray-900 rounded-xl border border-gray-800 p-12 text-center">
               <p className="text-gray-500 text-sm">Nenhum dado importado ainda.</p>
+            </div>
+          ) : subViewQuant === "graficos" ? (
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Pizza por equipe */}
+              <div className="bg-gray-900 rounded-xl border border-gray-800 p-5">
+                <p className="text-sm font-semibold text-white mb-1">Chamados por equipe</p>
+                <p className="text-xs text-gray-500 mb-4">Clique numa fatia para ver os atendentes</p>
+                <PizzaChart
+                  itens={stats.porEquipe.map(eq => ({ label: eq.equipe, value: eq.total }))}
+                  onSelect={setEquipeGrafico}
+                  selecionado={equipeGrafico}
+                />
+              </div>
+              {/* Pizza por atendente */}
+              <div className="bg-gray-900 rounded-xl border border-gray-800 p-5">
+                {equipeGrafico ? (
+                  <>
+                    <p className="text-sm font-semibold text-white mb-1">Atendentes — {equipeGrafico}</p>
+                    <p className="text-xs text-gray-500 mb-4">
+                      {stats.porEquipe.find(e => e.equipe === equipeGrafico)?.total.toLocaleString("pt-BR")} chamados no total
+                    </p>
+                    <PizzaChart
+                      itens={(stats.porEquipe.find(e => e.equipe === equipeGrafico)?.usuarios ?? [])
+                        .map(u => ({ label: u.nome, value: u.total }))}
+                    />
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full min-h-[300px] gap-3 text-center">
+                    <span className="text-4xl opacity-30">🍕</span>
+                    <p className="text-sm text-gray-500">Selecione uma equipe no gráfico ao lado<br/>para ver a distribuição por atendente</p>
+                  </div>
+                )}
+              </div>
             </div>
           ) : (
             <div className="space-y-4" ref={quantRef}>

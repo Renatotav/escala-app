@@ -221,7 +221,7 @@ export default function RedmineResolvidosPage() {
     if (aba === "resolvidos" && marcadorResRef.current) {
       setTimeout(() => marcadorResRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 150);
     }
-  }, [paginaResAtual, aba]);
+  }, [dados, aba]);
 
   async function handleImport() {
     if (selectedFiles.length === 0) return;

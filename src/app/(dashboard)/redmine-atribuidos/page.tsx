@@ -44,8 +44,8 @@ function parseDias(criadoEm: string | null): number | null {
   if (!criadoEm) return null;
   const match = criadoEm.trim().match(/^(\d{2})\/(\d{2})\/(\d{4})/);
   if (match) {
-    const d = new Date(Number(match[3]), Number(match[2]) - 1, Number(match[1]));
-    if (!isNaN(d.getTime())) return Math.floor((Date.now() - d.getTime()) / 86400000);
+    const ts = Date.UTC(Number(match[3]), Number(match[2]) - 1, Number(match[1]));
+    return Math.floor((Date.now() - ts) / 86400000);
   }
   const d = new Date(criadoEm.trim());
   if (isNaN(d.getTime())) return null;

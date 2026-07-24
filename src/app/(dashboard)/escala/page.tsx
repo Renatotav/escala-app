@@ -249,7 +249,13 @@ export default function EscalaPage() {
       .map(c => c.unidadePresencial?.split("||")[1])
       .find(h => h) ?? "Seg. a Quinta: 08:00 às 12:00 e Sexta: 08:00 às 14:00.";
 
-    // Responsável WhatsApp
+    // Ordem: Fórum → Núcleo → WhatsApp → TJ → Remoto
+    renderSecao("Presencial - Fórum Clóvis Beviláqua", forum, { duasColunas: true });
+    renderSecao("Presencial - Núcleo de Custódia e das Garantias da Comarca de Fortaleza", custodia, {
+      horario: custodiaHorario,
+    });
+
+    // Responsável WhatsApp — logo após o Núcleo
     const whatsappOp = membros.find(c => c.whatsapp);
     if (whatsappOp) {
       const WGREEN: [number, number, number] = [22, 101, 52];
@@ -262,11 +268,6 @@ export default function EscalaPage() {
       y += 14;
     }
 
-    // Ordem: Fórum → Núcleo → TJ → Remoto
-    renderSecao("Presencial - Fórum Clóvis Beviláqua", forum, { duasColunas: true });
-    renderSecao("Presencial - Núcleo de Custódia e das Garantias da Comarca de Fortaleza", custodia, {
-      horario: custodiaHorario,
-    });
     renderSecao("Presencial - Tribunal de Justiça", tj);
     renderSecao("Remoto", remotos);
 

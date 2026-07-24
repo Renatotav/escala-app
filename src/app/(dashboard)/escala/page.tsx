@@ -249,6 +249,19 @@ export default function EscalaPage() {
       .map(c => c.unidadePresencial?.split("||")[1])
       .find(h => h) ?? "Seg. a Quinta: 08:00 às 12:00 e Sexta: 08:00 às 14:00.";
 
+    // Responsável WhatsApp
+    const whatsappOp = membros.find(c => c.whatsapp);
+    if (whatsappOp) {
+      const WGREEN: [number, number, number] = [22, 101, 52];
+      doc.setFillColor(...WGREEN);
+      doc.roundedRect(12, y, 185, 9, 1.5, 1.5, "F");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8.5);
+      doc.setTextColor(255, 255, 255);
+      doc.text(`Operador - WhatsApp: ${whatsappOp.nome.toUpperCase()}`, 16, y + 6);
+      y += 14;
+    }
+
     // Ordem: Fórum → Núcleo → TJ → Remoto
     renderSecao("Presencial - Fórum Clóvis Beviláqua", forum, { duasColunas: true });
     renderSecao("Presencial - Núcleo de Custódia e das Garantias da Comarca de Fortaleza", custodia, {

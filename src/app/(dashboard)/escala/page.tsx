@@ -309,33 +309,7 @@ export default function EscalaPage() {
     // Responsável WhatsApp — logo após o Núcleo
     const whatsappOp = membros.find(c => c.whatsapp);
     if (whatsappOp) {
-      const WA_GREEN: [number, number, number] = [37, 211, 102];
-      // Ícone circular verde com "W"
-      doc.setFillColor(...WA_GREEN);
-      doc.circle(15.5, y - 0.5, 3.8, "F");
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(6.5);
-      doc.setTextColor(255, 255, 255);
-      doc.text("W", 13.7, y + 1);
-      // Título no estilo das seções
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(9);
-      doc.setTextColor(...GREEN);
-      doc.text("Operador - WhatsApp", 21, y);
-      doc.setDrawColor(...GREEN);
-      doc.setLineWidth(0.3);
-      doc.line(21, y + 1, 21 + doc.getTextWidth("Operador - WhatsApp"), y + 1);
-      y += 5;
-      autoTable(doc, {
-        startY: y,
-        body: [[whatsappOp.nome.toUpperCase()]],
-        theme: "grid",
-        columnStyles: { 0: { cellWidth: 185 } },
-        bodyStyles: { fontSize: 7, fontStyle: "bold", textColor: BLACK, lineColor: LILAC, lineWidth: 0.2, cellPadding: 1.2, fillColor: CREAM },
-        margin: { left: 12, right: 12 },
-        didDrawPage: () => { y = 12; },
-      });
-      y = (doc as DocWithTable).lastAutoTable.finalY + 10;
+      renderSecao("Operador - WhatsApp", [whatsappOp.nome.toUpperCase()]);
     }
 
     renderSecao("Presencial - Tribunal de Justiça", tj);

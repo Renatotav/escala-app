@@ -223,68 +223,120 @@ function diasDesde(dataRegistro: string | null): number | null {
   return Math.floor((Date.now() - new Date(dataRegistro).getTime()) / 86_400_000);
 }
 
-// ─── Pizza chart ─────────────────────────────────────────────────────────────
+// ─── Chart components ─────────────────────────────────────────────────────────
 
-const CORES_PIZZA = [
-  "#3b82f6","#10b981","#f59e0b","#ef4444","#8b5cf6",
-  "#06b6d4","#f97316","#ec4899","#84cc16","#6366f1",
-  "#14b8a6","#e11d48","#a855f7","#0ea5e9","#22c55e",
+const CORES_CHART = [
+  "#4f8ef7","#34d399","#fb923c","#a78bfa","#f472b6",
+  "#38bdf8","#facc15","#4ade80","#e879f9","#2dd4bf",
+  "#fbbf24","#818cf8","#f87171",
 ];
+const COR_OUTROS = "#475569";
 
-function PizzaChart({ itens, onSelect, selecionado }: {
+function DonutChart({ itens, onSelect, selecionado }: {
   itens: { label: string; value: number }[];
   onSelect?: (label: string) => void;
   selecionado?: string;
 }) {
   const total = itens.reduce((s, d) => s + d.value, 0);
   if (total === 0) return null;
-  const cx = 150, cy = 150, r = 128;
+
+  const limiar = total * 0.02;
+  const principais = itens.filter(d => d.value >= limiar);
+  const restTotal = itens.filter(d => d.value < limiar).reduce((s, d) => s + d.value, 0);
+  const data = restTotal > 0 ? [...principais, { label: "Outros", value: restTotal }] : principais;
+
+  const cx = 150, cy = 150, or_ = 128, ir = 68;
   let ang = -Math.PI / 2;
-  const fatias = itens.map((d, i) => {
+  const fatias = data.map((d, i) => {
     const frac = d.value / total;
     const sa = ang, ea = ang + frac * 2 * Math.PI;
     ang = ea;
-    const x1 = cx + r * Math.cos(sa), y1 = cy + r * Math.sin(sa);
-    const x2 = cx + r * Math.cos(ea), y2 = cy + r * Math.sin(ea);
-    const ma = sa + (ea - sa) / 2, lr = r * 0.65;
-    return {
-      label: d.label, value: d.value,
-      path: `M${cx},${cy} L${x1.toFixed(1)},${y1.toFixed(1)} A${r},${r} 0 ${ea-sa>Math.PI?1:0} 1 ${x2.toFixed(1)},${y2.toFixed(1)} Z`,
-      cor: CORES_PIZZA[i % CORES_PIZZA.length],
+    const ox1 = cx + or_ * Math.cos(sa), oy1 = cy + or_ * Math.sin(sa);
+    const ox2 = cx + or_ * Math.cos(ea), oy2 = cy + or_ * Math.sin(ea);
+    const ix1 = cx + ir * Math.cos(sa),  iy1 = cy + ir * Math.sin(sa);
+    const ix2 = cx + ir * Math.cos(ea),  iy2 = cy + ir * Math.sin(ea);
+    const large = (ea - sa) > Math.PI ? 1 : 0;
+    const path = `M${ox1.toFixed(1)},${oy1.toFixed(1)} A${or_},${or_} 0 ${large} 1 ${ox2.toFixed(1)},${oy2.toFixed(1)} L${ix2.toFixed(1)},${iy2.toFixed(1)} A${ir},${ir} 0 ${large} 0 ${ix1.toFixed(1)},${iy1.toFixed(1)} Z`;
+    const ma = sa + (ea - sa) / 2, lr = (or_ + ir) / 2;
+    const cor = d.label === "Outros" ? COR_OUTROS : CORES_CHART[i % CORES_CHART.length];
+    const sel = d.label === selecionado;
+    return { label: d.label, value: d.value, path, cor, sel,
       pct: (frac * 100).toFixed(1),
       lx: (cx + lr * Math.cos(ma)).toFixed(1),
       ly: (cy + lr * Math.sin(ma)).toFixed(1),
-      show: frac > 0.04,
-    };
+      show: frac >= 0.05 };
   });
+
   return (
-    <div className="flex flex-col gap-3">
-      <svg viewBox="0 0 300 300" className="w-full max-w-[260px] mx-auto drop-shadow-lg">
+    <div className="flex flex-col gap-4">
+      <svg viewBox="0 0 300 300" className="w-full max-w-[260px] mx-auto">
         {fatias.map((f, i) => (
           <path key={i} d={f.path} fill={f.cor}
-            stroke={f.label === selecionado ? "#fff" : "#0f172a"} strokeWidth={f.label === selecionado ? 3 : 1}
-            className={onSelect ? "cursor-pointer hover:opacity-80 transition-opacity" : ""}
+            stroke="#0f172a" strokeWidth="1.5"
+            style={f.sel ? { filter: "brightness(1.25) drop-shadow(0 0 6px rgba(255,255,255,0.25))" } : {}}
+            className={onSelect ? "cursor-pointer hover:brightness-110 transition-all" : ""}
             onClick={() => onSelect?.(f.label === selecionado ? "" : f.label)} />
         ))}
+        <text x={cx} y={cy - 10} textAnchor="middle" fontSize="26" fontWeight="800" fill="white">
+          {total.toLocaleString("pt-BR")}
+        </text>
+        <text x={cx} y={cy + 14} textAnchor="middle" fontSize="10" fill="#64748b" letterSpacing="2">
+          CHAMADOS
+        </text>
         {fatias.filter(f => f.show).map((f, i) => (
           <text key={i} x={f.lx} y={f.ly} textAnchor="middle" dominantBaseline="middle"
-            fontSize="11" fontWeight="700" fill="white" style={{ pointerEvents: "none" }}>
+            fontSize="10.5" fontWeight="700" fill="white" style={{ pointerEvents: "none" }}>
             {f.pct}%
           </text>
         ))}
       </svg>
-      <div className="space-y-1">
+      <div className="space-y-1 max-h-56 overflow-y-auto pr-1">
         {fatias.map((f, i) => (
           <div key={i} onClick={() => onSelect?.(f.label === selecionado ? "" : f.label)}
-            className={`flex items-center gap-2 px-2 py-1 rounded text-xs transition
-              ${onSelect ? "cursor-pointer hover:bg-gray-800/60" : ""}
-              ${f.label === selecionado ? "bg-gray-800 ring-1 ring-gray-600" : ""}`}>
-            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: f.cor }} />
-            <span className="flex-1 text-gray-300 truncate" title={f.label}>{f.label}</span>
+            className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs transition
+              ${onSelect ? "cursor-pointer hover:bg-white/5" : ""}
+              ${f.sel ? "bg-white/10 ring-1 ring-white/20" : ""}`}>
+            <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ background: f.cor }} />
+            <span className="flex-1 text-gray-300 font-medium truncate" title={f.label}>{f.label}</span>
             <span className="font-mono font-bold text-white tabular-nums">{f.value.toLocaleString("pt-BR")}</span>
             <span className="text-gray-500 w-11 text-right">{f.pct}%</span>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function BarrasHorizontais({ itens, totalEquipe }: {
+  itens: { nome: string; total: number }[];
+  totalEquipe: number;
+}) {
+  if (itens.length === 0) return null;
+  const max = Math.max(...itens.map(d => d.total), 1);
+  return (
+    <div className="space-y-1.5 overflow-y-auto max-h-[400px] pr-1">
+      {itens.map((d, i) => {
+        const pct = ((d.total / totalEquipe) * 100).toFixed(1);
+        const barW = ((d.total / max) * 100).toFixed(1);
+        const alto = d.total > 50;
+        return (
+          <div key={d.nome} className={`flex items-center gap-2.5 px-3 py-2 rounded-lg transition ${alto ? "bg-red-950/25" : "hover:bg-white/5"}`}>
+            <span className="text-xs font-mono text-gray-600 w-5 shrink-0 text-right">{i + 1}</span>
+            <span className={`text-xs font-medium truncate w-36 shrink-0 ${alto ? "text-red-300" : "text-gray-200"}`} title={d.nome}>{d.nome}</span>
+            <div className="flex-1 h-3.5 bg-gray-800 rounded-full overflow-hidden">
+              <div className={`h-full rounded-full ${alto ? "bg-red-500/70" : "bg-blue-500/60"}`}
+                style={{ width: `${barW}%` }} />
+            </div>
+            <span className={`font-mono font-bold text-sm tabular-nums w-10 text-right shrink-0 ${alto ? "text-red-400" : "text-white"}`}>{d.total}</span>
+            <span className="text-gray-500 text-xs w-10 text-right shrink-0">{pct}%</span>
+          </div>
+        );
+      })}
+      <div className="flex items-center gap-2.5 px-3 py-2 mt-1 border-t border-gray-800">
+        <span className="text-xs text-gray-500 w-5 shrink-0" />
+        <span className="text-xs font-semibold text-gray-400 flex-1">Total</span>
+        <span className="font-mono font-bold text-sm text-white w-10 text-right shrink-0">{totalEquipe.toLocaleString("pt-BR")}</span>
+        <span className="text-gray-500 text-xs w-10 text-right shrink-0">100%</span>
       </div>
     </div>
   );
@@ -1072,33 +1124,41 @@ export default function ChamadosPage() {
             </div>
           ) : subViewQuant === "graficos" ? (
             <div className="grid md:grid-cols-2 gap-6">
-              {/* Pizza por equipe */}
-              <div className="bg-gray-900 rounded-xl border border-gray-800 p-5">
-                <p className="text-sm font-semibold text-white mb-1">Chamados por equipe</p>
-                <p className="text-xs text-gray-500 mb-4">Clique numa fatia para ver os atendentes</p>
-                <PizzaChart
+              {/* Donut por equipe */}
+              <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
+                <p className="text-sm font-semibold text-white mb-0.5">Distribuição por equipe</p>
+                <p className="text-xs text-gray-500 mb-5">Clique numa fatia ou item da legenda para ver os atendentes</p>
+                <DonutChart
                   itens={stats.porEquipe.map(eq => ({ label: eq.equipe, value: eq.total }))}
                   onSelect={setEquipeGrafico}
                   selecionado={equipeGrafico}
                 />
               </div>
-              {/* Pizza por atendente */}
-              <div className="bg-gray-900 rounded-xl border border-gray-800 p-5">
-                {equipeGrafico ? (
-                  <>
-                    <p className="text-sm font-semibold text-white mb-1">Atendentes — {equipeGrafico}</p>
-                    <p className="text-xs text-gray-500 mb-4">
-                      {stats.porEquipe.find(e => e.equipe === equipeGrafico)?.total.toLocaleString("pt-BR")} chamados no total
-                    </p>
-                    <PizzaChart
-                      itens={(stats.porEquipe.find(e => e.equipe === equipeGrafico)?.usuarios ?? [])
-                        .map(u => ({ label: u.nome, value: u.total }))}
-                    />
-                  </>
-                ) : (
-                  <div className="flex flex-col items-center justify-center h-full min-h-[300px] gap-3 text-center">
-                    <span className="text-4xl opacity-30">🍕</span>
-                    <p className="text-sm text-gray-500">Selecione uma equipe no gráfico ao lado<br/>para ver a distribuição por atendente</p>
+              {/* Barras por atendente */}
+              <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
+                {equipeGrafico ? (() => {
+                  const eq = stats.porEquipe.find(e => e.equipe === equipeGrafico);
+                  return eq ? (
+                    <>
+                      <p className="text-sm font-semibold text-white mb-0.5">{equipeGrafico}</p>
+                      <p className="text-xs text-gray-500 mb-5">
+                        {eq.total.toLocaleString("pt-BR")} chamados · {eq.usuarios.length} atendente{eq.usuarios.length !== 1 ? "s" : ""}
+                        {eq.usuarios.some(u => u.total > 50) && (
+                          <span className="ml-2 text-red-400">· barra vermelha = sobrecarga (&gt;50)</span>
+                        )}
+                      </p>
+                      <BarrasHorizontais itens={eq.usuarios} totalEquipe={eq.total} />
+                    </>
+                  ) : null;
+                })() : (
+                  <div className="flex flex-col items-center justify-center h-full min-h-[360px] gap-4 text-center">
+                    <div className="w-14 h-14 rounded-full bg-gray-800 flex items-center justify-center">
+                      <span className="text-2xl opacity-40">📊</span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-400">Selecione uma equipe</p>
+                      <p className="text-xs text-gray-600 mt-1">Clique em uma fatia do gráfico ao lado<br/>para ver a distribuição por atendente</p>
+                    </div>
                   </div>
                 )}
               </div>

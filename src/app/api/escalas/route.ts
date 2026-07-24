@@ -11,11 +11,36 @@ function snapToMonday(dateStr: string): string {
   return dt.toISOString().slice(0, 10);
 }
 
+export async function PATCH(request: NextRequest) {
+  const { colaboradorId, semana } = await request.json();
+  const snappedSemana = snapToMonday(semana);
+  const semanaDate = new Date(snappedSemana);
+
+  const existing = await prisma.escalaWhatsapp.findUnique({ where: { semana: semanaDate } });
+
+  if (existing?.colaboradorId === colaboradorId) {
+    await prisma.escalaWhatsapp.delete({ where: { semana: semanaDate } });
+  } else {
+    await prisma.escalaWhatsapp.upsert({
+      where: { semana: semanaDate },
+      create: { semana: semanaDate, colaboradorId },
+      update: { colaboradorId },
+    });
+  }
+
+  return NextResponse.json({ ok: true });
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const semanaRaw = searchParams.get("semana");
   const semana = semanaRaw ? snapToMonday(semanaRaw) : null;
   const equipeId = searchParams.get("equipeId");
+
+  const whatsappRecord = semana
+    ? await prisma.escalaWhatsapp.findUnique({ where: { semana: new Date(semana) } })
+    : null;
+  const whatsappColaboradorId = whatsappRecord?.colaboradorId ?? null;
 
   const colaboradores = await prisma.colaborador.findMany({
     where: { ativo: true, ...(equipeId && { equipeId: Number(equipeId) }) },
@@ -94,6 +119,7 @@ export async function GET(request: NextRequest) {
       escalaSemana,
       unidadePresencial,
       semRemoto: (c as unknown as { semRemoto: boolean }).semRemoto ?? false,
+      whatsapp: whatsappColaboradorId === c.id,
     };
   });
 

@@ -184,6 +184,16 @@ async function migrate() {
   try { await client.query(\`ALTER TABLE \"RedmineAtribuido\" ADD COLUMN IF NOT EXISTS \"solicitadoObs\" TEXT\`); } catch(e) {}
   try { await client.query(\`ALTER TABLE \"RedmineAtribuido\" ADD COLUMN IF NOT EXISTS \"solicitadoOperador\" TEXT\`); } catch(e) {}
   try { await client.query(\`ALTER TABLE \"EscalaSemana\" ADD COLUMN IF NOT EXISTS \"unidade\" TEXT\`); } catch(e) {}
+  // EscalaWhatsapp
+  await client.query(\`CREATE TABLE IF NOT EXISTS \"EscalaWhatsapp\" (
+    \"id\" SERIAL PRIMARY KEY,
+    \"semana\" TIMESTAMP(3) NOT NULL,
+    \"colaboradorId\" INTEGER NOT NULL,
+    \"createdAt\" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT \"EscalaWhatsapp_semana_key\" UNIQUE (\"semana\"),
+    CONSTRAINT \"EscalaWhatsapp_colaboradorId_fkey\" FOREIGN KEY (\"colaboradorId\") REFERENCES \"Colaborador\"(\"id\") ON DELETE RESTRICT ON UPDATE CASCADE
+  )\`);
+
   // ConfiguracaoSistema
   await client.query(\`CREATE TABLE IF NOT EXISTS \"ConfiguracaoSistema\" (
     \"chave\" TEXT PRIMARY KEY,

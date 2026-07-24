@@ -44,6 +44,7 @@ model Colaborador {
   feedbacks         Feedback[]
   ocorrencias       Ocorrencia[]
   controleTriagem   ControleTriagem[]
+  escalaWhatsapp    EscalaWhatsapp[]
   grupoListagem              String                 @default("FORA")
   ajusteSemanasPresencial    Int                    @default(0)
   semRemoto                  Boolean                @default(false)
@@ -256,6 +257,14 @@ model RedmineAtribuido {
   solicitadoObs       String?
   solicitadoOperador  String?
   createdAt      DateTime @default(now())
+}
+
+model EscalaWhatsapp {
+  id            Int         @id @default(autoincrement())
+  semana        DateTime    @unique
+  colaboradorId Int
+  colaborador   Colaborador @relation(fields: [colaboradorId], references: [id])
+  createdAt     DateTime    @default(now())
 }
 
 model Chamado {

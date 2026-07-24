@@ -11,6 +11,7 @@ type ColaboradorEscala = {
   id: number; nome: string; cargo: string | null;
   equipe: Equipe; semanasPresencial: number; ajusteSemanasPresencial: number; contadoRaw: number;
   sinal: Sinal; escalaSemana: string | null; unidadePresencial: string | null; semRemoto: boolean;
+  whatsapp: boolean;
 };
 
 function toLocalISO(d: Date): string {
@@ -259,6 +260,18 @@ export default function EscalaPage() {
     doc.save(`escala-${semana}.pdf`);
   }
 
+  async function handleToggleWhatsapp(colaboradorId: number) {
+    await fetch("/api/escalas", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ colaboradorId, semana }),
+    });
+    const params = new URLSearchParams({ semana });
+    if (equipeId) params.set("equipeId", equipeId);
+    const data = await fetch(`/api/escalas?${params}`).then(r => r.json());
+    setColaboradores(data);
+  }
+
   async function handleLimpar(colaboradorId: number) {
     await fetch(`/api/escalas?colaboradorId=${colaboradorId}&semana=${semana}`, { method: "DELETE" });
     const params = new URLSearchParams({ semana });
@@ -383,7 +396,14 @@ export default function EscalaPage() {
                               <div className="flex items-center gap-1.5">
                                 {isPriority && <span className="text-amber-400 text-sm flex-shrink-0">★</span>}
                                 <div className="min-w-0">
-                                  <p className={`font-medium truncate ${isPriority ? "text-amber-200" : "text-white"}`}>{c.nome}</p>
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <p className={`font-medium truncate ${isPriority ? "text-amber-200" : "text-white"}`}>{c.nome}</p>
+                                    {c.whatsapp && (
+                                      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30 whitespace-nowrap">
+                                        💬 WhatsApp
+                                      </span>
+                                    )}
+                                  </div>
                                   {c.cargo && <p className="text-xs text-gray-500 truncate">{c.cargo}</p>}
                                 </div>
                               </div>
@@ -455,6 +475,12 @@ export default function EscalaPage() {
                                     )}
                                   </>
                                 )}
+                                <button
+                                  onClick={() => handleToggleWhatsapp(c.id)}
+                                  title={c.whatsapp ? "Remover responsável WhatsApp" : "Designar como responsável WhatsApp"}
+                                  className={`text-xs px-2 py-1 rounded transition ${c.whatsapp ? "bg-green-700 hover:bg-green-600 text-white" : "bg-gray-800 hover:bg-green-900/40 text-gray-500 hover:text-green-400 border border-gray-700"}`}>
+                                  💬
+                                </button>
                                 <button
                                   onClick={() => handleToggleSemRemoto(c.id, c.semRemoto)}
                                   title={c.semRemoto ? "Reativar elegibilidade de remoto" : "Marcar como sem remoto"}

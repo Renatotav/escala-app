@@ -37,36 +37,73 @@ function norm(h: string) {
   return h.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]/g, "");
 }
 
-export async function GET() {
-  const [resolvidos, redmine, chamadosAtivos] = await Promise.all([
-    prisma.redmineResolvido.findMany({ orderBy: { id: "asc" } }),
+const PAGE_SIZE_GET = 100;
+
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const page = Math.max(1, Number(searchParams.get("page") ?? "1"));
+  const busca = searchParams.get("busca")?.trim() || null;
+  const exportAll = searchParams.get("export") === "1";
+
+  // Stats leve — só os campos necessários para cruzamento (sem texto grande)
+  const [resolvidosLeve, redmine, chamadosAtivos] = await Promise.all([
+    prisma.redmineResolvido.findMany({ select: { numeroRedmine: true, numerosAssyst: true } }),
     prisma.chamadoRedmine.findMany({ select: { numero: true, dataAbertura: true } }),
     prisma.chamado.findMany({ select: { referencia: true } }),
   ]);
 
-  // Monta set de todos os números Assyst presentes nos Resolvidos (split por ; / e ,)
+  // Monta sets para cruzamento
   const resolvidosAssystSet = new Set<string>();
-  for (const r of resolvidos) {
+  const assystToRedmineMap = new Map<string, string>(); // Assyst → Redmine#
+  for (const r of resolvidosLeve) {
     const partes = r.numerosAssyst.split(/[;/,|\\]|\s+e\s+/i).map(s => s.trim().toUpperCase()).filter(Boolean);
-    for (const p of partes) resolvidosAssystSet.add(p);
+    for (const p of partes) {
+      resolvidosAssystSet.add(p);
+      assystToRedmineMap.set(p, r.numeroRedmine.trim());
+    }
   }
 
-  // ChamadoRedmine.numero é número Assyst — cruza contra os Assyst dos Resolvidos
   const redmineNums = redmine.map(r => r.numero.trim().toUpperCase());
   const esquecidos = redmineNums.filter(n => !resolvidosAssystSet.has(n));
   const encontrados = redmineNums.filter(n => resolvidosAssystSet.has(n));
-
-  // Aguardando encerramento: encontrados que ainda estão na fila de Chamados importados
   const chamadosAtivoSet = new Set(chamadosAtivos.map(c => c.referencia.trim().toUpperCase()));
   const aguardandoEmChamados = encontrados.filter(n => chamadosAtivoSet.has(n));
 
-  // Mapa Assyst# → dataAbertura para exibir badge de dias em aberto
   const chamadosMap: Record<string, string | null> = {};
-  for (const r of redmine) {
-    chamadosMap[r.numero.trim().toUpperCase()] = r.dataAbertura ? r.dataAbertura.toISOString() : null;
+  for (const r of redmine) chamadosMap[r.numero.trim().toUpperCase()] = r.dataAbertura ? r.dataAbertura.toISOString() : null;
+
+  // Números Redmine dos "encontrados" (para filtro IN — eficiente)
+  const resolvidosRedmineNums = [...new Set(encontrados.map(a => assystToRedmineMap.get(a)).filter(Boolean) as string[])];
+
+  // Export mode — retorna todos os registros encontrados para XLS
+  if (exportAll) {
+    const todos = resolvidosRedmineNums.length > 0
+      ? await prisma.redmineResolvido.findMany({ where: { numeroRedmine: { in: resolvidosRedmineNums } }, orderBy: { id: "asc" } })
+      : [];
+    return NextResponse.json({ resolvidos: todos, esquecidos, encontrados, aguardandoEmChamados, totalRedmine: redmine.length, chamadosMap, resolvidosRedmineNums });
   }
 
-  return NextResponse.json({ resolvidos, esquecidos, encontrados, aguardandoEmChamados, totalRedmine: redmine.length, chamadosMap });
+  // Registros paginados — filtrados pelos encontrados + busca opcional
+  const baseWhere = resolvidosRedmineNums.length > 0 ? { numeroRedmine: { in: resolvidosRedmineNums } } : {};
+  const buscaWhere = busca ? {
+    OR: [
+      { numeroRedmine: { contains: busca, mode: "insensitive" as const } },
+      { numerosAssyst: { contains: busca, mode: "insensitive" as const } },
+      { titulo: { contains: busca, mode: "insensitive" as const } },
+    ],
+  } : null;
+  const where = buscaWhere ? { AND: [baseWhere, buscaWhere] } : baseWhere;
+
+  const [totalResolvidos, resolvidos] = await Promise.all([
+    prisma.redmineResolvido.count({ where }),
+    prisma.redmineResolvido.findMany({ where, orderBy: { id: "asc" }, skip: (page - 1) * PAGE_SIZE_GET, take: PAGE_SIZE_GET }),
+  ]);
+
+  return NextResponse.json({
+    resolvidos, esquecidos, encontrados, aguardandoEmChamados,
+    totalRedmine: redmine.length, chamadosMap, resolvidosRedmineNums,
+    totalResolvidos, page, totalPages: Math.max(1, Math.ceil(totalResolvidos / PAGE_SIZE_GET)),
+  });
 }
 
 export async function POST(request: NextRequest) {

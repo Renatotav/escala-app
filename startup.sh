@@ -161,6 +161,7 @@ async function migrate() {
   )\`);
   await client.query(\`ALTER TABLE \"RedmineResolvido\" ADD COLUMN IF NOT EXISTS \"titulo\" TEXT\`);
   await client.query(\`ALTER TABLE \"RedmineResolvido\" ADD COLUMN IF NOT EXISTS \"descricao\" TEXT\`);
+  await client.query("CREATE INDEX IF NOT EXISTS \"idx_RedmineResolvido_numeroRedmine\" ON \"RedmineResolvido\"(\"numeroRedmine\")");
   // RedmineAtribuido
   await client.query(\`CREATE TABLE IF NOT EXISTS \"RedmineAtribuido\" (
     \"id\" SERIAL PRIMARY KEY,

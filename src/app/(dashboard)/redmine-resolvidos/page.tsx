@@ -20,6 +20,10 @@ type Dados = {
   aguardandoEmChamados: string[];
   totalRedmine: number;
   chamadosMap: Record<string, string | null>;
+  resolvidosRedmineNums: string[];
+  totalResolvidos: number;
+  page: number;
+  totalPages: number;
 };
 
 function diasAberto(dataAbertura: string | null | undefined): number | null {
@@ -119,7 +123,7 @@ export default function RedmineResolvidosPage() {
   const [importResult, setImportResult] = useState<{ count?: number; skipped?: number; error?: string } | null>(null);
   const [aba, setAba] = useState<"esquecidos" | "resolvidos">("esquecidos");
   const [busca, setBusca] = useState("");
-  const [pagina, setPagina] = useState(1);
+  const [paginaEsq, setPaginaEsq] = useState(1);
   const POR_PAGINA = 100;
   const [substituir, setSubstituir] = useState(true);
   const [textoModal, setTextoModal] = useState<{ titulo: string; corpo: string; assystNums?: string[]; resolvidoId?: number } | null>(null);
@@ -130,14 +134,24 @@ export default function RedmineResolvidosPage() {
   const topScrollRef = useRef<HTMLDivElement>(null);
   const tableScrollRef = useRef<HTMLDivElement>(null);
 
-  function load() {
+  function load(pg = 1, buscaQ = "") {
     setLoading(true);
-    fetch("/api/redmine-resolvidos")
+    const params = new URLSearchParams({ page: String(pg) });
+    if (buscaQ) params.set("busca", buscaQ);
+    fetch(`/api/redmine-resolvidos?${params}`)
       .then(r => r.json())
       .then((d: Dados) => { setDados(d); setLoading(false); });
   }
 
   useEffect(() => { load(); }, []);
+
+  // Recarga ao mudar busca (debounce) ou ao mudar para aba resolvidos
+  useEffect(() => {
+    if (aba !== "resolvidos") return;
+    const t = setTimeout(() => load(1, busca), 300);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [busca, aba]);
 
   async function handleImport() {
     if (selectedFiles.length === 0) return;
@@ -170,15 +184,19 @@ export default function RedmineResolvidosPage() {
     load();
   }
 
-  function exportXLS() {
+  async function exportXLS() {
     if (!dados) return;
     setXlsExporting(true);
     try {
+      const res = await fetch("/api/redmine-resolvidos?export=1");
+      const exportData = await res.json();
+      const todosResolvidos: Resolvido[] = exportData.resolvidos ?? [];
+
       function esc(s: string) {
         return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
       }
 
-      const rows = resolvidosNaRedmine.map(r => {
+      const rows = todosResolvidos.map(r => {
         const redmineCell = `<a href="${esc(redmineUrl(r.numeroRedmine))}">${esc(r.numeroRedmine)}</a>`;
         const nums = splitAssyst(r.numerosAssyst);
         const assystCell = nums.length === 0
@@ -229,50 +247,31 @@ export default function RedmineResolvidosPage() {
   const semResolvidoRaw = dados?.esquecidos ?? [];
   const comResolvido = dados?.encontrados ?? [];
   const aguardandoEmChamados = dados?.aguardandoEmChamados ?? [];
-  const resolvidos = dados?.resolvidos ?? [];
+  const resolvidos = dados?.resolvidos ?? [];  // página atual (server-side)
   const chamadosMap = dados?.chamadosMap ?? {};
 
   const buscaLow = busca.toLowerCase();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // Esquecidos: filtro client-side (array de strings, leve)
   const semResolvido = buscaLow
     ? semResolvidoRaw.filter(n => n.toLowerCase().includes(buscaLow))
     : semResolvidoRaw;
 
-  // Mapa Assyst# → Resolvido para lookup na aba Encontrados
-  const resolvidoMap = new Map<string, Resolvido>();
-  for (const r of resolvidos) {
-    for (const p of splitAssyst(r.numerosAssyst)) resolvidoMap.set(p.toUpperCase(), r);
-  }
-
-  // Conta quantas vezes cada Redmine# aparece nos Encontrados (para badge de repetição)
-  const redmineCountMap = new Map<string, number>();
-  for (const num of comResolvido) {
-    const r = resolvidoMap.get(num.toUpperCase());
-    if (r?.numeroRedmine) {
-      const key = r.numeroRedmine.trim().toUpperCase();
-      redmineCountMap.set(key, (redmineCountMap.get(key) ?? 0) + 1);
-    }
-  }
-
-  // "✓ Encontrados" só mostra os que têm ao menos um Assyst presente nos Chamados Redmine
-  const encontradosSet = new Set(comResolvido.map(n => n.toUpperCase()));
-  const resolvidosNaRedmine = resolvidos
-    .filter(r => splitAssyst(r.numerosAssyst).some(n => encontradosSet.has(n.toUpperCase())))
-    .filter(r => !buscaLow || r.numeroRedmine.toLowerCase().includes(buscaLow) || r.numerosAssyst.toLowerCase().includes(buscaLow) || (r.titulo ?? "").toLowerCase().includes(buscaLow));
-
-  // Paginação — pesquisa cobre tudo, página só fatia a exibição
+  // Paginação Esquecidos — client-side
   const totalPaginasEsq = Math.max(1, Math.ceil(semResolvido.length / POR_PAGINA));
-  const totalPaginasRes = Math.max(1, Math.ceil(resolvidosNaRedmine.length / POR_PAGINA));
-  const paginaAtual = Math.min(pagina, aba === "esquecidos" ? totalPaginasEsq : totalPaginasRes);
-  const semResolvidoPag = semResolvido.slice((paginaAtual - 1) * POR_PAGINA, paginaAtual * POR_PAGINA);
-  const resolvidosPag = resolvidosNaRedmine.slice((paginaAtual - 1) * POR_PAGINA, paginaAtual * POR_PAGINA);
+  const paginaEsqAtual = Math.min(paginaEsq, totalPaginasEsq);
+  const semResolvidoPag = semResolvido.slice((paginaEsqAtual - 1) * POR_PAGINA, paginaEsqAtual * POR_PAGINA);
 
-  // Set de Redmine# encontrados — usado para badge "✓ Resolvido" nas notas
-  const resolvidosRedmineSet = new Set(resolvidosNaRedmine.map(r => r.numeroRedmine.trim()));
+  // Paginação Resolvidos — server-side
+  const totalPaginasRes = dados?.totalPages ?? 1;
+  const paginaResAtual = dados?.page ?? 1;
+  const resolvidosPag = resolvidos;  // já paginado pelo servidor
 
-  // Mapa Redmine# → Set<Assyst#> — para detectar chamado não incluído no Redmine da nota
+  // Set de Redmine# encontrados — vem do servidor (leve: só os números)
+  const resolvidosRedmineSet = new Set(dados?.resolvidosRedmineNums ?? []);
+
+  // Mapa Redmine# → Set<Assyst#> — calculado da página atual (suficiente para o modal de notas)
   const redmineToAssystMap = new Map<string, Set<string>>();
-  for (const r of resolvidosNaRedmine) {
+  for (const r of resolvidos) {
     const key = r.numeroRedmine.trim();
     if (!redmineToAssystMap.has(key)) redmineToAssystMap.set(key, new Set());
     for (const a of splitAssyst(r.numerosAssyst)) redmineToAssystMap.get(key)!.add(a.toUpperCase());
@@ -321,14 +320,14 @@ export default function RedmineResolvidosPage() {
             )}
           </a>
           <button
-            onClick={() => { setAba("esquecidos"); setPagina(1); }}
+            onClick={() => { setAba("esquecidos"); setPaginaEsq(1); }}
             className={`rounded-xl p-4 border text-left transition ${aba === "esquecidos" ? "bg-red-900/40 border-red-500 ring-2 ring-red-400 animate-pulse" : semResolvido.length > 0 ? "bg-red-950/30 border-red-700 hover:bg-red-900/20" : "bg-gray-900 border-gray-800"}`}>
             <p className="text-xs text-gray-400 mb-1">Não resolvidos</p>
             <p className={`text-3xl font-bold ${semResolvido.length > 0 ? "text-red-400" : "text-white"}`}>{semResolvido.length}</p>
             {semResolvido.length > 0 && <p className="text-xs text-red-400 mt-1">⚠ Clique para ver</p>}
           </button>
           <button
-            onClick={() => { setAba("resolvidos"); setPagina(1); }}
+            onClick={() => { setAba("resolvidos"); }}
             className={`rounded-xl p-4 border text-left transition ${aba === "resolvidos" ? "bg-green-900/40 border-green-500 ring-2 ring-green-400 animate-pulse" : "bg-gray-900 border-gray-800 hover:bg-gray-800"}`}>
             <p className="text-xs text-gray-400 mb-1">Encontrados nos Resolvidos</p>
             <p className="text-3xl font-bold text-green-400">{comResolvido.length}</p>
@@ -338,13 +337,13 @@ export default function RedmineResolvidosPage() {
       )}
 
       {/* Pesquisa */}
-      {dados && resolvidos.length > 0 && (
+      {dados && (dados.totalResolvidos > 0 || semResolvidoRaw.length > 0) && (
         <div className="mb-4">
           <div className="relative w-fit">
             <input
               type="text"
               value={busca}
-              onChange={e => { setBusca(e.target.value); setPagina(1); }}
+              onChange={e => { setBusca(e.target.value); setPaginaEsq(1); }}
               placeholder="Pesquisar chamado..."
               className="bg-gray-900 border border-gray-700 text-white text-xs rounded-lg pl-7 pr-7 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[220px]"
             />
@@ -458,31 +457,42 @@ export default function RedmineResolvidosPage() {
       </div>
 
       {/* Paginação */}
-      {(() => {
-        const total = aba === "esquecidos" ? totalPaginasEsq : totalPaginasRes;
-        const count = aba === "esquecidos" ? semResolvido.length : resolvidosNaRedmine.length;
-        if (total <= 1 || count === 0) return null;
-        const inicio = (paginaAtual - 1) * POR_PAGINA + 1;
-        const fim = Math.min(paginaAtual * POR_PAGINA, count);
-        return (
-          <div className="flex items-center justify-between mt-4 px-1">
-            <p className="text-xs text-gray-500">
-              Exibindo <span className="text-gray-300">{inicio}–{fim}</span> de <span className="text-gray-300">{count}</span> registros
-            </p>
-            <div className="flex items-center gap-2">
-              <button onClick={() => setPagina(p => Math.max(1, p - 1))} disabled={paginaAtual === 1}
-                className="px-3 py-1.5 text-xs rounded-lg bg-gray-800 hover:bg-gray-700 disabled:opacity-40 text-gray-300 transition">
-                ← Anterior
-              </button>
-              <span className="text-xs text-gray-400">Página {paginaAtual} de {total}</span>
-              <button onClick={() => setPagina(p => Math.min(total, p + 1))} disabled={paginaAtual === total}
-                className="px-3 py-1.5 text-xs rounded-lg bg-gray-800 hover:bg-gray-700 disabled:opacity-40 text-gray-300 transition">
-                Próxima →
-              </button>
-            </div>
+      {aba === "esquecidos" && totalPaginasEsq > 1 && semResolvido.length > 0 && (
+        <div className="flex items-center justify-between mt-4 px-1">
+          <p className="text-xs text-gray-500">
+            Exibindo <span className="text-gray-300">{(paginaEsqAtual - 1) * POR_PAGINA + 1}–{Math.min(paginaEsqAtual * POR_PAGINA, semResolvido.length)}</span> de <span className="text-gray-300">{semResolvido.length}</span> registros
+          </p>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setPaginaEsq(p => Math.max(1, p - 1))} disabled={paginaEsqAtual === 1}
+              className="px-3 py-1.5 text-xs rounded-lg bg-gray-800 hover:bg-gray-700 disabled:opacity-40 text-gray-300 transition">
+              ← Anterior
+            </button>
+            <span className="text-xs text-gray-400">Página {paginaEsqAtual} de {totalPaginasEsq}</span>
+            <button onClick={() => setPaginaEsq(p => Math.min(totalPaginasEsq, p + 1))} disabled={paginaEsqAtual === totalPaginasEsq}
+              className="px-3 py-1.5 text-xs rounded-lg bg-gray-800 hover:bg-gray-700 disabled:opacity-40 text-gray-300 transition">
+              Próxima →
+            </button>
           </div>
-        );
-      })()}
+        </div>
+      )}
+      {aba === "resolvidos" && totalPaginasRes > 1 && (dados?.totalResolvidos ?? 0) > 0 && (
+        <div className="flex items-center justify-between mt-4 px-1">
+          <p className="text-xs text-gray-500">
+            Exibindo <span className="text-gray-300">{(paginaResAtual - 1) * POR_PAGINA + 1}–{Math.min(paginaResAtual * POR_PAGINA, dados?.totalResolvidos ?? 0)}</span> de <span className="text-gray-300">{dados?.totalResolvidos ?? 0}</span> registros
+          </p>
+          <div className="flex items-center gap-2">
+            <button onClick={() => load(paginaResAtual - 1, busca)} disabled={paginaResAtual === 1}
+              className="px-3 py-1.5 text-xs rounded-lg bg-gray-800 hover:bg-gray-700 disabled:opacity-40 text-gray-300 transition">
+              ← Anterior
+            </button>
+            <span className="text-xs text-gray-400">Página {paginaResAtual} de {totalPaginasRes}</span>
+            <button onClick={() => load(paginaResAtual + 1, busca)} disabled={paginaResAtual === totalPaginasRes}
+              className="px-3 py-1.5 text-xs rounded-lg bg-gray-800 hover:bg-gray-700 disabled:opacity-40 text-gray-300 transition">
+              Próxima →
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Modal leitura de texto */}
       {textoModal && (

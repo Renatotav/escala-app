@@ -240,10 +240,7 @@ function DonutChart({ itens, onSelect, selecionado }: {
   const total = itens.reduce((s, d) => s + d.value, 0);
   if (total === 0) return null;
 
-  const limiar = total * 0.02;
-  const principais = itens.filter(d => d.value >= limiar);
-  const restTotal = itens.filter(d => d.value < limiar).reduce((s, d) => s + d.value, 0);
-  const data = restTotal > 0 ? [...principais, { label: "Outros", value: restTotal }] : principais;
+  const data = itens;
 
   const cx = 150, cy = 150, or_ = 128, ir = 68;
   let ang = -Math.PI / 2;
@@ -258,13 +255,13 @@ function DonutChart({ itens, onSelect, selecionado }: {
     const large = (ea - sa) > Math.PI ? 1 : 0;
     const path = `M${ox1.toFixed(1)},${oy1.toFixed(1)} A${or_},${or_} 0 ${large} 1 ${ox2.toFixed(1)},${oy2.toFixed(1)} L${ix2.toFixed(1)},${iy2.toFixed(1)} A${ir},${ir} 0 ${large} 0 ${ix1.toFixed(1)},${iy1.toFixed(1)} Z`;
     const ma = sa + (ea - sa) / 2, lr = (or_ + ir) / 2;
-    const cor = d.label === "Outros" ? COR_OUTROS : CORES_CHART[i % CORES_CHART.length];
+    const cor = CORES_CHART[i % CORES_CHART.length];
     const sel = d.label === selecionado;
     return { label: d.label, value: d.value, path, cor, sel,
       pct: (frac * 100).toFixed(1),
       lx: (cx + lr * Math.cos(ma)).toFixed(1),
       ly: (cy + lr * Math.sin(ma)).toFixed(1),
-      show: frac >= 0.05 };
+      show: frac >= 0.03 };
   });
 
   return (

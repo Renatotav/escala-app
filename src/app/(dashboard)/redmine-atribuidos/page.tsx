@@ -409,7 +409,7 @@ export default function RedmineAtribuidosPage() {
       )}
 
       {/* Sub-filtros de acompanhamento */}
-      {operadoresAcomp.length > 0 && (
+      {(filtroAcomp || !!filtroPessoa) && operadoresAcomp.length > 0 && (
         <div className="mb-4 p-3 rounded-xl border border-orange-700/40 bg-orange-950/20 flex flex-wrap gap-4 items-center">
           <div className="flex flex-wrap gap-1.5 items-center">
             <span className="text-xs text-gray-400 mr-1">📌 Acomp.:</span>

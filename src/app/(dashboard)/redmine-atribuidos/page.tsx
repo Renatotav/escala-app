@@ -116,6 +116,8 @@ export default function RedmineAtribuidosPage() {
   const [solicitandoObs, setSolicitandoObs] = useState("");
   const [solicitandoOperador, setSolicitandoOperador] = useState("");
   const [filtroAcomp, setFiltroAcomp] = useState(false);
+  const [filtroAcompOperador, setFiltroAcompOperador] = useState("");
+  const [filtroAcompDias, setFiltroAcompDias] = useState("");
   const [filtroDevolverTI, setFiltroDevolverTI] = useState(false);
   const [modalDevolverTI, setModalDevolverTI] = useState(false);
   const [colaboradores, setColaboradores] = useState<{ id: number; nome: string }[]>([]);
@@ -164,6 +166,7 @@ export default function RedmineAtribuidosPage() {
   function handleFiltroAcomp() {
     const novo = !filtroAcomp;
     setFiltroAcomp(novo);
+    if (!novo) { setFiltroAcompOperador(""); setFiltroAcompDias(""); }
     load(1, busca, filtroPessoa, filtroAtraso, novo, filtroDevolverTI);
   }
   function handleFiltroDevolverTI() {
@@ -263,7 +266,20 @@ export default function RedmineAtribuidosPage() {
   }
 
   // Derived
-  const registros = dados?.registros ?? [];
+  const registrosBrutos = dados?.registros ?? [];
+  const operadoresAcomp = filtroAcomp
+    ? [...new Set(registrosBrutos.map(r => r.solicitadoOperador).filter(Boolean) as string[])].sort()
+    : [];
+  const registros = registrosBrutos.filter(r => {
+    if (filtroAcomp) {
+      if (filtroAcompOperador && r.solicitadoOperador !== filtroAcompOperador) return false;
+      if (filtroAcompDias !== "") {
+        const d = diasSolicitado(r.solicitadoEm);
+        if (d === null || d < Number(filtroAcompDias)) return false;
+      }
+    }
+    return true;
+  });
   const assystAtivos = new Set((dados?.assystAtivos ?? []).map(n => n.toUpperCase()));
   const chamadosEmFila = new Set((dados?.chamadosEmFila ?? []).map(n => n.toUpperCase()));
   const totalGeral = dados?.totalGeral ?? 0;
@@ -393,6 +409,41 @@ export default function RedmineAtribuidosPage() {
               </button>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Sub-filtros de acompanhamento */}
+      {filtroAcomp && (
+        <div className="mb-4 p-3 rounded-xl border border-orange-700/40 bg-orange-950/20 flex flex-wrap gap-4 items-center">
+          {/* Por operador */}
+          {operadoresAcomp.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 items-center">
+              <span className="text-xs text-gray-400 mr-1">Operador:</span>
+              {operadoresAcomp.map(op => (
+                <button key={op} onClick={() => setFiltroAcompOperador(v => v === op ? "" : op)}
+                  className={`text-xs px-2.5 py-1 rounded-lg border transition ${filtroAcompOperador === op ? "bg-orange-600 border-orange-500 text-white" : "bg-gray-800 border-gray-700 text-gray-300 hover:border-orange-600 hover:text-white"}`}>
+                  {op}
+                </button>
+              ))}
+              {filtroAcompOperador && (
+                <button onClick={() => setFiltroAcompOperador("")} className="text-xs text-gray-500 hover:text-white ml-1">✕</button>
+              )}
+            </div>
+          )}
+          {/* Por dias */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-400">Mín. dias:</span>
+            <input type="number" min="0" value={filtroAcompDias}
+              onChange={e => setFiltroAcompDias(e.target.value)}
+              placeholder="0"
+              className="w-16 bg-gray-800 border border-gray-700 text-white text-xs rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-orange-500" />
+            {filtroAcompDias && (
+              <button onClick={() => setFiltroAcompDias("")} className="text-xs text-gray-500 hover:text-white">✕</button>
+            )}
+          </div>
+          {(filtroAcompOperador || filtroAcompDias) && (
+            <span className="text-xs text-orange-400 ml-auto">{registros.length} de {registrosBrutos.length} acompanhamentos</span>
+          )}
         </div>
       )}
 

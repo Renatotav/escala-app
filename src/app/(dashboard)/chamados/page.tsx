@@ -230,7 +230,63 @@ const CORES_CHART = [
   "#38bdf8","#facc15","#4ade80","#e879f9","#2dd4bf",
   "#fbbf24","#818cf8","#f87171",
 ];
-const COR_OUTROS = "#475569";
+function hexToRgb(hex: string): [number, number, number] {
+  return [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)];
+}
+
+function desenharDonutPDF(
+  doc: jsPDF,
+  dados: { label: string; value: number }[],
+  total: number,
+  ox: number, oy: number, sz: number
+) {
+  const cx = ox + sz / 2, cy = oy + sz / 2;
+  const R = sz / 2 * 0.90, ri = sz / 2 * 0.44;
+  const STEPS = 64;
+  let ang = -Math.PI / 2;
+
+  dados.forEach((d, i) => {
+    const frac = d.value / total;
+    const sa = ang, ea = ang + frac * 2 * Math.PI;
+    ang = ea;
+    const steps = Math.max(4, Math.ceil(STEPS * frac));
+    const pts: [number, number][] = [];
+    for (let j = 0; j <= steps; j++) {
+      const a = sa + (ea - sa) * j / steps;
+      pts.push([cx + R * Math.cos(a), cy + R * Math.sin(a)]);
+    }
+    for (let j = steps; j >= 0; j--) {
+      const a = sa + (ea - sa) * j / steps;
+      pts.push([cx + ri * Math.cos(a), cy + ri * Math.sin(a)]);
+    }
+    const [r, g, b] = hexToRgb(CORES_CHART[i % CORES_CHART.length]);
+    doc.setFillColor(r, g, b);
+    doc.setDrawColor(255, 255, 255);
+    doc.setLineWidth(0.35);
+    const lines: [number, number][] = pts.slice(1).map((p, k) => [p[0] - pts[k][0], p[1] - pts[k][1]]);
+    doc.lines(lines, pts[0][0], pts[0][1], [1, 1], "FD", true);
+
+    if (frac >= 0.03) {
+      const ma = sa + (ea - sa) / 2, lr = (R + ri) / 2;
+      doc.setFontSize(6.5);
+      doc.setTextColor(255, 255, 255);
+      doc.setFont("helvetica", "bold");
+      doc.text(`${(frac * 100).toFixed(1)}%`, cx + lr * Math.cos(ma), cy + lr * Math.sin(ma), { align: "center", baseline: "middle" });
+    }
+  });
+
+  doc.setFillColor(255, 255, 255);
+  doc.setDrawColor(255, 255, 255);
+  doc.circle(cx, cy, ri, "F");
+  doc.setFontSize(9);
+  doc.setTextColor(30, 41, 59);
+  doc.setFont("helvetica", "bold");
+  doc.text(total.toLocaleString("pt-BR"), cx, cy - 1.5, { align: "center", baseline: "middle" });
+  doc.setFontSize(5);
+  doc.setTextColor(148, 163, 184);
+  doc.setFont("helvetica", "normal");
+  doc.text("CHAMADOS", cx, cy + 3.5, { align: "center", baseline: "middle" });
+}
 
 function DonutChart({ itens, onSelect, selecionado }: {
   itens: { label: string; value: number }[];
@@ -614,9 +670,31 @@ export default function ChamadosPage() {
     doc.text(`Total: ${stats.total.toLocaleString("pt-BR")} chamados`, 14, 26);
     doc.text(`Gerado em: ${geradoEm}`, 14, 31);
 
-    let y = 37;
-
     const equipesFiltradas = equipeQuant ? stats.porEquipe.filter((eq) => eq.equipe === equipeQuant) : stats.porEquipe;
+    const donutItens = equipesFiltradas.map((eq) => ({ label: eq.equipe, value: eq.total }));
+    const donutTotal = donutItens.reduce((s, d) => s + d.value, 0);
+
+    let y = 37;
+    if (donutTotal > 0) {
+      const chartX = 14, chartY = 36, chartSz = 78;
+      desenharDonutPDF(doc, donutItens, donutTotal, chartX, chartY, chartSz);
+      // Legenda ao lado direito
+      const legX = chartX + chartSz + 5;
+      let legY = chartY + 5;
+      donutItens.forEach((d, i) => {
+        const [r, g, b] = hexToRgb(CORES_CHART[i % CORES_CHART.length]);
+        doc.setFillColor(r, g, b);
+        doc.rect(legX, legY - 2.8, 3.5, 3.5, "F");
+        const pct = ((d.value / donutTotal) * 100).toFixed(1);
+        doc.setFontSize(7.5);
+        doc.setTextColor(40, 40, 40);
+        doc.setFont("helvetica", "normal");
+        doc.text(`${d.label}  ${d.value.toLocaleString("pt-BR")} (${pct}%)`, legX + 4.8, legY);
+        legY += 6.8;
+      });
+      y = chartY + chartSz + 8;
+    }
+
     for (const eq of equipesFiltradas) {
       const pct = ((eq.total / stats.total) * 100).toFixed(1);
       const rows = eq.usuarios.map((u, i) => {

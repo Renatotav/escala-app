@@ -239,12 +239,22 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({ count: paraInserir.length, updated: paraAtualizar.length });
 }
 
+type EntradaAcomp = { em: string; obs: string | null; operador: string | null };
+
 export async function PATCH(request: NextRequest) {
   const { id, ultimasNotas, solicitadoEm, solicitadoObs, solicitadoOperador, limparSolicitado } = await request.json();
   if (limparSolicitado) {
-    await prisma.redmineAtribuido.update({ where: { id }, data: { solicitadoEm: null, solicitadoObs: null } });
+    await prisma.redmineAtribuido.update({ where: { id }, data: { solicitadoEm: null, solicitadoObs: null, solicitadoOperador: null, historicoAcomp: null } });
   } else if (solicitadoEm !== undefined) {
-    await prisma.redmineAtribuido.update({ where: { id }, data: { solicitadoEm: new Date(solicitadoEm), solicitadoObs: solicitadoObs ?? null, solicitadoOperador: solicitadoOperador ?? null } });
+    const atual = await prisma.redmineAtribuido.findUnique({ where: { id }, select: { solicitadoEm: true, solicitadoObs: true, solicitadoOperador: true, historicoAcomp: true } });
+    let historico: EntradaAcomp[] = [];
+    try { historico = JSON.parse(atual?.historicoAcomp ?? "[]"); } catch { historico = []; }
+    // Migra entrada anterior se ainda não estava no histórico
+    if (historico.length === 0 && atual?.solicitadoEm) {
+      historico.push({ em: atual.solicitadoEm.toISOString(), obs: atual.solicitadoObs ?? null, operador: atual.solicitadoOperador ?? null });
+    }
+    historico.push({ em: solicitadoEm, obs: solicitadoObs ?? null, operador: solicitadoOperador ?? null });
+    await prisma.redmineAtribuido.update({ where: { id }, data: { solicitadoEm: new Date(solicitadoEm), solicitadoObs: solicitadoObs ?? null, solicitadoOperador: solicitadoOperador ?? null, historicoAcomp: JSON.stringify(historico) } });
   } else {
     await prisma.redmineAtribuido.update({ where: { id }, data: { ultimasNotas } });
   }

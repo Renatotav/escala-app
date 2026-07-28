@@ -184,6 +184,7 @@ async function migrate() {
   try { await client.query(\`ALTER TABLE \"RedmineAtribuido\" ADD COLUMN IF NOT EXISTS \"solicitadoEm\" TIMESTAMP(3)\`); } catch(e) {}
   try { await client.query(\`ALTER TABLE \"RedmineAtribuido\" ADD COLUMN IF NOT EXISTS \"solicitadoObs\" TEXT\`); } catch(e) {}
   try { await client.query(\`ALTER TABLE \"RedmineAtribuido\" ADD COLUMN IF NOT EXISTS \"solicitadoOperador\" TEXT\`); } catch(e) {}
+  try { await client.query(\`ALTER TABLE \"RedmineAtribuido\" ADD COLUMN IF NOT EXISTS \"historicoAcomp\" TEXT\`); } catch(e) {}
   try { await client.query(\`ALTER TABLE \"EscalaSemana\" ADD COLUMN IF NOT EXISTS \"unidade\" TEXT\`); } catch(e) {}
   // EscalaWhatsapp
   await client.query(\`CREATE TABLE IF NOT EXISTS \"EscalaWhatsapp\" (

@@ -17,6 +17,7 @@ type Atribuido = {
   solicitadoEm: string | null;
   solicitadoObs: string | null;
   solicitadoOperador: string | null;
+  historicoAcomp: string | null;
 };
 
 type DadosAtribuidos = {
@@ -116,6 +117,7 @@ export default function RedmineAtribuidosPage() {
   const [solicitandoObs, setSolicitandoObs] = useState("");
   const [solicitandoOperador, setSolicitandoOperador] = useState("");
   const [filtroAcomp, setFiltroAcomp] = useState(false);
+  const [historicoExpandido, setHistoricoExpandido] = useState<number | null>(null);
   const [filtroAcompOperador, setFiltroAcompOperador] = useState("");
   const [filtroAcompDias, setFiltroAcompDias] = useState("");
   const [filtroDevolverTI, setFiltroDevolverTI] = useState(false);
@@ -223,7 +225,7 @@ export default function RedmineAtribuidosPage() {
     setSolicitandoId(null);
     setSolicitandoObs("");
     setSolicitandoOperador("");
-    setDados(d => d ? { ...d, registros: d.registros.map(r => r.id === id ? { ...r, solicitadoEm: agora, solicitadoObs: obs, solicitadoOperador: operador || null } : r) } : d);
+    load();
   }
 
   async function limparSolicitado(id: number) {
@@ -478,18 +480,43 @@ export default function RedmineAtribuidosPage() {
                 const nums = splitAssyst(r.numerosAssyst);
                 return (
                   <tr key={r.id} className={`border-b border-gray-800 last:border-0 hover:bg-gray-800/50 transition ${r.solicitadoEm ? "border-l-2 border-l-orange-500/60" : ""}`}>
-                    <td className="px-3 py-3 whitespace-nowrap">
-                      {r.solicitadoEm ? (
-                        <div className="flex flex-col gap-1">
-                          <button title={r.solicitadoObs ?? "Em acompanhamento"}
-                            onClick={() => { setSolicitandoId(r.id); setSolicitandoObs(r.solicitadoObs ?? ""); setSolicitandoOperador(r.solicitadoOperador ?? ""); }}
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-300 border border-orange-500/30 text-xs font-medium hover:bg-orange-500/30 transition cursor-pointer">
-                            📌 {diasSolicitado(r.solicitadoEm) === 0 ? "hoje" : `${diasSolicitado(r.solicitadoEm)}d`}
-                            {r.solicitadoOperador && <span className="ml-0.5 opacity-80">· {r.solicitadoOperador.split(" ")[0]}</span>}
-                          </button>
-                          <button onClick={() => limparSolicitado(r.id)} className="text-xs text-gray-600 hover:text-red-400 transition text-left">✕ limpar</button>
-                        </div>
-                      ) : (
+                    <td className="px-3 py-3 whitespace-nowrap align-top">
+                      {r.solicitadoEm ? (() => {
+                        let hist: { em: string; obs: string | null; operador: string | null }[] = [];
+                        try { hist = JSON.parse(r.historicoAcomp ?? "[]"); } catch { hist = []; }
+                        const count = hist.length;
+                        const expandido = historicoExpandido === r.id;
+                        return (
+                          <div className="flex flex-col gap-1">
+                            <button title={r.solicitadoObs ?? "Em acompanhamento"}
+                              onClick={() => { setSolicitandoId(r.id); setSolicitandoObs(r.solicitadoObs ?? ""); setSolicitandoOperador(r.solicitadoOperador ?? ""); }}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-300 border border-orange-500/30 text-xs font-medium hover:bg-orange-500/30 transition cursor-pointer">
+                              📌 {diasSolicitado(r.solicitadoEm) === 0 ? "hoje" : `${diasSolicitado(r.solicitadoEm)}d`}
+                              {r.solicitadoOperador && <span className="ml-0.5 opacity-80">· {r.solicitadoOperador.split(" ")[0]}</span>}
+                            </button>
+                            {count > 1 && (
+                              <button onClick={() => setHistoricoExpandido(expandido ? null : r.id)}
+                                className="text-xs text-orange-400 hover:text-orange-300 transition text-left font-semibold">
+                                🔁 {count}× cobrado {expandido ? "▲" : "▼"}
+                              </button>
+                            )}
+                            {expandido && (
+                              <div className="mt-1 flex flex-col gap-1 border-l-2 border-orange-500/40 pl-2">
+                                {hist.map((h, i) => (
+                                  <div key={i} className="text-xs text-gray-400">
+                                    <span className="text-orange-300 font-medium">
+                                      {new Date(h.em).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}
+                                    </span>
+                                    {h.operador && <span className="ml-1 opacity-70">· {h.operador.split(" ")[0]}</span>}
+                                    {h.obs && <div className="text-gray-500 text-xs mt-0.5 leading-tight max-w-[160px] truncate" title={h.obs}>{h.obs}</div>}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            <button onClick={() => limparSolicitado(r.id)} className="text-xs text-gray-600 hover:text-red-400 transition text-left">✕ limpar</button>
+                          </div>
+                        );
+                      })() : (
                         <button onClick={() => { setSolicitandoId(r.id); setSolicitandoObs(""); setSolicitandoOperador(""); }}
                           className="text-gray-600 hover:text-orange-400 transition text-lg leading-none" title="Marcar em acompanhamento">
                           📌

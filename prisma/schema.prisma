@@ -256,6 +256,7 @@ model RedmineAtribuido {
   solicitadoEm        DateTime?
   solicitadoObs       String?
   solicitadoOperador  String?
+  historicoAcomp      String?
   createdAt      DateTime @default(now())
 }
 

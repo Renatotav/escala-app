@@ -267,16 +267,12 @@ export default function RedmineAtribuidosPage() {
 
   // Derived
   const registrosBrutos = dados?.registros ?? [];
-  const operadoresAcomp = filtroAcomp
-    ? [...new Set(registrosBrutos.map(r => r.solicitadoOperador).filter(Boolean) as string[])].sort()
-    : [];
+  const operadoresAcomp = [...new Set(registrosBrutos.map(r => r.solicitadoOperador).filter(Boolean) as string[])].sort();
   const registros = registrosBrutos.filter(r => {
-    if (filtroAcomp) {
-      if (filtroAcompOperador && r.solicitadoOperador !== filtroAcompOperador) return false;
-      if (filtroAcompDias !== "") {
-        const d = diasSolicitado(r.solicitadoEm);
-        if (d === null || d < Number(filtroAcompDias)) return false;
-      }
+    if (filtroAcompOperador && r.solicitadoOperador !== filtroAcompOperador) return false;
+    if (filtroAcompDias !== "") {
+      const d = diasSolicitado(r.solicitadoEm);
+      if (d === null || d < Number(filtroAcompDias)) return false;
     }
     return true;
   });
@@ -413,24 +409,20 @@ export default function RedmineAtribuidosPage() {
       )}
 
       {/* Sub-filtros de acompanhamento */}
-      {filtroAcomp && (
+      {operadoresAcomp.length > 0 && (
         <div className="mb-4 p-3 rounded-xl border border-orange-700/40 bg-orange-950/20 flex flex-wrap gap-4 items-center">
-          {/* Por operador */}
-          {operadoresAcomp.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 items-center">
-              <span className="text-xs text-gray-400 mr-1">Operador:</span>
-              {operadoresAcomp.map(op => (
-                <button key={op} onClick={() => setFiltroAcompOperador(v => v === op ? "" : op)}
-                  className={`text-xs px-2.5 py-1 rounded-lg border transition ${filtroAcompOperador === op ? "bg-orange-600 border-orange-500 text-white" : "bg-gray-800 border-gray-700 text-gray-300 hover:border-orange-600 hover:text-white"}`}>
-                  {op}
-                </button>
-              ))}
-              {filtroAcompOperador && (
-                <button onClick={() => setFiltroAcompOperador("")} className="text-xs text-gray-500 hover:text-white ml-1">✕</button>
-              )}
-            </div>
-          )}
-          {/* Por dias */}
+          <div className="flex flex-wrap gap-1.5 items-center">
+            <span className="text-xs text-gray-400 mr-1">📌 Acomp.:</span>
+            {operadoresAcomp.map(op => (
+              <button key={op} onClick={() => setFiltroAcompOperador(v => v === op ? "" : op)}
+                className={`text-xs px-2.5 py-1 rounded-lg border transition ${filtroAcompOperador === op ? "bg-orange-600 border-orange-500 text-white" : "bg-gray-800 border-gray-700 text-gray-300 hover:border-orange-600 hover:text-white"}`}>
+                {op}
+              </button>
+            ))}
+            {filtroAcompOperador && (
+              <button onClick={() => setFiltroAcompOperador("")} className="text-xs text-gray-500 hover:text-white ml-1">✕</button>
+            )}
+          </div>
           <div className="flex items-center gap-2">
             <span className="text-xs text-gray-400">Mín. dias:</span>
             <input type="number" min="0" value={filtroAcompDias}
@@ -442,7 +434,7 @@ export default function RedmineAtribuidosPage() {
             )}
           </div>
           {(filtroAcompOperador || filtroAcompDias) && (
-            <span className="text-xs text-orange-400 ml-auto">{registros.length} de {registrosBrutos.length} acompanhamentos</span>
+            <span className="text-xs text-orange-400 ml-auto">{registros.length} resultado{registros.length !== 1 ? "s" : ""}</span>
           )}
         </div>
       )}

@@ -411,17 +411,13 @@ export default function RedmineAtribuidosPage() {
       {/* Sub-filtros de acompanhamento */}
       {(filtroAcomp || !!filtroPessoa) && operadoresAcomp.length > 0 && (
         <div className="mb-4 p-3 rounded-xl border border-orange-700/40 bg-orange-950/20 flex flex-wrap gap-4 items-center">
-          <div className="flex flex-wrap gap-1.5 items-center">
-            <span className="text-xs text-gray-400 mr-1">📌 Acomp.:</span>
-            {operadoresAcomp.map(op => (
-              <button key={op} onClick={() => setFiltroAcompOperador(v => v === op ? "" : op)}
-                className={`text-xs px-2.5 py-1 rounded-lg border transition ${filtroAcompOperador === op ? "bg-orange-600 border-orange-500 text-white" : "bg-gray-800 border-gray-700 text-gray-300 hover:border-orange-600 hover:text-white"}`}>
-                {op}
-              </button>
-            ))}
-            {filtroAcompOperador && (
-              <button onClick={() => setFiltroAcompOperador("")} className="text-xs text-gray-500 hover:text-white ml-1">✕</button>
-            )}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-400">📌 Acomp.:</span>
+            <select value={filtroAcompOperador} onChange={e => setFiltroAcompOperador(e.target.value)}
+              className="bg-gray-800 border border-gray-700 text-white text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-orange-500 min-w-[180px]">
+              <option value="">Todos os operadores</option>
+              {operadoresAcomp.map(op => <option key={op} value={op}>{op}</option>)}
+            </select>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-xs text-gray-400">Mín. dias:</span>

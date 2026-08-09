@@ -287,20 +287,17 @@ export default function EscalaPage() {
       }
     }
 
-    function renderSecao(titulo: string, nomes: string[], opcoes?: { duasColunas?: boolean; horario?: string; repetirTitulo?: boolean }) {
+    function renderSecao(titulo: string, nomes: string[], opcoes?: { duasColunas?: boolean; horario?: string }) {
       if (nomes.length === 0) return;
 
-      const desenharTitulo = (ty: number) => {
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(9);
-        doc.setTextColor(...GREEN);
-        doc.text(titulo, 12, ty);
-        doc.setDrawColor(...GREEN);
-        doc.setLineWidth(0.3);
-        doc.line(12, ty + 1, 12 + doc.getTextWidth(titulo), ty + 1);
-      };
-
-      desenharTitulo(y);
+      // Título — verde, negrito, sublinhado
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.setTextColor(...GREEN);
+      doc.text(titulo, 12, y);
+      doc.setDrawColor(...GREEN);
+      doc.setLineWidth(0.3);
+      doc.line(12, y + 1, 12 + doc.getTextWidth(titulo), y + 1);
       y += 5;
 
       // Horário como faixa azul com texto branco
@@ -340,13 +337,8 @@ export default function EscalaPage() {
           cellPadding: 1.2,
           fillColor: CREAM,
         },
-        margin: { top: opcoes?.repetirTitulo ? 20 : 10, left: 12, right: 12 },
-        didDrawPage: (data) => {
-          if (opcoes?.repetirTitulo && (data as { pageNumber?: number }).pageNumber && (data as { pageNumber: number }).pageNumber > 1) {
-            desenharTitulo(12);
-          }
-          y = 12;
-        },
+        margin: { left: 12, right: 12 },
+        didDrawPage: () => { y = 12; },
       });
       y = (doc as DocWithTable).lastAutoTable.finalY + 10;
     }
@@ -358,7 +350,7 @@ export default function EscalaPage() {
       .find(h => h) ?? "Seg. a Quinta: 08:00 às 12:00 e Sexta: 08:00 às 14:00.";
 
     // Ordem: Fórum → Núcleo presencial → Forma Virtual → WhatsApp → TJ → Remoto
-    renderSecao("Presencial - Fórum Clóvis Beviláqua", forum, { duasColunas: true, repetirTitulo: true });
+    renderSecao("Presencial - Fórum Clóvis Beviláqua", forum, { duasColunas: true });
     renderSecao("Presencial - Núcleo de Custódia e das Garantias da Comarca de Fortaleza", custodia, {
       horario: custodiaHorario,
     });
@@ -375,9 +367,9 @@ export default function EscalaPage() {
 
     renderSecao("Presencial - Tribunal de Justiça", tj);
     remotosPorUnidade.forEach((nomes, unidade) => {
-      renderSecao(`Remoto - ${unidade}`, nomes, { repetirTitulo: true });
+      renderSecao(`Remoto - ${unidade}`, nomes);
     });
-    renderSecao("Remoto", remotos, { repetirTitulo: true });
+    renderSecao("Remoto", remotos);
 
     doc.save(`escala-${semana}.pdf`);
   }

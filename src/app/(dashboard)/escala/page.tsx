@@ -261,7 +261,8 @@ export default function EscalaPage() {
     const tj: string[] = [];
     const remotos: string[] = [];
     const remotosPorUnidade: Map<string, string[]> = new Map();
-    const virtuaisPorUnidade: Map<string, string[]> = new Map();
+    // localFísico → (unidadeVirtual → nomes[])
+    const virtuaisPorLocal: Map<string, Map<string, string[]>> = new Map();
 
     for (const c of [...membros].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))) {
       if (c.escalaSemana === "PRESENCIAL") {
@@ -271,11 +272,12 @@ export default function EscalaPage() {
         else forum.push(c.nome.toUpperCase());
       } else if (c.escalaSemana === "VIRTUAL") {
         const parts = (c.unidadePresencial ?? "").split("||");
-        // Novo formato: "localFísico||unidadeVirtual" — usa unidade virtual como chave da seção
-        // Formato antigo: apenas "unidadeVirtual"
+        const physicalLoc = (parts.length >= 2 ? parts[0] : "Fórum Clóvis Beviláqua").trim();
         const virtualUnit = (parts.length >= 2 ? parts[1] : parts[0]).trim() || "Sem unidade";
-        if (!virtuaisPorUnidade.has(virtualUnit)) virtuaisPorUnidade.set(virtualUnit, []);
-        virtuaisPorUnidade.get(virtualUnit)!.push(c.nome.toUpperCase());
+        if (!virtuaisPorLocal.has(physicalLoc)) virtuaisPorLocal.set(physicalLoc, new Map());
+        const subMap = virtuaisPorLocal.get(physicalLoc)!;
+        if (!subMap.has(virtualUnit)) subMap.set(virtualUnit, []);
+        subMap.get(virtualUnit)!.push(c.nome.toUpperCase());
       } else if (c.escalaSemana === "REMOTO") {
         const u = (c.unidadePresencial?.split("||")[0] ?? "").trim();
         if (u) {
@@ -343,23 +345,40 @@ export default function EscalaPage() {
       y = (doc as DocWithTable).lastAutoTable.finalY + 10;
     }
 
+    // Título de local sem tabela — indica local físico antes das seções virtuais
+    function renderTituloLocal(titulo: string) {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.setTextColor(...GREEN);
+      doc.text(titulo, 12, y);
+      doc.setDrawColor(...GREEN);
+      doc.setLineWidth(0.3);
+      doc.line(12, y + 1, 12 + doc.getTextWidth(titulo), y + 1);
+      y += 8;
+    }
+
     // Horário do Núcleo: usa o personalizado salvo (se houver) ou o padrão
     const custodiaHorario = membros
       .filter(c => /cust[oó]dia/i.test(c.unidadePresencial?.split("||")[0] ?? ""))
       .map(c => c.unidadePresencial?.split("||")[1])
       .find(h => h) ?? "Seg. a Quinta: 08:00 às 12:00 e Sexta: 08:00 às 14:00.";
 
-    // Ordem: Fórum → Núcleo presencial → Forma Virtual → WhatsApp → TJ → Remoto
+    // Ordem: Fórum → Núcleo presencial → [localFísico + Forma Virtual] → WhatsApp → TJ → Remoto
     renderSecao("Presencial - Fórum Clóvis Beviláqua", forum, { duasColunas: true });
     renderSecao("Presencial - Núcleo de Custódia e das Garantias da Comarca de Fortaleza", custodia, {
       horario: custodiaHorario,
     });
-    virtuaisPorUnidade.forEach((nomes, unidade) => {
-      const horario = /cust[oó]dia/i.test(unidade) ? custodiaHorario : undefined;
-      renderSecao(`Forma Virtual - ${unidade}`, nomes, { horario });
+
+    // Para cada local físico: exibe o cabeçalho do local e depois cada seção virtual
+    virtuaisPorLocal.forEach((virtuaisPorVirtualUnidade, physicalLoc) => {
+      renderTituloLocal(`Presencial - ${physicalLoc}`);
+      virtuaisPorVirtualUnidade.forEach((nomes, virtualUnit) => {
+        const horario = /cust[oó]dia/i.test(virtualUnit) ? custodiaHorario : undefined;
+        renderSecao(`Forma Virtual - ${virtualUnit}`, nomes, { horario });
+      });
     });
 
-    // Responsável WhatsApp — logo após o Forma Virtual
+    // Responsável WhatsApp
     const whatsappOp = membros.find(c => c.whatsapp);
     if (whatsappOp) {
       renderSecao("Operador - WhatsApp", [whatsappOp.nome.toUpperCase()]);

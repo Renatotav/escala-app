@@ -337,7 +337,7 @@ export default function EscalaPage() {
     renderSecao("Presencial - Tribunal de Justiça", tj);
     remotosPorUnidade.forEach((nomes, unidade) => {
       const horario = /cust[oó]dia/i.test(unidade) ? custodiaHorario : undefined;
-      renderSecao(`Remoto - ${unidade}`, nomes, { horario });
+      renderSecao(`Online - ${unidade}`, nomes, { horario });
     });
     renderSecao("Remoto", remotos);
 
@@ -527,7 +527,7 @@ export default function EscalaPage() {
                               {c.escalaSemana ? (
                                 <div className="min-w-0">
                                   <span className={`text-xs font-medium ${c.escalaSemana === "REMOTO" ? "text-blue-400" : "text-gray-300"}`}>
-                                    {c.escalaSemana === "REMOTO" ? "Remoto" : "Presencial"}
+                                    {c.escalaSemana === "REMOTO" ? (c.unidadePresencial ? "Online" : "Remoto") : "Presencial"}
                                   </span>
                                   {c.unidadePresencial && (
                                     <p className={`text-xs mt-0.5 truncate ${c.escalaSemana === "REMOTO" ? "text-blue-300/70" : "text-amber-400"}`}

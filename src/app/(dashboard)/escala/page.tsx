@@ -820,7 +820,7 @@ export default function EscalaPage() {
               className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
             >
               <option value="">Selecione...</option>
-              {unidadesPresencial.filter(u => u !== localVirtualInput && !/f[oó]rum/i.test(u)).map(u => (
+              {unidadesPresencial.filter(u => u !== localVirtualInput && !/f[oó]rum/i.test(u) && !/tribunal|^tj$/i.test(u)).map(u => (
                 <option key={u} value={u}>{u}</option>
               ))}
               <option value="__outro__">Outros (digitar)</option>

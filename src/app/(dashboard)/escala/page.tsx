@@ -560,11 +560,11 @@ export default function EscalaPage() {
                                         setUnidadeInput(isTJ ? "Tribunal de Justiça" : "Fórum Clóvis Beviláqua");
                                         setModalPresencial({ colaboradorId: c.id, nome: c.nome });
                                       }}
-                                      className="text-xs px-2.5 py-1 rounded bg-gray-600 hover:bg-gray-500 text-white transition">
+                                      className="text-xs px-2.5 py-1 rounded bg-amber-600 hover:bg-amber-500 text-white transition">
                                       Presencial
                                     </button>
                                     <button onClick={() => { setModalVirtual({ colaboradorId: c.id, nome: c.nome }); setUnidadeVirtualInput(""); setOutroVirtualInput(""); }}
-                                      className="text-xs px-2.5 py-1 rounded bg-green-700 hover:bg-green-600 text-white transition">
+                                      className="text-xs px-2.5 py-1 rounded bg-purple-700 hover:bg-purple-600 text-white transition">
                                       Virtual
                                     </button>
                                     <button onClick={() => { setModalRemoto({ colaboradorId: c.id, nome: c.nome }); setUnidadeRemotoInput(""); setOutroRemotoInput(""); }}

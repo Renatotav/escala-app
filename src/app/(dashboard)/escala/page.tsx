@@ -270,15 +270,16 @@ export default function EscalaPage() {
         else forum.push(c.nome.toUpperCase());
       } else if (c.escalaSemana === "VIRTUAL") {
         const parts = (c.unidadePresencial ?? "").split("||");
-        const localFisico = parts[0].trim();
-        const virtualUnit = (parts[1] ?? "").trim();
-        // Nome com nota da unidade virtual logo abaixo
+        // Novo formato: "localFísico||unidadeVirtual"
+        // Formato antigo: apenas "unidadeVirtual" (sem ||) — default físico = Fórum
+        const localFisico = parts.length >= 2 ? parts[0].trim() : "";
+        const virtualUnit = parts.length >= 2 ? parts[1].trim() : parts[0].trim();
         const entrada = virtualUnit
           ? `${c.nome.toUpperCase()}\nForma Virtual - ${virtualUnit}`
           : c.nome.toUpperCase();
         if (/cust[oó]dia/i.test(localFisico)) custodia.push(entrada);
         else if (/tribunal|^tj$/i.test(localFisico)) tj.push(entrada);
-        else forum.push(entrada);
+        else forum.push(entrada); // inclui formato antigo (sem local físico) → vai pro Fórum
       } else if (c.escalaSemana === "REMOTO") {
         const u = (c.unidadePresencial?.split("||")[0] ?? "").trim();
         if (u) {

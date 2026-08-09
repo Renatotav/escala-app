@@ -9,10 +9,13 @@ const client = new Client({ connectionString: process.env.DATABASE_URL });
 async function migrate() {
   await client.connect();
 
-  // Enum value — must be outside a transaction
+  // Enum values — must be outside a transaction
   try {
     await client.query(\"ALTER TYPE \\\"TipoFolga\\\" ADD VALUE IF NOT EXISTS 'PONTO_FACULTATIVO'\");
   } catch(e) { console.log('enum skip:', e.message); }
+  try {
+    await client.query(\"ALTER TYPE \\\"TipoEscala\\\" ADD VALUE IF NOT EXISTS 'VIRTUAL'\");
+  } catch(e) { console.log('enum VIRTUAL skip:', e.message); }
 
   // New columns on Colaborador
   const cols = [

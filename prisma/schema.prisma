@@ -91,6 +91,7 @@ model EscalaSemana {
 enum TipoEscala {
   PRESENCIAL
   REMOTO
+  VIRTUAL
 }
 
 model RegistroPonto {

@@ -58,6 +58,9 @@ export default function EscalaPage() {
   const [modalRemoto, setModalRemoto] = useState<{ colaboradorId: number; nome: string } | null>(null);
   const [unidadeRemotoInput, setUnidadeRemotoInput] = useState("");
   const [outroRemotoInput, setOutroRemotoInput] = useState("");
+  const [modalVirtual, setModalVirtual] = useState<{ colaboradorId: number; nome: string } | null>(null);
+  const [unidadeVirtualInput, setUnidadeVirtualInput] = useState("");
+  const [outroVirtualInput, setOutroVirtualInput] = useState("");
 
   // Configurações dinâmicas
   const [unidadesPresencial, setUnidadesPresencial] = useState<string[]>(UNIDADES_PADRAO);
@@ -96,7 +99,7 @@ export default function EscalaPage() {
       .finally(() => setLoading(false));
   }, [semana, equipeId]);
 
-  async function handleLancar(colaboradorId: number, tipo: "PRESENCIAL" | "REMOTO", unidade?: string) {
+  async function handleLancar(colaboradorId: number, tipo: "PRESENCIAL" | "REMOTO" | "VIRTUAL", unidade?: string) {
     await fetch("/api/escalas", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -149,6 +152,17 @@ export default function EscalaPage() {
     setOutroRemotoInput("");
   }
 
+  async function confirmarVirtual() {
+    if (!modalVirtual) return;
+    const unidade = unidadeVirtualInput === "__outro__"
+      ? outroVirtualInput.trim() || undefined
+      : unidadeVirtualInput || undefined;
+    await handleLancar(modalVirtual.colaboradorId, "VIRTUAL", unidade);
+    setModalVirtual(null);
+    setUnidadeVirtualInput("");
+    setOutroVirtualInput("");
+  }
+
   async function confirmarPresencial() {
     if (!modalPresencial) return;
     const unidadeBase = unidadeInput === "__outro__"
@@ -173,7 +187,7 @@ export default function EscalaPage() {
         c.equipe.nome,
         String(c.semanasPresencial),
         sinalConfig[c.sinal].label,
-        c.escalaSemana === "REMOTO" ? "Remoto" : c.escalaSemana === "PRESENCIAL" ? (c.unidadePresencial ? `Presencial - ${c.unidadePresencial.split("||")[0]}` : "Presencial") : "Não lançado",
+        c.escalaSemana === "REMOTO" ? (c.unidadePresencial ? `Remoto - ${c.unidadePresencial.split("||")[0]}` : "Remoto") : c.escalaSemana === "VIRTUAL" ? `Forma Virtual - ${c.unidadePresencial?.split("||")[0] ?? ""}`.trim().replace(/- $/, "") : c.escalaSemana === "PRESENCIAL" ? (c.unidadePresencial ? `Presencial - ${c.unidadePresencial.split("||")[0]}` : "Presencial") : "Não lançado",
         c.whatsapp ? "Sim" : "",
       ]);
     }
@@ -242,6 +256,7 @@ export default function EscalaPage() {
     const tj: string[] = [];
     const remotos: string[] = [];
     const remotosPorUnidade: Map<string, string[]> = new Map();
+    const virtuaisPorUnidade: Map<string, string[]> = new Map();
 
     for (const c of [...membros].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))) {
       if (c.escalaSemana === "PRESENCIAL") {
@@ -249,6 +264,10 @@ export default function EscalaPage() {
         if (/cust[oó]dia/i.test(u)) custodia.push(c.nome.toUpperCase());
         else if (/tribunal|^tj$/i.test(u)) tj.push(c.nome.toUpperCase());
         else forum.push(c.nome.toUpperCase());
+      } else if (c.escalaSemana === "VIRTUAL") {
+        const u = (c.unidadePresencial?.split("||")[0] ?? "").trim() || "Sem unidade";
+        if (!virtuaisPorUnidade.has(u)) virtuaisPorUnidade.set(u, []);
+        virtuaisPorUnidade.get(u)!.push(c.nome.toUpperCase());
       } else if (c.escalaSemana === "REMOTO") {
         const u = (c.unidadePresencial?.split("||")[0] ?? "").trim();
         if (u) {
@@ -318,7 +337,7 @@ export default function EscalaPage() {
 
     // Horário do Núcleo: usa o personalizado salvo (se houver) ou o padrão
     const custodiaHorario = membros
-      .filter(c => c.escalaSemana === "PRESENCIAL" && /cust[oó]dia/i.test(c.unidadePresencial?.split("||")[0] ?? ""))
+      .filter(c => (c.escalaSemana === "PRESENCIAL" || c.escalaSemana === "VIRTUAL") && /cust[oó]dia/i.test(c.unidadePresencial?.split("||")[0] ?? ""))
       .map(c => c.unidadePresencial?.split("||")[1])
       .find(h => h) ?? "Seg. a Quinta: 08:00 às 12:00 e Sexta: 08:00 às 14:00.";
 
@@ -335,9 +354,12 @@ export default function EscalaPage() {
     }
 
     renderSecao("Presencial - Tribunal de Justiça", tj);
-    remotosPorUnidade.forEach((nomes, unidade) => {
+    virtuaisPorUnidade.forEach((nomes, unidade) => {
       const horario = /cust[oó]dia/i.test(unidade) ? custodiaHorario : undefined;
-      renderSecao(`Online - ${unidade}`, nomes, { horario });
+      renderSecao(`Forma Virtual - ${unidade}`, nomes, { horario });
+    });
+    remotosPorUnidade.forEach((nomes, unidade) => {
+      renderSecao(`Remoto - ${unidade}`, nomes);
     });
     renderSecao("Remoto", remotos);
 
@@ -526,11 +548,11 @@ export default function EscalaPage() {
                             <td className="px-4 py-3 max-w-[160px]">
                               {c.escalaSemana ? (
                                 <div className="min-w-0">
-                                  <span className={`text-xs font-medium ${c.escalaSemana === "REMOTO" ? "text-blue-400" : "text-gray-300"}`}>
-                                    {c.escalaSemana === "REMOTO" ? (c.unidadePresencial ? "Online" : "Remoto") : "Presencial"}
+                                  <span className={`text-xs font-medium ${c.escalaSemana === "REMOTO" ? "text-blue-400" : c.escalaSemana === "VIRTUAL" ? "text-purple-400" : "text-gray-300"}`}>
+                                    {c.escalaSemana === "REMOTO" ? "Remoto" : c.escalaSemana === "VIRTUAL" ? "Forma virtual" : "Presencial"}
                                   </span>
                                   {c.unidadePresencial && (
-                                    <p className={`text-xs mt-0.5 truncate ${c.escalaSemana === "REMOTO" ? "text-blue-300/70" : "text-amber-400"}`}
+                                    <p className={`text-xs mt-0.5 truncate ${c.escalaSemana === "REMOTO" ? "text-blue-300/70" : c.escalaSemana === "VIRTUAL" ? "text-purple-300/70" : "text-amber-400"}`}
                                       title={c.unidadePresencial.split("||")[0]}>
                                       {c.unidadePresencial.split("||")[0]}
                                     </p>
@@ -549,6 +571,10 @@ export default function EscalaPage() {
                                       }}
                                       className="text-xs px-2.5 py-1 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 transition">
                                       Presencial
+                                    </button>
+                                    <button onClick={() => { setModalVirtual({ colaboradorId: c.id, nome: c.nome }); setUnidadeVirtualInput(""); setOutroVirtualInput(""); }}
+                                      className="text-xs px-2.5 py-1 rounded bg-purple-700 hover:bg-purple-600 text-white transition">
+                                      Virtual
                                     </button>
                                     <button onClick={() => { setModalRemoto({ colaboradorId: c.id, nome: c.nome }); setUnidadeRemotoInput(""); setOutroRemotoInput(""); }}
                                       className="text-xs px-2.5 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white transition">
@@ -759,13 +785,57 @@ export default function EscalaPage() {
           </div>
         </div>
       )}
+      {/* Modal Forma Virtual */}
+      {modalVirtual && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setModalVirtual(null)}>
+          <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-sm shadow-xl" onClick={e => e.stopPropagation()}>
+            <h3 className="text-white font-semibold mb-1">Lançar como Forma Virtual</h3>
+            <p className="text-gray-400 text-sm mb-2">{modalVirtual.nome}</p>
+            <p className="text-purple-400/80 text-xs mb-4">Presencial no Fórum, atendendo ao Núcleo de forma online</p>
+            <label className="block text-xs text-gray-400 mb-1">Unidade <span className="text-gray-600">(opcional)</span></label>
+            <select
+              value={unidadeVirtualInput}
+              onChange={e => { setUnidadeVirtualInput(e.target.value); setOutroVirtualInput(""); }}
+              autoFocus
+              className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
+            >
+              <option value="">Sem unidade específica</option>
+              {unidadesPresencial.filter(u => !/f[oó]rum/i.test(u)).map(u => (
+                <option key={u} value={u}>{u}</option>
+              ))}
+              <option value="__outro__">Outros (digitar)</option>
+            </select>
+            {unidadeVirtualInput === "__outro__" && (
+              <input
+                type="text"
+                value={outroVirtualInput}
+                onChange={e => setOutroVirtualInput(e.target.value)}
+                placeholder="Digite a unidade..."
+                autoFocus
+                className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              />
+            )}
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setModalVirtual(null)}
+                className="px-4 py-2 text-sm rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 transition">
+                Cancelar
+              </button>
+              <button onClick={confirmarVirtual}
+                className="px-4 py-2 text-sm rounded-lg bg-purple-700 hover:bg-purple-600 text-white font-medium transition">
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Modal unidade remoto */}
       {modalRemoto && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setModalRemoto(null)}>
           <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-sm shadow-xl" onClick={e => e.stopPropagation()}>
             <h3 className="text-white font-semibold mb-1">Lançar como Remoto</h3>
-            <p className="text-gray-400 text-sm mb-4">{modalRemoto.nome}</p>
-            <label className="block text-xs text-gray-400 mb-1">Local dedicado <span className="text-gray-600">(opcional)</span></label>
+            <p className="text-gray-400 text-sm mb-2">{modalRemoto.nome}</p>
+            <p className="text-blue-400/80 text-xs mb-4">Home office — fora do Fórum</p>
+            <label className="block text-xs text-gray-400 mb-1">Unidade que responde <span className="text-gray-600">(opcional)</span></label>
             <select
               value={unidadeRemotoInput}
               onChange={e => { setUnidadeRemotoInput(e.target.value); setOutroRemotoInput(""); }}

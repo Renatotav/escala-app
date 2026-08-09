@@ -362,14 +362,14 @@ export default function EscalaPage() {
     }
 
     renderSecao("Presencial - Tribunal de Justiça", tj);
-    virtuaisPorUnidade.forEach((nomes, unidade) => {
-      const horario = /cust[oó]dia/i.test(unidade) ? custodiaHorario : undefined;
-      renderSecao(`Forma Virtual - ${unidade}`, nomes, { horario });
-    });
     remotosPorUnidade.forEach((nomes, unidade) => {
       renderSecao(`Remoto - ${unidade}`, nomes);
     });
     renderSecao("Remoto", remotos);
+    virtuaisPorUnidade.forEach((nomes, unidade) => {
+      const horario = /cust[oó]dia/i.test(unidade) ? custodiaHorario : undefined;
+      renderSecao(`Forma Virtual - ${unidade}`, nomes, { horario });
+    });
 
     doc.save(`escala-${semana}.pdf`);
   }

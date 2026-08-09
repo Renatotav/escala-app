@@ -256,18 +256,13 @@ export default function EscalaPage() {
     const tj: string[] = [];
     const remotos: string[] = [];
     const remotosPorUnidade: Map<string, string[]> = new Map();
-    const virtuaisPorUnidade: Map<string, string[]> = new Map();
 
     for (const c of [...membros].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))) {
-      if (c.escalaSemana === "PRESENCIAL") {
+      if (c.escalaSemana === "PRESENCIAL" || c.escalaSemana === "VIRTUAL") {
         const u = (c.unidadePresencial?.split("||")[0] ?? "").trim();
         if (/cust[oó]dia/i.test(u)) custodia.push(c.nome.toUpperCase());
         else if (/tribunal|^tj$/i.test(u)) tj.push(c.nome.toUpperCase());
         else forum.push(c.nome.toUpperCase());
-      } else if (c.escalaSemana === "VIRTUAL") {
-        const u = (c.unidadePresencial?.split("||")[0] ?? "").trim() || "Sem unidade";
-        if (!virtuaisPorUnidade.has(u)) virtuaisPorUnidade.set(u, []);
-        virtuaisPorUnidade.get(u)!.push(c.nome.toUpperCase());
       } else if (c.escalaSemana === "REMOTO") {
         const u = (c.unidadePresencial?.split("||")[0] ?? "").trim();
         if (u) {
@@ -354,10 +349,6 @@ export default function EscalaPage() {
     }
 
     renderSecao("Presencial - Tribunal de Justiça", tj);
-    virtuaisPorUnidade.forEach((nomes, unidade) => {
-      const horario = /cust[oó]dia/i.test(unidade) ? custodiaHorario : undefined;
-      renderSecao(`Forma Virtual - ${unidade}`, nomes, { horario });
-    });
     remotosPorUnidade.forEach((nomes, unidade) => {
       renderSecao(`Remoto - ${unidade}`, nomes);
     });

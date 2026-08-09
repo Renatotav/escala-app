@@ -582,7 +582,7 @@ export default function EscalaPage() {
                                       className="text-xs px-2.5 py-1 rounded bg-amber-600 hover:bg-amber-500 text-white transition">
                                       Presencial
                                     </button>
-                                    <button onClick={() => { setModalVirtual({ colaboradorId: c.id, nome: c.nome }); setLocalVirtualInput(unidadesPresencial[0] ?? ""); setUnidadeVirtualInput(""); setOutroVirtualInput(""); }}
+                                    <button onClick={() => { const isTJ = /\b2g\b/i.test(c.equipe.nome); setModalVirtual({ colaboradorId: c.id, nome: c.nome }); setLocalVirtualInput(isTJ ? "Tribunal de Justiça" : "Fórum Clóvis Beviláqua"); setUnidadeVirtualInput(""); setOutroVirtualInput(""); }}
                                       className="text-xs px-2.5 py-1 rounded bg-purple-700 hover:bg-purple-600 text-white transition">
                                       Virtual
                                     </button>
@@ -809,7 +809,7 @@ export default function EscalaPage() {
               autoFocus
               className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
             >
-              {unidadesPresencial.map(u => (
+              {unidadesPresencial.filter(u => /f[oó]rum|tribunal|^tj$/i.test(u)).map(u => (
                 <option key={u} value={u}>{u}</option>
               ))}
             </select>

@@ -560,11 +560,11 @@ export default function EscalaPage() {
                                         setUnidadeInput(isTJ ? "Tribunal de Justiça" : "Fórum Clóvis Beviláqua");
                                         setModalPresencial({ colaboradorId: c.id, nome: c.nome });
                                       }}
-                                      className="text-xs px-2.5 py-1 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 transition">
+                                      className="text-xs px-2.5 py-1 rounded bg-gray-600 hover:bg-gray-500 text-white transition">
                                       Presencial
                                     </button>
                                     <button onClick={() => { setModalVirtual({ colaboradorId: c.id, nome: c.nome }); setUnidadeVirtualInput(""); setOutroVirtualInput(""); }}
-                                      className="text-xs px-2.5 py-1 rounded bg-purple-700 hover:bg-purple-600 text-white transition">
+                                      className="text-xs px-2.5 py-1 rounded bg-green-700 hover:bg-green-600 text-white transition">
                                       Virtual
                                     </button>
                                     <button onClick={() => { setModalRemoto({ colaboradorId: c.id, nome: c.nome }); setUnidadeRemotoInput(""); setOutroRemotoInput(""); }}
@@ -782,13 +782,13 @@ export default function EscalaPage() {
           <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-sm shadow-xl" onClick={e => e.stopPropagation()}>
             <h3 className="text-white font-semibold mb-1">Lançar como Forma Virtual</h3>
             <p className="text-gray-400 text-sm mb-2">{modalVirtual.nome}</p>
-            <p className="text-purple-400/80 text-xs mb-4">Presencial no Fórum, atendendo ao Núcleo de forma online</p>
+            <p className="text-green-400/80 text-xs mb-4">Presencial no Fórum, atendendo ao Núcleo de forma online</p>
             <label className="block text-xs text-gray-400 mb-1">Unidade <span className="text-gray-600">(opcional)</span></label>
             <select
               value={unidadeVirtualInput}
               onChange={e => { setUnidadeVirtualInput(e.target.value); setOutroVirtualInput(""); }}
               autoFocus
-              className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-green-500"
             >
               <option value="">Sem unidade específica</option>
               {unidadesPresencial.filter(u => !/f[oó]rum/i.test(u)).map(u => (
@@ -803,7 +803,7 @@ export default function EscalaPage() {
                 onChange={e => setOutroVirtualInput(e.target.value)}
                 placeholder="Digite a unidade..."
                 autoFocus
-                className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-green-500"
               />
             )}
             <div className="flex gap-2 justify-end">

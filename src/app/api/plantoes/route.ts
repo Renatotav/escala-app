@@ -21,7 +21,8 @@ async function getRanking() {
       ultimoTipo === "SABADO" || ultimoTipo === "PONTO_FACULTATIVO" ? "DUPLO" :
       ultimoTipo === "DOMINGO" || ultimoTipo === "FERIADO" ? "SIMPLES" : null;
 
-    return { id: c.id, nome: c.nome, equipe: c.equipe.nome, sabados, domFer, total: sabados + domFer, score, proximoDeve };
+    const semPlantao = (c as unknown as { semPlantao: boolean }).semPlantao ?? false;
+    return { id: c.id, nome: c.nome, equipe: c.equipe.nome, sabados, domFer, total: sabados + domFer, score, proximoDeve, semPlantao };
   });
 
   ranking.sort((a, b) => a.score - b.score || a.total - b.total || a.nome.localeCompare(b.nome));

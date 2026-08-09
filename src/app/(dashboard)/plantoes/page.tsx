@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-type Entry = { id: number; nome: string; equipe: string; sabados: number; domFer: number; total: number; score: number; proximoDeve: "DUPLO" | "SIMPLES" | null };
+type Entry = { id: number; nome: string; equipe: string; sabados: number; domFer: number; total: number; score: number; proximoDeve: "DUPLO" | "SIMPLES" | null; semPlantao: boolean };
 type Historico = { id: number; colaboradorId: number; data: string; tipo: string; folga1: string | null; folga2: string | null; descricao: string | null; colaborador: { nome: string; equipe: { nome: string } } };
 type Saldo = { id: number; nome: string; equipe: string; totalPlantoes: number; creditos: number; agendadas: number; pendentes: number };
 type Equipe = { id: number; nome: string };
@@ -131,6 +131,7 @@ export default function PlantoesPage() {
   const [equipes, setEquipes] = useState<Equipe[]>([]);
   const [filtroEquipe, setFiltroEquipe] = useState("");
   const [filtroColab, setFiltroColab] = useState("");
+  const [mostrarInativos, setMostrarInativos] = useState(false);
   const [modal, setModal] = useState<"novo" | "folga" | null>(null);
   const [selected, setSelected] = useState<Historico | null>(null);
   const [form, setForm] = useState(emptyForm);
@@ -410,7 +411,8 @@ export default function PlantoesPage() {
 
   const lista = ranking.filter(e =>
     (!filtroEquipe || e.equipe === filtroEquipe) &&
-    (!filtroColab || String(e.id) === filtroColab)
+    (!filtroColab || String(e.id) === filtroColab) &&
+    (mostrarInativos || !e.semPlantao)
   );
   const minScore = lista.length ? lista[0].score : 0;
   const maxScore = lista.length ? lista[lista.length - 1].score : 0;
@@ -624,6 +626,10 @@ export default function PlantoesPage() {
               <option value="">Todos os colaboradores</option>
               {rankingAlfabetico.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
             </select>
+            <button onClick={() => setMostrarInativos(v => !v)}
+              className={`px-3 py-2 text-xs rounded-lg border transition ${mostrarInativos ? "bg-gray-700 border-gray-500 text-gray-200" : "bg-gray-900 border-gray-700 text-gray-500 hover:text-gray-300"}`}>
+              {mostrarInativos ? "Ocultar inativos" : "Mostrar inativos"}
+            </button>
           </div>
 
           <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto">
@@ -677,7 +683,20 @@ export default function PlantoesPage() {
                         )}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        {isNext && <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/40 font-medium">Próximo</span>}
+                        <div className="flex items-center justify-end gap-2">
+                          {isNext && !entry.semPlantao && <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/40 font-medium">Próximo</span>}
+                          {entry.semPlantao && <span className="text-xs px-1.5 py-0.5 rounded bg-gray-700 text-gray-500">Inativo</span>}
+                          <button
+                            title={entry.semPlantao ? "Reativar na contagem" : "Retirar da contagem"}
+                            onClick={async () => {
+                              await fetch("/api/colaboradores", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: entry.id, semPlantao: !entry.semPlantao }) });
+                              const data = await fetch("/api/plantoes").then(r => r.json());
+                              setRanking(data);
+                            }}
+                            className={`text-xs px-2 py-1 rounded transition ${entry.semPlantao ? "bg-gray-700 hover:bg-gray-600 text-gray-400 hover:text-gray-200" : "bg-gray-800 hover:bg-gray-700 text-gray-600 hover:text-gray-400"}`}>
+                            {entry.semPlantao ? "↺ Reativar" : "🚫"}
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );

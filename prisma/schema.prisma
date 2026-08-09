@@ -48,6 +48,7 @@ model Colaborador {
   grupoListagem              String                 @default("FORA")
   ajusteSemanasPresencial    Int                    @default(0)
   semRemoto                  Boolean                @default(false)
+  semPlantao                 Boolean                @default(false)
   tokenAtendimento           String?                @unique
   ultimoAcessoAtendimento    DateTime?
   acessosAtendimento         Int                    @default(0)

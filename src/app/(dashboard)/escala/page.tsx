@@ -261,6 +261,7 @@ export default function EscalaPage() {
     const tj: string[] = [];
     const remotos: string[] = [];
     const remotosPorUnidade: Map<string, string[]> = new Map();
+    const virtuaisPorUnidade: Map<string, string[]> = new Map();
 
     for (const c of [...membros].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))) {
       if (c.escalaSemana === "PRESENCIAL") {
@@ -270,16 +271,11 @@ export default function EscalaPage() {
         else forum.push(c.nome.toUpperCase());
       } else if (c.escalaSemana === "VIRTUAL") {
         const parts = (c.unidadePresencial ?? "").split("||");
-        // Novo formato: "localFísico||unidadeVirtual"
-        // Formato antigo: apenas "unidadeVirtual" (sem ||) — default físico = Fórum
-        const localFisico = parts.length >= 2 ? parts[0].trim() : "";
-        const virtualUnit = parts.length >= 2 ? parts[1].trim() : parts[0].trim();
-        const entrada = virtualUnit
-          ? `${c.nome.toUpperCase()}\nForma Virtual - ${virtualUnit}`
-          : c.nome.toUpperCase();
-        if (/cust[oó]dia/i.test(localFisico)) custodia.push(entrada);
-        else if (/tribunal|^tj$/i.test(localFisico)) tj.push(entrada);
-        else forum.push(entrada); // inclui formato antigo (sem local físico) → vai pro Fórum
+        // Novo formato: "localFísico||unidadeVirtual" — usa unidade virtual como chave da seção
+        // Formato antigo: apenas "unidadeVirtual"
+        const virtualUnit = (parts.length >= 2 ? parts[1] : parts[0]).trim() || "Sem unidade";
+        if (!virtuaisPorUnidade.has(virtualUnit)) virtuaisPorUnidade.set(virtualUnit, []);
+        virtuaisPorUnidade.get(virtualUnit)!.push(c.nome.toUpperCase());
       } else if (c.escalaSemana === "REMOTO") {
         const u = (c.unidadePresencial?.split("||")[0] ?? "").trim();
         if (u) {
@@ -366,6 +362,10 @@ export default function EscalaPage() {
     }
 
     renderSecao("Presencial - Tribunal de Justiça", tj);
+    virtuaisPorUnidade.forEach((nomes, unidade) => {
+      const horario = /cust[oó]dia/i.test(unidade) ? custodiaHorario : undefined;
+      renderSecao(`Forma Virtual - ${unidade}`, nomes, { horario });
+    });
     remotosPorUnidade.forEach((nomes, unidade) => {
       renderSecao(`Remoto - ${unidade}`, nomes);
     });

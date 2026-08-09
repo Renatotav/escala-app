@@ -59,7 +59,8 @@ export default function EscalaPage() {
   const [unidadeRemotoInput, setUnidadeRemotoInput] = useState("");
   const [outroRemotoInput, setOutroRemotoInput] = useState("");
   const [modalVirtual, setModalVirtual] = useState<{ colaboradorId: number; nome: string } | null>(null);
-  const [unidadeVirtualInput, setUnidadeVirtualInput] = useState("");
+  const [localVirtualInput, setLocalVirtualInput] = useState("");   // onde está presencial
+  const [unidadeVirtualInput, setUnidadeVirtualInput] = useState(""); // qual unidade atende online
   const [outroVirtualInput, setOutroVirtualInput] = useState("");
 
   // Configurações dinâmicas
@@ -154,11 +155,15 @@ export default function EscalaPage() {
 
   async function confirmarVirtual() {
     if (!modalVirtual) return;
-    const unidade = unidadeVirtualInput === "__outro__"
-      ? outroVirtualInput.trim() || undefined
-      : unidadeVirtualInput || undefined;
-    await handleLancar(modalVirtual.colaboradorId, "VIRTUAL", unidade);
+    const localFisico = localVirtualInput || unidadesPresencial[0] || "";
+    const virtualUnit = unidadeVirtualInput === "__outro__"
+      ? outroVirtualInput.trim()
+      : unidadeVirtualInput;
+    // Formato: "localFísico||unidadeVirtual"
+    const unidade = virtualUnit ? `${localFisico}||${virtualUnit}` : localFisico || undefined;
+    await handleLancar(modalVirtual.colaboradorId, "VIRTUAL", unidade || undefined);
     setModalVirtual(null);
+    setLocalVirtualInput("");
     setUnidadeVirtualInput("");
     setOutroVirtualInput("");
   }
@@ -256,7 +261,6 @@ export default function EscalaPage() {
     const tj: string[] = [];
     const remotos: string[] = [];
     const remotosPorUnidade: Map<string, string[]> = new Map();
-    const virtuaisPorUnidade: Map<string, string[]> = new Map();
 
     for (const c of [...membros].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))) {
       if (c.escalaSemana === "PRESENCIAL") {
@@ -265,9 +269,16 @@ export default function EscalaPage() {
         else if (/tribunal|^tj$/i.test(u)) tj.push(c.nome.toUpperCase());
         else forum.push(c.nome.toUpperCase());
       } else if (c.escalaSemana === "VIRTUAL") {
-        const u = (c.unidadePresencial?.split("||")[0] ?? "").trim() || "Sem unidade";
-        if (!virtuaisPorUnidade.has(u)) virtuaisPorUnidade.set(u, []);
-        virtuaisPorUnidade.get(u)!.push(c.nome.toUpperCase());
+        const parts = (c.unidadePresencial ?? "").split("||");
+        const localFisico = parts[0].trim();
+        const virtualUnit = (parts[1] ?? "").trim();
+        // Nome com nota da unidade virtual logo abaixo
+        const entrada = virtualUnit
+          ? `${c.nome.toUpperCase()}\nForma Virtual - ${virtualUnit}`
+          : c.nome.toUpperCase();
+        if (/cust[oó]dia/i.test(localFisico)) custodia.push(entrada);
+        else if (/tribunal|^tj$/i.test(localFisico)) tj.push(entrada);
+        else forum.push(entrada);
       } else if (c.escalaSemana === "REMOTO") {
         const u = (c.unidadePresencial?.split("||")[0] ?? "").trim();
         if (u) {
@@ -354,10 +365,6 @@ export default function EscalaPage() {
     }
 
     renderSecao("Presencial - Tribunal de Justiça", tj);
-    virtuaisPorUnidade.forEach((nomes, unidade) => {
-      const horario = /cust[oó]dia/i.test(unidade) ? custodiaHorario : undefined;
-      renderSecao(`Forma Virtual - ${unidade}`, nomes, { horario });
-    });
     remotosPorUnidade.forEach((nomes, unidade) => {
       renderSecao(`Remoto - ${unidade}`, nomes);
     });
@@ -553,8 +560,10 @@ export default function EscalaPage() {
                                   </span>
                                   {c.unidadePresencial && (
                                     <p className={`text-xs mt-0.5 truncate ${c.escalaSemana === "REMOTO" ? "text-blue-300/70" : c.escalaSemana === "VIRTUAL" ? "text-purple-300/70" : "text-amber-400"}`}
-                                      title={c.unidadePresencial.split("||")[0]}>
-                                      {c.unidadePresencial.split("||")[0]}
+                                      title={c.escalaSemana === "VIRTUAL" ? (c.unidadePresencial.split("||")[1] || c.unidadePresencial.split("||")[0]) : c.unidadePresencial.split("||")[0]}>
+                                      {c.escalaSemana === "VIRTUAL"
+                                        ? (c.unidadePresencial.split("||")[1] || c.unidadePresencial.split("||")[0])
+                                        : c.unidadePresencial.split("||")[0]}
                                     </p>
                                   )}
                                 </div>
@@ -572,7 +581,7 @@ export default function EscalaPage() {
                                       className="text-xs px-2.5 py-1 rounded bg-amber-600 hover:bg-amber-500 text-white transition">
                                       Presencial
                                     </button>
-                                    <button onClick={() => { setModalVirtual({ colaboradorId: c.id, nome: c.nome }); setUnidadeVirtualInput(""); setOutroVirtualInput(""); }}
+                                    <button onClick={() => { setModalVirtual({ colaboradorId: c.id, nome: c.nome }); setLocalVirtualInput(unidadesPresencial[0] ?? ""); setUnidadeVirtualInput(""); setOutroVirtualInput(""); }}
                                       className="text-xs px-2.5 py-1 rounded bg-purple-700 hover:bg-purple-600 text-white transition">
                                       Virtual
                                     </button>
@@ -791,16 +800,26 @@ export default function EscalaPage() {
           <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-sm shadow-xl" onClick={e => e.stopPropagation()}>
             <h3 className="text-white font-semibold mb-1">Lançar como Forma Virtual</h3>
             <p className="text-gray-400 text-sm mb-2">{modalVirtual.nome}</p>
-            <p className="text-purple-400/80 text-xs mb-4">Presencial, atendendo uma unidade específica de forma online</p>
-            <label className="block text-xs text-gray-400 mb-1">Unidade <span className="text-gray-600">(opcional)</span></label>
+            <p className="text-purple-400/80 text-xs mb-4">Presencial no local de origem, atendendo outra unidade de forma online</p>
+            <label className="block text-xs text-gray-400 mb-1">Local presencial <span className="text-gray-600">(onde está fisicamente)</span></label>
+            <select
+              value={localVirtualInput}
+              onChange={e => setLocalVirtualInput(e.target.value)}
+              autoFocus
+              className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
+            >
+              {unidadesPresencial.map(u => (
+                <option key={u} value={u}>{u}</option>
+              ))}
+            </select>
+            <label className="block text-xs text-gray-400 mb-1">Unidade atendida virtualmente</label>
             <select
               value={unidadeVirtualInput}
               onChange={e => { setUnidadeVirtualInput(e.target.value); setOutroVirtualInput(""); }}
-              autoFocus
-              className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-green-500"
+              className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
             >
-              <option value="">Sem unidade específica</option>
-              {unidadesPresencial.filter(u => !/f[oó]rum/i.test(u)).map(u => (
+              <option value="">Selecione...</option>
+              {unidadesPresencial.filter(u => u !== localVirtualInput && !/f[oó]rum/i.test(u)).map(u => (
                 <option key={u} value={u}>{u}</option>
               ))}
               <option value="__outro__">Outros (digitar)</option>
@@ -811,8 +830,7 @@ export default function EscalaPage() {
                 value={outroVirtualInput}
                 onChange={e => setOutroVirtualInput(e.target.value)}
                 placeholder="Digite a unidade..."
-                autoFocus
-                className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
             )}
             <div className="flex gap-2 justify-end">

@@ -55,6 +55,9 @@ export default function EscalaPage() {
   const [unidadeInput, setUnidadeInput] = useState("");
   const [outroInput, setOutroInput] = useState("");
   const [horarioInput, setHorarioInput] = useState("");
+  const [modalRemoto, setModalRemoto] = useState<{ colaboradorId: number; nome: string } | null>(null);
+  const [unidadeRemotoInput, setUnidadeRemotoInput] = useState("");
+  const [outroRemotoInput, setOutroRemotoInput] = useState("");
 
   // Configurações dinâmicas
   const [unidadesPresencial, setUnidadesPresencial] = useState<string[]>(UNIDADES_PADRAO);
@@ -133,6 +136,17 @@ export default function EscalaPage() {
 
   function unidadeRequerHorario(u: string) {
     return /cust[oó]dia/i.test(u) || u === "__outro__";
+  }
+
+  async function confirmarRemoto() {
+    if (!modalRemoto) return;
+    const unidade = unidadeRemotoInput === "__outro__"
+      ? outroRemotoInput.trim() || undefined
+      : unidadeRemotoInput || undefined;
+    await handleLancar(modalRemoto.colaboradorId, "REMOTO", unidade);
+    setModalRemoto(null);
+    setUnidadeRemotoInput("");
+    setOutroRemotoInput("");
   }
 
   async function confirmarPresencial() {
@@ -227,6 +241,7 @@ export default function EscalaPage() {
     const custodia: string[] = [];
     const tj: string[] = [];
     const remotos: string[] = [];
+    const remotosPorUnidade: Map<string, string[]> = new Map();
 
     for (const c of [...membros].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))) {
       if (c.escalaSemana === "PRESENCIAL") {
@@ -235,7 +250,13 @@ export default function EscalaPage() {
         else if (/tribunal|^tj$/i.test(u)) tj.push(c.nome.toUpperCase());
         else forum.push(c.nome.toUpperCase());
       } else if (c.escalaSemana === "REMOTO") {
-        remotos.push(c.nome.toUpperCase());
+        const u = (c.unidadePresencial?.split("||")[0] ?? "").trim();
+        if (u) {
+          if (!remotosPorUnidade.has(u)) remotosPorUnidade.set(u, []);
+          remotosPorUnidade.get(u)!.push(c.nome.toUpperCase());
+        } else {
+          remotos.push(c.nome.toUpperCase());
+        }
       }
     }
 
@@ -314,6 +335,7 @@ export default function EscalaPage() {
     }
 
     renderSecao("Presencial - Tribunal de Justiça", tj);
+    remotosPorUnidade.forEach((nomes, unidade) => renderSecao(`Remoto - ${unidade}`, nomes));
     renderSecao("Remoto", remotos);
 
     doc.save(`escala-${semana}.pdf`);
@@ -504,8 +526,9 @@ export default function EscalaPage() {
                                   <span className={`text-xs font-medium ${c.escalaSemana === "REMOTO" ? "text-blue-400" : "text-gray-300"}`}>
                                     {c.escalaSemana === "REMOTO" ? "Remoto" : "Presencial"}
                                   </span>
-                                  {c.escalaSemana === "PRESENCIAL" && c.unidadePresencial && (
-                                    <p className="text-xs text-amber-400 mt-0.5 truncate" title={c.unidadePresencial.split("||")[0]}>
+                                  {c.unidadePresencial && (
+                                    <p className={`text-xs mt-0.5 truncate ${c.escalaSemana === "REMOTO" ? "text-blue-300/70" : "text-amber-400"}`}
+                                      title={c.unidadePresencial.split("||")[0]}>
                                       {c.unidadePresencial.split("||")[0]}
                                     </p>
                                   )}
@@ -524,7 +547,7 @@ export default function EscalaPage() {
                                       className="text-xs px-2.5 py-1 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 transition">
                                       Presencial
                                     </button>
-                                    <button onClick={() => handleLancar(c.id, "REMOTO")}
+                                    <button onClick={() => { setModalRemoto({ colaboradorId: c.id, nome: c.nome }); setUnidadeRemotoInput(""); setOutroRemotoInput(""); }}
                                       className="text-xs px-2.5 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white transition">
                                       Remoto
                                     </button>
@@ -728,6 +751,48 @@ export default function EscalaPage() {
               <button onClick={confirmarPresencial}
                 className="px-4 py-2 text-sm rounded-lg bg-gray-600 hover:bg-gray-500 text-white font-medium transition">
                 Confirmar Presencial
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Modal unidade remoto */}
+      {modalRemoto && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setModalRemoto(null)}>
+          <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-sm shadow-xl" onClick={e => e.stopPropagation()}>
+            <h3 className="text-white font-semibold mb-1">Lançar como Remoto</h3>
+            <p className="text-gray-400 text-sm mb-4">{modalRemoto.nome}</p>
+            <label className="block text-xs text-gray-400 mb-1">Local dedicado <span className="text-gray-600">(opcional)</span></label>
+            <select
+              value={unidadeRemotoInput}
+              onChange={e => { setUnidadeRemotoInput(e.target.value); setOutroRemotoInput(""); }}
+              autoFocus
+              className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Sem local específico</option>
+              {unidadesPresencial.filter(u => !/f[oó]rum/i.test(u)).map(u => (
+                <option key={u} value={u}>{u}</option>
+              ))}
+              <option value="__outro__">Outros (digitar)</option>
+            </select>
+            {unidadeRemotoInput === "__outro__" && (
+              <input
+                type="text"
+                value={outroRemotoInput}
+                onChange={e => setOutroRemotoInput(e.target.value)}
+                placeholder="Digite a unidade..."
+                autoFocus
+                className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            )}
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setModalRemoto(null)}
+                className="px-4 py-2 text-sm rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 transition">
+                Cancelar
+              </button>
+              <button onClick={confirmarRemoto}
+                className="px-4 py-2 text-sm rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium transition">
+                Confirmar Remoto
               </button>
             </div>
           </div>

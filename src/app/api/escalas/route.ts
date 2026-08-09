@@ -104,8 +104,11 @@ export async function GET(request: NextRequest) {
     const escalaRegistro = semana
       ? c.escalas.find((e) => new Date(e.semana).toISOString().slice(0, 10) === semana) ?? null
       : null;
-    const escalaSemana = escalaRegistro?.tipo ?? null;
-    const unidadePresencial = escalaRegistro?.unidade ?? null;
+    const semRemoto = (c as unknown as { semRemoto: boolean }).semRemoto ?? false;
+    // Pessoas sem remoto sempre aparecem como Presencial, mesmo sem lançamento manual
+    const escalaSemana = escalaRegistro?.tipo ?? (semRemoto ? "PRESENCIAL" : null);
+    const unidadePresencial = escalaRegistro?.unidade
+      ?? (semRemoto && !escalaRegistro ? (escalasAte.find(e => e.tipo === "PRESENCIAL")?.unidade ?? null) : null);
 
     return {
       id: c.id,
@@ -118,7 +121,7 @@ export async function GET(request: NextRequest) {
       sinal,
       escalaSemana,
       unidadePresencial,
-      semRemoto: (c as unknown as { semRemoto: boolean }).semRemoto ?? false,
+      semRemoto,
       whatsapp: whatsappColaboradorId === c.id,
     };
   });

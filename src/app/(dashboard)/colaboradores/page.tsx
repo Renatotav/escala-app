@@ -264,7 +264,6 @@ export default function ColaboradoresPage() {
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-2">
                     <button onClick={() => openEdit(c)} className="text-xs text-blue-400 hover:text-blue-300 transition">Editar</button>
-                    <button onClick={() => handleDelete(c.id)} className="text-xs text-gray-600 hover:text-red-400 transition">Excluir</button>
                   </div>
                 </td>
               </tr>

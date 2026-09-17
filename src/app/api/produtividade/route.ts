@@ -122,64 +122,50 @@ export async function GET(request: NextRequest) {
     if (atendente) statsConditions.push({ usuarioFechamento: atendente });
     const whereStats = statsConditions.length === 0 ? {} : statsConditions.length === 1 ? statsConditions[0] : { AND: statsConditions };
 
-    // Produtividade: recebidos + resolvidos + TMR
+    // Produtividade: classifica cada registro por situacaoRegra
     const todos = await prisma.produtividade.findMany({
-      select: { usuarioFechamento: true, dataAbertura: true, dataResolucao: true },
+      select: { usuarioFechamento: true, dataAbertura: true, dataResolucao: true, situacaoRegra: true },
       where: whereStats,
     });
 
-    type Acc = { recebidos: number; resolvidos: number; tmrHorasSum: number; tmrCount: number };
+    type Acc = { recebidos: number; resolvidos: number; emAberto: number; pausados: number; tmrHorasSum: number; tmrCount: number };
     const grupos = new Map<string, Acc>();
 
     for (const r of todos) {
       const usuario = r.usuarioFechamento || "(Sem usuário)";
-      if (!grupos.has(usuario)) grupos.set(usuario, { recebidos: 0, resolvidos: 0, tmrHorasSum: 0, tmrCount: 0 });
+      if (!grupos.has(usuario)) grupos.set(usuario, { recebidos: 0, resolvidos: 0, emAberto: 0, pausados: 0, tmrHorasSum: 0, tmrCount: 0 });
       const g = grupos.get(usuario)!;
       g.recebidos++;
-      g.resolvidos++;
-      if (r.dataAbertura && r.dataResolucao) {
-        const diffH = (new Date(r.dataResolucao).getTime() - new Date(r.dataAbertura).getTime()) / 3_600_000;
-        if (diffH >= 0) { g.tmrHorasSum += diffH; g.tmrCount++; }
-      }
-    }
 
-    // Chamados (Assyst): Em Aberto e Pausados por nomeUsuarioAtribuido
-    const chamados = await prisma.chamado.findMany({
-      select: { nomeUsuarioAtribuido: true, estado: true },
-    });
+      const sr = (r.situacaoRegra || "").toLowerCase();
+      const isPausado = sr.includes("parar") || sr.includes("paus") || sr.includes("suspen") || sr.includes("aguard");
+      const isResolvido = !isPausado && (r.dataResolucao != null || sr.includes("resolvid") || sr.includes("fechad") || sr.includes("cancela") || sr.includes("encerrad"));
 
-    const chamadosAberto  = new Map<string, number>();
-    const chamadosPausado = new Map<string, number>();
-    for (const c of chamados) {
-      const nome = c.nomeUsuarioAtribuido;
-      if (!nome) continue;
-      const est = (c.estado || "").toLowerCase();
-      const isPausado = est.includes("paus") || est.includes("parar") || est.includes("aguard") || est.includes("espera") || est.includes("suspen");
-      const isResolvido = est.includes("resolvid") || est.includes("fechad") || est.includes("cancela");
-      const key = normName(nome);
       if (isPausado) {
-        chamadosPausado.set(key, (chamadosPausado.get(key) ?? 0) + 1);
-      } else if (!isResolvido) {
-        chamadosAberto.set(key, (chamadosAberto.get(key) ?? 0) + 1);
+        g.pausados++;
+      } else if (isResolvido) {
+        g.resolvidos++;
+        if (r.dataAbertura && r.dataResolucao) {
+          const diffH = (new Date(r.dataResolucao).getTime() - new Date(r.dataAbertura).getTime()) / 3_600_000;
+          if (diffH >= 0) { g.tmrHorasSum += diffH; g.tmrCount++; }
+        }
+      } else {
+        g.emAberto++;
       }
     }
 
     const stats = [...grupos.entries()]
       .map(([usuario, g]) => {
         const tmrH = g.tmrCount > 0 ? g.tmrHorasSum / g.tmrCount : 0;
-        const normUsuario = normName(usuario);
-        const emAberto  = chamadosAberto.get(normUsuario)  ?? 0;
-        const pausados  = chamadosPausado.get(normUsuario) ?? 0;
-        const resolvidos = g.resolvidos;
-        const total = resolvidos + emAberto + pausados;
+        const total = g.resolvidos + g.emAberto + g.pausados;
         return {
           usuario,
           equipe: resolveEquipe(usuario),
           recebidos: g.recebidos,
-          emAberto,
-          pausados,
-          resolvidos,
-          taxaResolucao: total > 0 ? (resolvidos / total) * 100 : 0,
+          emAberto: g.emAberto,
+          pausados: g.pausados,
+          resolvidos: g.resolvidos,
+          taxaResolucao: total > 0 ? (g.resolvidos / total) * 100 : 0,
           tmrHoras: Math.round(tmrH),
           tmrDias: Math.round(tmrH / 24),
         };

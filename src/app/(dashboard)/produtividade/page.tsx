@@ -181,7 +181,7 @@ function BarrasProd({ itens, total }: { itens: { nome: string; total: number }[]
 
 function TaxaBadge({ taxa }: { taxa: number }) {
   const t = taxa;
-  const bg = t >= 100 ? "bg-green-800" : t >= 98 ? "bg-green-700" : t >= 95 ? "bg-green-600" : t >= 90 ? "bg-yellow-600" : "bg-red-700";
+  const bg = t >= 98 ? "bg-green-800" : t >= 95 ? "bg-green-700" : t >= 90 ? "bg-green-600" : t >= 80 ? "bg-yellow-600" : "bg-red-700";
   return (
     <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold text-white ${bg} min-w-[52px] text-center`}>
       {t.toFixed(1)}%

@@ -430,11 +430,12 @@ export default function ProdutividadePage() {
       7: { cellWidth: 20, halign: "right"  as const },
       8: { cellWidth: 22, halign: "right"  as const },
     };
-    const SUB_HEAD = ["Nº", "Atendente", "Recebidos", "Em Aberto", "Pausados", "Resolvidos", "Taxa Resolução", "TMR Dias", "TMR Horas"];
 
     function taxaColor(taxa: number): [number, number, number] {
       return taxa >= 85 ? [34, 197, 94] : taxa >= 80 ? [161, 98, 7] : [185, 28, 28];
     }
+
+    const COL_HEAD = ["Nº", "Atendente", "Recebidos", "Em Aberto", "Pausados", "Resolvidos", "Taxa Resolução", "TMR Dias", "TMR Horas"];
 
     for (const [eq, usuarios] of equipesSorted) {
       const eqResolvidos = usuarios.reduce((s, u) => s + u.resolvidos, 0);
@@ -450,23 +451,33 @@ export default function ProdutividadePage() {
         String(u.tmrDias  || "—"),
         String(u.tmrHoras || "—"),
       ]);
+
+      // Título da equipe como texto acima da tabela
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(30, 41, 59);
+      doc.text(`${eq}  —  ${eqResolvidos.toLocaleString("pt-BR")} resolvidos (${pct}%)`, 14, y + 5);
+      y += 9;
+
       autoTable(doc, {
         startY: y,
-        head: [
-          [{ content: `${eq}  -  ${eqResolvidos.toLocaleString("pt-BR")} resolvidos (${pct}%)`, colSpan: 9 }],
-          SUB_HEAD,
-        ],
+        head: [COL_HEAD],
         body: rows,
         columnStyles: COL_STYLES,
-        headStyles: { fillColor: [30, 41, 59], textColor: [200, 200, 220], fontStyle: "bold", fontSize: 8 },
+        headStyles: { fillColor: [51, 65, 85], textColor: [200, 200, 220], fontStyle: "bold", fontSize: 7.5 },
         bodyStyles: { fontSize: 7.5, textColor: [40, 40, 40] },
         alternateRowStyles: { fillColor: [248, 250, 252] },
         margin: { left: 14, right: 14 },
         didParseCell: (data) => {
-          if (data.section === "head" && data.row.index === 0) {
-            data.cell.styles.fontSize = 9;
-          }
           if (data.section !== "body") return;
+          if (data.column.index === 3) {
+            const v = String(data.cell.raw ?? "");
+            if (v !== "—") { data.cell.styles.textColor = [180, 83, 9]; data.cell.styles.fontStyle = "bold"; }
+          }
+          if (data.column.index === 4) {
+            const v = String(data.cell.raw ?? "");
+            if (v !== "—") { data.cell.styles.textColor = [194, 65, 12]; data.cell.styles.fontStyle = "bold"; }
+          }
           if (data.column.index === 6) {
             const txt = String(data.cell.raw ?? "").replace("%", "").trim();
             const taxa = parseFloat(txt);

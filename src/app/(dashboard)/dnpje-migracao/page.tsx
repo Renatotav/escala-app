@@ -163,7 +163,7 @@ export default function DnpjeMigracaoPage() {
     <div>
       <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
         <div>
-          <h2 className="text-xl font-semibold text-white">DNPJE MIGRAÇÃO</h2>
+          <h2 className="text-xl font-semibold text-white">Dnpje Migração</h2>
           <p className="text-sm text-gray-400 mt-0.5">Listagem de chamados por equipe</p>
         </div>
         <div className="flex gap-2 flex-wrap">
@@ -344,7 +344,7 @@ export default function DnpjeMigracaoPage() {
       {importModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4">
           <div className="bg-gray-900 border border-gray-800 rounded-xl w-full max-w-md p-6">
-            <h3 className="text-base font-semibold text-white mb-1">Importar Chamados DNPJE MIGRAÇÃO</h3>
+            <h3 className="text-base font-semibold text-white mb-1">Importar Chamados Dnpje Migração</h3>
             <p className="text-xs text-gray-400 mb-4">Selecione o arquivo exportado do Power BI (.ods ou .xlsx).</p>
             <div className="border-2 border-dashed border-gray-700 hover:border-red-600 rounded-lg p-6 text-center cursor-pointer transition"
               onClick={() => fileRef.current?.click()}>

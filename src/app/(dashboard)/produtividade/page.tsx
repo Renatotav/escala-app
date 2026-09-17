@@ -472,7 +472,7 @@ export default function ProdutividadePage() {
           if (data.section !== "body") return;
           if (data.column.index === 3) {
             const v = String(data.cell.raw ?? "");
-            if (v !== "—") { data.cell.styles.textColor = [217, 119, 6]; data.cell.styles.fontStyle = "bold"; }
+            if (v !== "—") { data.cell.styles.textColor = [202, 138, 4]; data.cell.styles.fontStyle = "bold"; }
           }
           if (data.column.index === 4) {
             const v = String(data.cell.raw ?? "");

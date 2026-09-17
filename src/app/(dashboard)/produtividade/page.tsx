@@ -256,46 +256,34 @@ export default function ProdutividadePage() {
         </div>
       )}
 
-      {/* Filtro por equipe no Quantitativo */}
-      {view === "quantitativo" && equipes.length > 0 && (
-        <div className="flex items-center gap-2 mb-4">
-          <select value={equipe} onChange={e => setEquipe(e.target.value)}
-            className="bg-gray-900 border border-gray-700 text-white text-xs rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[200px]">
-            <option value="">Todas as equipes</option>
-            {equipes.map(eq => <option key={eq} value={eq}>{eq}</option>)}
-          </select>
-          {equipe && (
-            <button onClick={() => setEquipe("")}
-              className="text-xs px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white border border-gray-700 transition">
-              Limpar filtro
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Filtros (Lista) */}
-      {view === "lista" && totalRegistros > 0 && (
+      {/* Filtros (Lista + Quantitativo) */}
+      {totalRegistros > 0 && (
         <div className="flex flex-wrap items-center gap-2 mb-4">
-          <div className="relative">
-            <input type="text" value={busca} onChange={e => setBusca(e.target.value)}
-              placeholder="Pesquisar chamado..."
-              className="bg-gray-900 border border-gray-700 text-white text-xs rounded-lg pl-7 pr-7 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[200px]" />
-            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 text-xs pointer-events-none">🔍</span>
-            {busca && <button onClick={() => setBusca("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white text-xs">✕</button>}
-          </div>
+          {/* Equipe */}
           {equipes.length > 0 && (
             <select value={equipe} onChange={e => { setEquipe(e.target.value); setAtendente(""); }}
-              className="bg-gray-900 border border-gray-700 text-white text-xs rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[180px]">
+              className="bg-gray-900 border border-gray-700 text-white text-xs rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-48">
               <option value="">Todas as equipes</option>
               {equipes.map(eq => <option key={eq} value={eq}>{eq}</option>)}
             </select>
           )}
-          {atendentes.length > 0 && (
+          {/* Atendente — só na Lista */}
+          {view === "lista" && atendentes.length > 0 && (
             <select value={atendente} onChange={e => setAtendente(e.target.value)}
-              className="bg-gray-900 border border-gray-700 text-white text-xs rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[200px]">
+              className="bg-gray-900 border border-gray-700 text-white text-xs rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-56">
               <option value="">Todos os atendentes</option>
               {atendentes.map(a => <option key={a} value={a}>{a}</option>)}
             </select>
+          )}
+          {/* Busca — só na Lista */}
+          {view === "lista" && (
+            <div className="relative">
+              <input type="text" value={busca} onChange={e => setBusca(e.target.value)}
+                placeholder="Pesquisar chamado..."
+                className="bg-gray-900 border border-gray-700 text-white text-xs rounded-lg pl-7 pr-7 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-48" />
+              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 text-xs pointer-events-none">🔍</span>
+              {busca && <button onClick={() => setBusca("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white text-xs">✕</button>}
+            </div>
           )}
           {temFiltro && (
             <button onClick={() => { setBusca(""); setEquipe(""); setAtendente(""); }}

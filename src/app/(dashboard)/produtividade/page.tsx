@@ -37,6 +37,7 @@ export default function ProdutividadePage() {
   const [importModal, setImportModal] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [importResult, setImportResult] = useState<{ count?: number; skipped?: number; error?: string } | null>(null);
+  const [descModal, setDescModal] = useState<string | null>(null);
   const [busca, setBusca] = useState("");
   const [substituir, setSubstituir] = useState(true);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -220,9 +221,17 @@ export default function ProdutividadePage() {
                 </td>
                 <td className="px-4 py-3 text-gray-300 text-xs font-mono whitespace-nowrap">{fmtDateTime(r.dataResolucao)}</td>
                 <td className="px-4 py-3 text-gray-300 text-xs">
-                  <span className="block truncate" title={r.descricaoResolucao ?? ""}>
-                    {r.descricaoResolucao || "—"}
-                  </span>
+                  <div className="flex items-center gap-1 min-w-0">
+                    <span className="truncate">{r.descricaoResolucao || "—"}</span>
+                    {r.descricaoResolucao && (
+                      <button
+                        onClick={() => setDescModal(r.descricaoResolucao)}
+                        className="shrink-0 text-gray-500 hover:text-blue-400 transition text-xs leading-none"
+                        title="Ver completo">
+                        ↗
+                      </button>
+                    )}
+                  </div>
                 </td>
                 <td className="px-4 py-3">
                   {r.situacaoRegra ? (
@@ -257,6 +266,19 @@ export default function ProdutividadePage() {
               className="px-3 py-1.5 text-xs rounded-lg bg-gray-800 hover:bg-gray-700 disabled:opacity-40 text-gray-300 transition">
               Próxima →
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Descrição Completa */}
+      {descModal !== null && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4" onClick={() => setDescModal(null)}>
+          <div className="bg-gray-900 border border-gray-800 rounded-xl w-full max-w-lg p-6" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-white">Descrição da Resolução</h3>
+              <button onClick={() => setDescModal(null)} className="text-gray-500 hover:text-white text-lg leading-none">✕</button>
+            </div>
+            <p className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">{descModal}</p>
           </div>
         </div>
       )}

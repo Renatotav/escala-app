@@ -333,13 +333,13 @@ export default function ProdutividadePage() {
               {anosDisponiveis.map(a => <option key={a} value={String(a)}>{a}</option>)}
             </select>
           </div>
-          <div className="flex items-center gap-1.5 bg-gray-900 border border-gray-800 rounded-lg px-3 py-2">
+          <div className="flex items-center gap-1 bg-gray-900 border border-gray-800 rounded-lg px-3 py-2">
             <span className="text-xs text-gray-500 whitespace-nowrap">Data Receb.</span>
             <input type="date" value={dataRecDe} onChange={e => setDataRecDe(e.target.value)}
-              className="bg-transparent text-white text-xs focus:outline-none w-32" />
+              className="bg-transparent text-white text-xs focus:outline-none p-0 w-[105px]" />
             <span className="text-gray-600 text-xs">→</span>
             <input type="date" value={dataRecAte} onChange={e => setDataRecAte(e.target.value)}
-              className="bg-transparent text-white text-xs focus:outline-none w-32" />
+              className="bg-transparent text-white text-xs focus:outline-none p-0 w-[105px]" />
           </div>
           {/* Resolução */}
           <div className="flex items-center gap-1.5 bg-gray-900 border border-gray-800 rounded-lg px-3 py-2">
@@ -350,13 +350,13 @@ export default function ProdutividadePage() {
               {anosDisponiveis.map(a => <option key={a} value={String(a)}>{a}</option>)}
             </select>
           </div>
-          <div className="flex items-center gap-1.5 bg-gray-900 border border-gray-800 rounded-lg px-3 py-2">
+          <div className="flex items-center gap-1 bg-gray-900 border border-gray-800 rounded-lg px-3 py-2">
             <span className="text-xs text-gray-500 whitespace-nowrap">Data Resolução</span>
             <input type="date" value={dataResDe} onChange={e => setDataResDe(e.target.value)}
-              className="bg-transparent text-white text-xs focus:outline-none w-32" />
+              className="bg-transparent text-white text-xs focus:outline-none p-0 w-[105px]" />
             <span className="text-gray-600 text-xs">→</span>
             <input type="date" value={dataResAte} onChange={e => setDataResAte(e.target.value)}
-              className="bg-transparent text-white text-xs focus:outline-none w-32" />
+              className="bg-transparent text-white text-xs focus:outline-none p-0 w-[105px]" />
           </div>
         </div>
         </div>

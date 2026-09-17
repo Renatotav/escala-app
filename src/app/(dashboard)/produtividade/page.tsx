@@ -29,6 +29,40 @@ function fmtDateTime(iso: string | null) {
   });
 }
 
+function diasResolucao(abertura: string | null, resolucao: string | null): number | null {
+  if (!abertura || !resolucao) return null;
+  return Math.max(0, Math.floor((new Date(resolucao).getTime() - new Date(abertura).getTime()) / 86400000));
+}
+
+function DiasBadge({ dias }: { dias: number }) {
+  if (dias > 30) {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-600 text-white text-xs font-bold animate-pulse">
+        ⚠ {dias}d
+      </span>
+    );
+  }
+  if (dias > 14) {
+    return (
+      <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-yellow-500 text-black text-xs font-bold">
+        {dias}d
+      </span>
+    );
+  }
+  if (dias > 3) {
+    return (
+      <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-600 text-white text-xs font-bold">
+        {dias}d
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-green-600 text-white text-xs font-bold">
+      {dias}d
+    </span>
+  );
+}
+
 export default function ProdutividadePage() {
   const [dados, setDados] = useState<Dados | null>(null);
   const [loading, setLoading] = useState(true);
@@ -184,11 +218,11 @@ export default function ProdutividadePage() {
       <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto">
         <table className="w-full text-sm table-fixed">
           <colgroup>
-            <col className="w-[10%]" />
+            <col className="w-[14%]" />
             <col className="w-[13%]" />
             <col className="w-[16%]" />
             <col className="w-[13%]" />
-            <col className="w-[35%]" />
+            <col className="w-[31%]" />
             <col className="w-[13%]" />
           </colgroup>
           <thead>
@@ -210,12 +244,25 @@ export default function ProdutividadePage() {
                 {totalRegistros === 0 ? "Nenhum registro importado" : "Nenhum registro encontrado"}
               </td></tr>
             )}
-            {registros.map(r => (
+            {registros.map(r => {
+              const dias = diasResolucao(r.dataAbertura, r.dataResolucao);
+              return (
               <tr key={r.id} className="border-b border-gray-800 last:border-0 hover:bg-gray-800/50 transition">
-                <td className="px-4 py-3 text-blue-400 font-mono font-medium text-xs">{r.numeroChamado}</td>
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <a
+                      href={`https://cati.tjce.jus.br/assystnet/#events/${r.numeroChamado}?eventType=1&currentIndex=0`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-400 hover:text-blue-300 font-mono font-medium text-xs hover:underline transition">
+                      {r.numeroChamado}
+                    </a>
+                    {dias !== null && <DiasBadge dias={dias} />}
+                  </div>
+                </td>
                 <td className="px-4 py-3 text-gray-300 text-xs font-mono whitespace-nowrap">{fmtDateTime(r.dataAbertura)}</td>
                 <td className="px-4 py-3">
-                  <span className="text-xs px-2 py-0.5 rounded bg-gray-700 text-gray-300 truncate block max-w-full">
+                  <span className="text-xs px-2 py-0.5 rounded bg-blue-900/50 text-blue-300 border border-blue-700/40 truncate block max-w-full">
                     {r.usuarioFechamento ?? "—"}
                   </span>
                 </td>
@@ -245,7 +292,7 @@ export default function ProdutividadePage() {
                   ) : <span className="text-gray-600 text-xs">—</span>}
                 </td>
               </tr>
-            ))}
+            );})}
           </tbody>
         </table>
       </div>

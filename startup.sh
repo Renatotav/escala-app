@@ -130,6 +130,7 @@ async function migrate() {
     \"id\" SERIAL PRIMARY KEY,
     \"numeroChamado\" TEXT NOT NULL,
     \"dataAbertura\" TIMESTAMP(3),
+    \"equipeAtribuida\" TEXT,
     \"usuarioFechamento\" TEXT,
     \"dataResolucao\" TIMESTAMP(3),
     \"situacaoRegra\" TEXT,
@@ -137,6 +138,8 @@ async function migrate() {
   )\`);
   // LGPD: remove descricaoResolucao se existir
   try { await client.query(\`ALTER TABLE \"Produtividade\" DROP COLUMN IF EXISTS \"descricaoResolucao\"\`); } catch(e) {}
+  // Add equipeAtribuida if table existed before
+  try { await client.query(\`ALTER TABLE \"Produtividade\" ADD COLUMN IF NOT EXISTS \"equipeAtribuida\" TEXT\`); } catch(e) {}
 
   // DnpjeMigracao table
   await client.query(\`CREATE TABLE IF NOT EXISTS \"DnpjeMigracao\" (

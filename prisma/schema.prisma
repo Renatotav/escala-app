@@ -273,6 +273,7 @@ model Produtividade {
   id                Int       @id @default(autoincrement())
   numeroChamado     String
   dataAbertura      DateTime?
+  equipeAtribuida   String?
   usuarioFechamento String?
   dataResolucao     DateTime?
   situacaoRegra     String?

@@ -6,6 +6,7 @@ type Produtividade = {
   id: number;
   numeroChamado: string;
   dataAbertura: string | null;
+  equipeAtribuida: string | null;
   usuarioFechamento: string | null;
   dataResolucao: string | null;
   situacaoRegra: string | null;
@@ -17,6 +18,8 @@ type Dados = {
   page: number;
   totalPages: number;
   totalRegistros: number;
+  equipes: string[];
+  atendentes: string[];
 };
 
 function fmtDateTime(iso: string | null) {
@@ -71,13 +74,17 @@ export default function ProdutividadePage() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [importResult, setImportResult] = useState<{ count?: number; skipped?: number; error?: string } | null>(null);
   const [busca, setBusca] = useState("");
+  const [equipe, setEquipe] = useState("");
+  const [atendente, setAtendente] = useState("");
   const [substituir, setSubstituir] = useState(true);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  function load(pg = 1, buscaQ = "") {
+  function load(pg = 1, buscaQ = "", equipeQ = "", atendenteQ = "") {
     setLoading(true);
     const params = new URLSearchParams({ page: String(pg) });
     if (buscaQ) params.set("busca", buscaQ);
+    if (equipeQ) params.set("equipe", equipeQ);
+    if (atendenteQ) params.set("atendente", atendenteQ);
     fetch(`/api/produtividade?${params}`)
       .then(r => r.json())
       .then((d: Dados) => { setDados(d); setLoading(false); });
@@ -86,10 +93,10 @@ export default function ProdutividadePage() {
   useEffect(() => { load(); }, []);
 
   useEffect(() => {
-    const t = setTimeout(() => load(1, busca), 300);
+    const t = setTimeout(() => load(1, busca, equipe, atendente), 300);
     return () => clearTimeout(t);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [busca]);
+  }, [busca, equipe, atendente]);
 
   async function handleImport() {
     if (selectedFiles.length === 0) return;
@@ -114,13 +121,14 @@ export default function ProdutividadePage() {
     setImportResult({ count: totalCount, skipped: totalSkipped });
     setImportModal(false);
     setSelectedFiles([]);
-    load(1, busca);
+    load(1, busca, equipe, atendente);
     setImporting(false);
   }
 
   async function handleLimpar() {
     if (!confirm("Limpar todos os registros de produtividade importados?")) return;
     await fetch("/api/produtividade", { method: "DELETE" });
+    setEquipe(""); setAtendente(""); setBusca("");
     load();
   }
 
@@ -129,6 +137,8 @@ export default function ProdutividadePage() {
     try {
       const params = new URLSearchParams({ export: "1" });
       if (busca) params.set("busca", busca);
+      if (equipe) params.set("equipe", equipe);
+      if (atendente) params.set("atendente", atendente);
       const res = await fetch(`/api/produtividade?${params}`);
       const data = await res.json();
       const todos: Produtividade[] = data.registros ?? [];
@@ -151,6 +161,9 @@ export default function ProdutividadePage() {
   const page = dados?.page ?? 1;
   const totalPages = dados?.totalPages ?? 1;
   const total = dados?.total ?? 0;
+  const equipes = dados?.equipes ?? [];
+  const atendentes = dados?.atendentes ?? [];
+  const temFiltro = !!(busca || equipe || atendente);
 
   return (
     <div>
@@ -193,22 +206,47 @@ export default function ProdutividadePage() {
         </div>
       )}
 
-      {/* Pesquisa */}
+      {/* Filtros */}
       {totalRegistros > 0 && (
-        <div className="mb-4">
-          <div className="relative w-fit">
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          <div className="relative">
             <input
               type="text"
               value={busca}
               onChange={e => setBusca(e.target.value)}
-              placeholder="Pesquisar chamado ou usuário..."
-              className="bg-gray-900 border border-gray-700 text-white text-xs rounded-lg pl-7 pr-7 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[240px]"
+              placeholder="Pesquisar chamado..."
+              className="bg-gray-900 border border-gray-700 text-white text-xs rounded-lg pl-7 pr-7 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[200px]"
             />
             <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 text-xs pointer-events-none">🔍</span>
             {busca && (
               <button onClick={() => setBusca("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white text-xs">✕</button>
             )}
           </div>
+          {equipes.length > 0 && (
+            <select
+              value={equipe}
+              onChange={e => { setEquipe(e.target.value); setAtendente(""); }}
+              className="bg-gray-900 border border-gray-700 text-white text-xs rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[180px]">
+              <option value="">Todas as equipes</option>
+              {equipes.map(eq => <option key={eq} value={eq}>{eq}</option>)}
+            </select>
+          )}
+          {atendentes.length > 0 && (
+            <select
+              value={atendente}
+              onChange={e => { setAtendente(e.target.value); }}
+              className="bg-gray-900 border border-gray-700 text-white text-xs rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[200px]">
+              <option value="">Todos os atendentes</option>
+              {atendentes.map(a => <option key={a} value={a}>{a}</option>)}
+            </select>
+          )}
+          {temFiltro && (
+            <button
+              onClick={() => { setBusca(""); setEquipe(""); setAtendente(""); }}
+              className="text-xs px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white border border-gray-700 transition">
+              Limpar filtros
+            </button>
+          )}
         </div>
       )}
 
@@ -287,12 +325,12 @@ export default function ProdutividadePage() {
             Exibindo <span className="text-gray-300">{(page - 1) * 100 + 1}–{Math.min(page * 100, total)}</span> de <span className="text-gray-300">{total.toLocaleString("pt-BR")}</span> registros
           </p>
           <div className="flex items-center gap-2">
-            <button onClick={() => load(page - 1, busca)} disabled={page === 1}
+            <button onClick={() => load(page - 1, busca, equipe, atendente)} disabled={page === 1}
               className="px-3 py-1.5 text-xs rounded-lg bg-gray-800 hover:bg-gray-700 disabled:opacity-40 text-gray-300 transition">
               ← Anterior
             </button>
             <span className="text-xs text-gray-400">Página {page} de {totalPages}</span>
-            <button onClick={() => load(page + 1, busca)} disabled={page === totalPages}
+            <button onClick={() => load(page + 1, busca, equipe, atendente)} disabled={page === totalPages}
               className="px-3 py-1.5 text-xs rounded-lg bg-gray-800 hover:bg-gray-700 disabled:opacity-40 text-gray-300 transition">
               Próxima →
             </button>

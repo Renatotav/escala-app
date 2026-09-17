@@ -14,6 +14,7 @@ function normalize(s: string) {
 const HEADER_MAP: Record<string, string> = {
   "numero do chamado":          "numeroChamado",
   "data/hora da abertura":      "dataAbertura",
+  "equipe atribuida":           "equipeAtribuida",
   "usuario fechamento":         "usuarioFechamento",
   "data/hora da resolucao":     "dataResolucao",
   "situacao regra":             "situacaoRegra",
@@ -61,6 +62,7 @@ export async function POST(request: NextRequest) {
     const rows: {
       numeroChamado: string;
       dataAbertura: string | null;
+      equipeAtribuida: string | null;
       usuarioFechamento: string | null;
       dataResolucao: string | null;
       situacaoRegra: string | null;
@@ -79,6 +81,7 @@ export async function POST(request: NextRequest) {
       rows.push({
         numeroChamado,
         dataAbertura: toIso(obj.dataAbertura),
+        equipeAtribuida: obj.equipeAtribuida ? String(obj.equipeAtribuida).trim() : null,
         usuarioFechamento: obj.usuarioFechamento ? String(obj.usuarioFechamento).trim() : null,
         dataResolucao: toIso(obj.dataResolucao),
         situacaoRegra: obj.situacaoRegra ? String(obj.situacaoRegra).trim() : null,
@@ -109,6 +112,7 @@ export async function POST(request: NextRequest) {
       data: insertRows.map(r => ({
         numeroChamado: r.numeroChamado,
         dataAbertura: r.dataAbertura ? new Date(r.dataAbertura) : null,
+        equipeAtribuida: r.equipeAtribuida || null,
         usuarioFechamento: r.usuarioFechamento || null,
         dataResolucao: r.dataResolucao ? new Date(r.dataResolucao) : null,
         situacaoRegra: r.situacaoRegra || null,

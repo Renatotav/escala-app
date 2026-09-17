@@ -420,6 +420,22 @@ export default function ProdutividadePage() {
       y = chartY + chartSz + 8;
     }
 
+    const COL_STYLES = {
+      0: { cellWidth: 7,  halign: "center" as const },
+      2: { cellWidth: 18, halign: "right"  as const },
+      3: { cellWidth: 18, halign: "right"  as const },
+      4: { cellWidth: 16, halign: "right"  as const },
+      5: { cellWidth: 18, halign: "right"  as const },
+      6: { cellWidth: 22, halign: "center" as const },
+      7: { cellWidth: 14, halign: "right"  as const },
+      8: { cellWidth: 16, halign: "right"  as const },
+    };
+    const SUB_HEAD = ["Nº", "Atendente", "Recebidos", "Em Aberto", "Pausados", "Resolvidos", "Taxa Resolução", "TMR Dias", "TMR Horas"];
+
+    function taxaColor(taxa: number): [number, number, number] {
+      return taxa >= 85 ? [34, 197, 94] : taxa >= 80 ? [161, 98, 7] : [185, 28, 28];
+    }
+
     for (const [eq, usuarios] of equipesSorted) {
       const eqResolvidos = usuarios.reduce((s, u) => s + u.resolvidos, 0);
       const pct = donutTotal > 0 ? ((eqResolvidos / donutTotal) * 100).toFixed(1) : "0.0";
@@ -431,32 +447,31 @@ export default function ProdutividadePage() {
         u.pausados  > 0 ? u.pausados.toLocaleString("pt-BR")  : "—",
         u.resolvidos.toLocaleString("pt-BR"),
         `${u.taxaResolucao.toFixed(1)}%`,
-        String(u.tmrDias || "—"),
+        String(u.tmrDias  || "—"),
+        String(u.tmrHoras || "—"),
       ]);
       autoTable(doc, {
         startY: y,
-        head: [[{ content: `${eq}  -  ${eqResolvidos.toLocaleString("pt-BR")} resolvidos (${pct}%)`, colSpan: 8 }]],
+        head: [
+          [{ content: `${eq}  -  ${eqResolvidos.toLocaleString("pt-BR")} resolvidos (${pct}%)`, colSpan: 9 }],
+          SUB_HEAD,
+        ],
         body: rows,
-        columnStyles: {
-          0: { cellWidth: 8, halign: "center" },
-          2: { halign: "right" },
-          3: { halign: "right" },
-          4: { halign: "right" },
-          5: { halign: "right" },
-          6: { halign: "center", cellWidth: 22 },
-          7: { halign: "right", cellWidth: 16 },
-        },
-        headStyles: { fillColor: [30, 41, 59], textColor: [200, 200, 220], fontStyle: "bold", fontSize: 9 },
-        bodyStyles: { fontSize: 8, textColor: [40, 40, 40] },
+        columnStyles: COL_STYLES,
+        headStyles: { fillColor: [30, 41, 59], textColor: [200, 200, 220], fontStyle: "bold", fontSize: 8 },
+        bodyStyles: { fontSize: 7.5, textColor: [40, 40, 40] },
         alternateRowStyles: { fillColor: [248, 250, 252] },
         margin: { left: 14, right: 14 },
         didParseCell: (data) => {
+          if (data.section === "head" && data.row.index === 0) {
+            data.cell.styles.fontSize = 9;
+          }
           if (data.section !== "body") return;
           if (data.column.index === 6) {
             const txt = String(data.cell.raw ?? "").replace("%", "").trim();
             const taxa = parseFloat(txt);
             if (!isNaN(taxa)) {
-              const [r, g, b] = taxa >= 85 ? [34, 197, 94] : taxa >= 80 ? [161, 98, 7] : [185, 28, 28];
+              const [r, g, b] = taxaColor(taxa);
               data.cell.styles.fillColor = [r, g, b];
               data.cell.styles.textColor = [255, 255, 255];
             }
@@ -470,6 +485,7 @@ export default function ProdutividadePage() {
     // Linha de totais
     const t = statsData.totais;
     const totalDen = t.resolvidos + t.emAberto + t.pausados;
+    const taxaTotalStr = totalDen > 0 ? `${((t.resolvidos / totalDen) * 100).toFixed(1)}%` : "—";
     autoTable(doc, {
       startY: y,
       body: [[
@@ -478,18 +494,11 @@ export default function ProdutividadePage() {
         t.emAberto  > 0 ? t.emAberto.toLocaleString("pt-BR")  : "—",
         t.pausados  > 0 ? t.pausados.toLocaleString("pt-BR")  : "—",
         t.resolvidos.toLocaleString("pt-BR"),
-        totalDen > 0 ? `${((t.resolvidos / totalDen) * 100).toFixed(1)}%` : "—",
-        String(t.tmrDias || "—"),
+        taxaTotalStr,
+        String(t.tmrDias  || "—"),
+        String(t.tmrHoras || "—"),
       ]],
-      columnStyles: {
-        0: { cellWidth: 8, halign: "center" },
-        2: { halign: "right" },
-        3: { halign: "right" },
-        4: { halign: "right" },
-        5: { halign: "right" },
-        6: { halign: "center", cellWidth: 22 },
-        7: { halign: "right", cellWidth: 16 },
-      },
+      columnStyles: COL_STYLES,
       bodyStyles: { fontSize: 8.5, textColor: [40, 40, 40], fontStyle: "bold", fillColor: [226, 232, 240] },
       margin: { left: 14, right: 14 },
       didParseCell: (data) => {
@@ -497,7 +506,7 @@ export default function ProdutividadePage() {
           const txt = String(data.cell.raw ?? "").replace("%", "").trim();
           const taxa = parseFloat(txt);
           if (!isNaN(taxa)) {
-            const [r, g, b] = taxa >= 98 ? [21, 128, 61] : taxa >= 95 ? [22, 163, 74] : taxa >= 90 ? [34, 197, 94] : taxa >= 80 ? [161, 98, 7] : [185, 28, 28];
+            const [r, g, b] = taxaColor(taxa);
             data.cell.styles.fillColor = [r, g, b];
             data.cell.styles.textColor = [255, 255, 255];
           }

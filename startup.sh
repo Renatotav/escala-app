@@ -125,6 +125,18 @@ async function migrate() {
     \"createdAt\" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
   )\`);
 
+  // Produtividade table
+  await client.query(\`CREATE TABLE IF NOT EXISTS \"Produtividade\" (
+    \"id\" SERIAL PRIMARY KEY,
+    \"numeroChamado\" TEXT NOT NULL,
+    \"dataAbertura\" TIMESTAMP(3),
+    \"usuarioFechamento\" TEXT,
+    \"dataResolucao\" TIMESTAMP(3),
+    \"descricaoResolucao\" TEXT,
+    \"situacaoRegra\" TEXT,
+    \"createdAt\" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+  )\`);
+
   // DnpjeMigracao table
   await client.query(\`CREATE TABLE IF NOT EXISTS \"DnpjeMigracao\" (
     \"id\" SERIAL PRIMARY KEY,

@@ -269,6 +269,17 @@ model RedmineAtribuido {
   createdAt      DateTime @default(now())
 }
 
+model Produtividade {
+  id                 Int       @id @default(autoincrement())
+  numeroChamado      String
+  dataAbertura       DateTime?
+  usuarioFechamento  String?
+  dataResolucao      DateTime?
+  descricaoResolucao String?
+  situacaoRegra      String?
+  createdAt          DateTime  @default(now())
+}
+
 model EscalaWhatsapp {
   id            Int         @id @default(autoincrement())
   semana        DateTime    @unique

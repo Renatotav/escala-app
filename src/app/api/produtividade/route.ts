@@ -69,10 +69,11 @@ export async function GET(request: NextRequest) {
 
   const equipes = [...new Set([...nomeParaEquipe.values()])].sort();
 
-  const [totalRegistros, todosAtendentes, periodo] = await Promise.all([
+  const [totalRegistros, todosAtendentes, periodo, periodoRes] = await Promise.all([
     prisma.produtividade.count(),
     prisma.produtividade.findMany({ select: { usuarioFechamento: true }, distinct: ["usuarioFechamento"] }),
     prisma.produtividade.aggregate({ _min: { dataAbertura: true }, _max: { dataAbertura: true } }),
+    prisma.produtividade.aggregate({ _min: { dataResolucao: true }, _max: { dataResolucao: true } }),
   ]);
 
   // Atendentes filtrados pela equipe selecionada (se houver)
@@ -83,8 +84,10 @@ export async function GET(request: NextRequest) {
   }
 
   const atendentesCount = todosAtendentes.map(r => r.usuarioFechamento).filter(Boolean).length;
-  const periodoInicio = periodo._min.dataAbertura?.toISOString() ?? null;
-  const periodoFim    = periodo._max.dataAbertura?.toISOString() ?? null;
+  const periodoInicio    = periodo._min.dataAbertura?.toISOString()    ?? null;
+  const periodoFim       = periodo._max.dataAbertura?.toISOString()    ?? null;
+  const periodoResInicio = periodoRes._min.dataResolucao?.toISOString() ?? null;
+  const periodoResFim    = periodoRes._max.dataResolucao?.toISOString() ?? null;
 
   // Monta condições de data reutilizáveis
   function dateConditions(): Record<string, unknown>[] {
@@ -197,7 +200,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       stats,
       totais: { ...totais, taxaResolucao: totalDenominador > 0 ? (totais.resolvidos / totalDenominador) * 100 : 0, tmrHoras: Math.round(tmrGeralH), tmrDias: Math.round(tmrGeralH / 24) },
-      equipes, atendentes, atendentesCount, periodoInicio, periodoFim, totalRegistros,
+      equipes, atendentes, atendentesCount, periodoInicio, periodoFim, periodoResInicio, periodoResFim, totalRegistros,
     });
   }
 
@@ -225,7 +228,7 @@ export async function GET(request: NextRequest) {
   }
   const where = conditions.length === 0 ? {} : conditions.length === 1 ? conditions[0] : { AND: conditions };
 
-  const meta = { equipes, atendentes, atendentesCount, periodoInicio, periodoFim, totalRegistros };
+  const meta = { equipes, atendentes, atendentesCount, periodoInicio, periodoFim, periodoResInicio, periodoResFim, totalRegistros };
 
   if (exportAll) {
     const registros = await prisma.produtividade.findMany({ where, orderBy: { id: "asc" } });

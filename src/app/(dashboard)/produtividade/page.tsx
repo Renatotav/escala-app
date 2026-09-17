@@ -26,6 +26,8 @@ type Dados = {
   atendentesCount: number;
   periodoInicio: string | null;
   periodoFim: string | null;
+  periodoResInicio: string | null;
+  periodoResFim: string | null;
 };
 
 type UserStat = {
@@ -49,6 +51,8 @@ type DadosStats = {
   totalRegistros: number;
   periodoInicio: string | null;
   periodoFim: string | null;
+  periodoResInicio: string | null;
+  periodoResFim: string | null;
 };
 
 function fmtDate(iso: string | null) {
@@ -449,15 +453,20 @@ export default function ProdutividadePage() {
   const atendentes = dados?.atendentes ?? [];
   const temFiltro = !!(busca || equipe || atendente || anoRec || dataRecDe || dataRecAte || anoRes || dataResDe || dataResAte);
 
-  // Anos disponíveis derivados do período dos dados
-  const anosDisponiveis: number[] = (() => {
-    const ini = dados?.periodoInicio ?? statsData?.periodoInicio ?? null;
-    const fim = dados?.periodoFim    ?? statsData?.periodoFim    ?? null;
+  function anosEntre(ini: string | null | undefined, fim: string | null | undefined): number[] {
     if (!ini || !fim) return [];
     const start = new Date(ini).getFullYear();
     const end   = new Date(fim).getFullYear();
     return Array.from({ length: end - start + 1 }, (_, i) => start + i);
-  })();
+  }
+  const anosRecebimento = anosEntre(
+    dados?.periodoInicio ?? statsData?.periodoInicio,
+    dados?.periodoFim    ?? statsData?.periodoFim
+  );
+  const anosResolucao = anosEntre(
+    dados?.periodoResInicio ?? statsData?.periodoResInicio,
+    dados?.periodoResFim    ?? statsData?.periodoResFim
+  );
 
   return (
     <div>
@@ -589,7 +598,7 @@ export default function ProdutividadePage() {
             <select value={anoRec} onChange={e => setAnoRec(e.target.value)}
               className="bg-transparent text-white text-xs focus:outline-none">
               <option value="">Todos</option>
-              {anosDisponiveis.map(a => <option key={a} value={String(a)}>{a}</option>)}
+              {anosRecebimento.map(a => <option key={a} value={String(a)}>{a}</option>)}
             </select>
           </div>
           <div className="flex items-center gap-1 bg-gray-900 border border-gray-800 rounded-lg px-3 py-2">
@@ -606,7 +615,7 @@ export default function ProdutividadePage() {
             <select value={anoRes} onChange={e => setAnoRes(e.target.value)}
               className="bg-transparent text-white text-xs focus:outline-none">
               <option value="">Todos</option>
-              {anosDisponiveis.map(a => <option key={a} value={String(a)}>{a}</option>)}
+              {anosResolucao.map(a => <option key={a} value={String(a)}>{a}</option>)}
             </select>
           </div>
           <div className="flex items-center gap-1 bg-gray-900 border border-gray-800 rounded-lg px-3 py-2">

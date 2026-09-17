@@ -936,13 +936,13 @@ export default function ProdutividadePage() {
                 <tr className="border-b border-gray-700 text-gray-400 text-xs uppercase tracking-wide bg-gray-800/60">
                   <th className="text-left px-4 py-3">Usuário Fechamento</th>
                   <th className="text-left px-3 py-3">Equipe</th>
-                  <th className="text-right px-3 py-3">Recebidos</th>
-                  <th className="text-right px-3 py-3">Em Aberto</th>
-                  <th className="text-right px-3 py-3">Pausados</th>
-                  <th className="text-right px-3 py-3">Resolvidos</th>
+                  <th className="text-center px-3 py-3">Recebidos</th>
+                  <th className="text-center px-3 py-3">Em Aberto</th>
+                  <th className="text-center px-3 py-3">Pausados</th>
+                  <th className="text-center px-3 py-3">Resolvidos</th>
                   <th className="text-center px-3 py-3">Taxa Resolução</th>
-                  <th className="text-right px-3 py-3">TMR Dias</th>
-                  <th className="text-right px-3 py-3">TMR Horas</th>
+                  <th className="text-center px-3 py-3">TMR Dias</th>
+                  <th className="text-center px-3 py-3">TMR Horas</th>
                 </tr>
               </thead>
               <tbody>

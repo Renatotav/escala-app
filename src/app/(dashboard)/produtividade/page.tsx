@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 type Produtividade = {
   id: number;
@@ -207,6 +209,134 @@ export default function ProdutividadePage() {
     } finally { setXlsExporting(false); }
   }
 
+  function gerarPDF() {
+    if (!statsData || statsData.stats.length === 0) return;
+    const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+    const geradoEm = new Date().toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+    doc.setFontSize(16);
+    doc.setTextColor(30, 30, 30);
+    doc.text("Produtividade - Quantitativo", 14, 18);
+    doc.setFontSize(9);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Gerado em: ${geradoEm}`, 14, 26);
+
+    const rows = statsData.stats.map(s => [
+      s.usuario,
+      s.equipe ?? "—",
+      s.recebidos.toLocaleString("pt-BR"),
+      s.emAberto > 0 ? s.emAberto.toLocaleString("pt-BR") : "—",
+      s.pausados  > 0 ? s.pausados.toLocaleString("pt-BR")  : "—",
+      s.resolvidos.toLocaleString("pt-BR"),
+      `${s.taxaResolucao.toFixed(1)}%`,
+      s.tmrDias  || "—",
+      s.tmrHoras || "—",
+    ]);
+    const t = statsData.totais;
+    const totalDen = t.resolvidos + t.emAberto + t.pausados;
+    rows.push([
+      "TOTAL", "",
+      t.recebidos.toLocaleString("pt-BR"),
+      t.emAberto  > 0 ? t.emAberto.toLocaleString("pt-BR")  : "—",
+      t.pausados  > 0 ? t.pausados.toLocaleString("pt-BR")  : "—",
+      t.resolvidos.toLocaleString("pt-BR"),
+      totalDen > 0 ? `${((t.resolvidos / totalDen) * 100).toFixed(1)}%` : "—",
+      t.tmrDias  || "—",
+      t.tmrHoras || "—",
+    ]);
+
+    autoTable(doc, {
+      startY: 32,
+      head: [["Usuário Fechamento", "Equipe", "Recebidos", "Em Aberto", "Pausados", "Resolvidos", "Taxa Resolução", "TMR Dias", "TMR Horas"]],
+      body: rows,
+      columnStyles: {
+        0: { cellWidth: 60 },
+        2: { halign: "right" },
+        3: { halign: "right" },
+        4: { halign: "right" },
+        5: { halign: "right" },
+        6: { halign: "center" },
+        7: { halign: "right" },
+        8: { halign: "right" },
+      },
+      headStyles: { fillColor: [30, 41, 59], textColor: [200, 200, 220], fontStyle: "bold", fontSize: 8 },
+      bodyStyles: { fontSize: 8, textColor: [40, 40, 40] },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+      didParseCell: (data) => {
+        if (data.section === "body" && data.row.index === rows.length - 1) {
+          data.cell.styles.fontStyle = "bold";
+          data.cell.styles.fillColor = [226, 232, 240];
+        }
+      },
+      margin: { left: 14, right: 14 },
+    });
+    doc.save(`produtividade-quantitativo-${new Date().toISOString().slice(0, 10)}.pdf`);
+  }
+
+  function baixarJPEG() {
+    if (!statsData || statsData.stats.length === 0) return;
+    const W = 1100;
+    const PAD = 24;
+    const ROW_H = 28;
+    const HEADER_H = 80;
+    const COLS = [300, 140, 80, 80, 80, 80, 100, 80, 80];
+    const HEADS = ["Usuário Fechamento", "Equipe", "Recebidos", "Em Aberto", "Pausados", "Resolvidos", "Taxa Resolução", "TMR Dias", "TMR Horas"];
+    const totalH = HEADER_H + (ROW_H * 1.5) + (statsData.stats.length + 1) * ROW_H + PAD;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = W * 2; canvas.height = totalH * 2;
+    const ctx = canvas.getContext("2d")!;
+    ctx.scale(2, 2);
+
+    ctx.fillStyle = "#0f172a"; ctx.fillRect(0, 0, W, totalH);
+    ctx.fillStyle = "#f1f5f9"; ctx.font = "bold 18px system-ui, sans-serif";
+    ctx.fillText("Produtividade - Quantitativo", PAD, 30);
+    ctx.fillStyle = "#64748b"; ctx.font = "11px system-ui, sans-serif";
+    ctx.fillText(`Gerado em: ${new Date().toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}`, PAD, 50);
+
+    let x = PAD, y = HEADER_H;
+    ctx.fillStyle = "#1e293b"; ctx.fillRect(PAD, y, W - PAD * 2, ROW_H * 1.4);
+    ctx.fillStyle = "#94a3b8"; ctx.font = "bold 10px system-ui, sans-serif";
+    x = PAD + 8;
+    for (let i = 0; i < HEADS.length; i++) {
+      ctx.fillText(HEADS[i], x + 4, y + 20);
+      x += COLS[i];
+    }
+    y += ROW_H * 1.4;
+
+    const allRows = [...statsData.stats, { ...statsData.totais, usuario: "TOTAL" } as UserStat];
+    for (let ri = 0; ri < allRows.length; ri++) {
+      const s = allRows[ri];
+      const isTotal = ri === allRows.length - 1;
+      ctx.fillStyle = isTotal ? "#1e293b" : ri % 2 === 0 ? "#0f172a" : "#111827";
+      ctx.fillRect(PAD, y, W - PAD * 2, ROW_H);
+
+      const cells = [
+        s.usuario,
+        (s as UserStat).equipe ?? "—",
+        s.recebidos.toLocaleString("pt-BR"),
+        s.emAberto > 0 ? s.emAberto.toLocaleString("pt-BR") : "—",
+        s.pausados  > 0 ? s.pausados.toLocaleString("pt-BR")  : "—",
+        s.resolvidos.toLocaleString("pt-BR"),
+        `${s.taxaResolucao.toFixed(1)}%`,
+        String(s.tmrDias  || "—"),
+        String(s.tmrHoras || "—"),
+      ];
+      x = PAD + 8;
+      for (let i = 0; i < cells.length; i++) {
+        ctx.fillStyle = isTotal ? "#e2e8f0" : i === 0 ? "#e2e8f0" : i === 3 && s.emAberto > 0 ? "#fbbf24" : i === 4 && s.pausados > 0 ? "#fb923c" : "#94a3b8";
+        ctx.font = isTotal ? "bold 10px monospace" : i === 0 ? "11px system-ui" : "10px monospace";
+        ctx.fillText(cells[i], x + 4, y + 19);
+        x += COLS[i];
+      }
+      y += ROW_H;
+    }
+
+    const a = document.createElement("a");
+    a.href = canvas.toDataURL("image/jpeg", 0.95);
+    a.download = `produtividade-quantitativo-${new Date().toISOString().slice(0, 10)}.jpg`;
+    a.click();
+  }
+
   const totalRegistros = dados?.totalRegistros ?? 0;
   const registros = dados?.registros ?? [];
   const page = dados?.page ?? 1;
@@ -234,12 +364,24 @@ export default function ProdutividadePage() {
           <h2 className="text-xl font-semibold text-white">Produtividade</h2>
           <p className="text-sm text-gray-400 mt-0.5">Registros de produtividade por operador</p>
         </div>
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 flex-wrap items-center">
           {view === "lista" && totalRegistros > 0 && (
             <button onClick={exportXLS} disabled={xlsExporting}
               className="bg-green-700 hover:bg-green-600 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
               {xlsExporting ? "Exportando..." : "↓ Exportar XLS"}
             </button>
+          )}
+          {view === "quantitativo" && statsData && statsData.stats.length > 0 && (
+            <>
+              <button onClick={gerarPDF}
+                className="text-xs px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white border border-gray-700 transition">
+                ↓ PDF
+              </button>
+              <button onClick={baixarJPEG}
+                className="text-xs px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white border border-gray-700 transition">
+                ↓ JPEG
+              </button>
+            </>
           )}
           {totalRegistros > 0 && (
             <button onClick={handleLimpar}

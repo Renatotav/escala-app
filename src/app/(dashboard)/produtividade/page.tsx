@@ -185,7 +185,7 @@ function BarrasProd({ itens, total }: { itens: { nome: string; total: number }[]
 
 function TaxaBadge({ taxa }: { taxa: number }) {
   const t = taxa;
-  const bg = t >= 98 ? "bg-green-800" : t >= 95 ? "bg-green-700" : t >= 90 ? "bg-green-600" : t >= 80 ? "bg-yellow-600" : "bg-red-700";
+  const bg = t >= 85 ? "bg-green-600" : t >= 80 ? "bg-yellow-600" : "bg-red-700";
   return (
     <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold text-white ${bg} min-w-[52px] text-center`}>
       {t.toFixed(1)}%
@@ -456,7 +456,7 @@ export default function ProdutividadePage() {
             const txt = String(data.cell.raw ?? "").replace("%", "").trim();
             const taxa = parseFloat(txt);
             if (!isNaN(taxa)) {
-              const [r, g, b] = taxa >= 98 ? [21, 128, 61] : taxa >= 95 ? [22, 163, 74] : taxa >= 90 ? [34, 197, 94] : taxa >= 80 ? [161, 98, 7] : [185, 28, 28];
+              const [r, g, b] = taxa >= 85 ? [34, 197, 94] : taxa >= 80 ? [161, 98, 7] : [185, 28, 28];
               data.cell.styles.fillColor = [r, g, b];
               data.cell.styles.textColor = [255, 255, 255];
             }
@@ -562,7 +562,7 @@ export default function ProdutividadePage() {
         // Coluna Taxa Resolução (índice 6): badge colorido
         if (i === 6) {
           const taxa = s.taxaResolucao;
-          const bgColor = taxa >= 98 ? "#15803d" : taxa >= 95 ? "#16a34a" : taxa >= 90 ? "#22c55e" : taxa >= 80 ? "#a16207" : "#b91c1c";
+          const bgColor = taxa >= 85 ? "#22c55e" : taxa >= 80 ? "#a16207" : "#b91c1c";
           const badgeW = COLS[i] - 12;
           ctx.fillStyle = bgColor;
           ctx.beginPath();

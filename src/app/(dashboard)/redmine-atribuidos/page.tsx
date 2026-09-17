@@ -256,9 +256,9 @@ export default function RedmineAtribuidosPage() {
         const redmineCell = `<a href="${esc(redmineUrl(r.numeroRedmine))}">${esc(r.numeroRedmine)}</a>`;
         const nums = splitAssyst(r.numerosAssyst);
         const assystCell = nums.length === 0 ? esc(r.numerosAssyst) : nums.map(n => `<a href="${esc(assystUrl(n))}">${esc(n)}</a>`).join("<br>");
-        return `<tr><td>${redmineCell}</td><td>${assystCell}</td><td>${esc(r.criadoEm ?? "")}</td><td>${esc(r.alteradoEm ?? "")}</td><td>${esc(r.tipo ?? "")}</td><td>${esc(r.situacao ?? "")}</td><td>${esc(r.titulo ?? "")}</td><td>${esc(r.atribuidoPara ?? "")}</td><td>${esc(r.descricao ?? "")}</td><td>${esc(r.ultimasNotas ?? "")}</td></tr>`;
+        return `<tr><td>${redmineCell}</td><td>${assystCell}</td><td>${esc(r.criadoEm ?? "")}</td><td>${esc(r.alteradoEm ?? "")}</td><td>${esc(r.tipo ?? "")}</td><td>${esc(r.situacao ?? "")}</td><td>${esc(r.atribuidoPara ?? "")}</td></tr>`;
       }).join("");
-      const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"><style>td{mso-wrap-text:auto;vertical-align:top;font-size:11pt;}th{background:#1e293b;color:#fff;font-size:11pt;}</style></head><body><table border="1"><tr><th>Redmine #</th><th>Nº Assyst</th><th>Criado em</th><th>Alterado em</th><th>Tipo</th><th>Situação</th><th>Título</th><th>Atribuído para</th><th>Descrição</th><th>Últimas notas</th></tr>${rows}</table></body></html>`;
+      const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"><style>td{mso-wrap-text:auto;vertical-align:top;font-size:11pt;}th{background:#1e293b;color:#fff;font-size:11pt;}</style></head><body><table border="1"><tr><th>Redmine #</th><th>Nº Assyst</th><th>Criado em</th><th>Alterado em</th><th>Tipo</th><th>Situação</th><th>Atribuído para</th></tr>${rows}</table></body></html>`;
       const blob = new Blob([html], { type: "application/vnd.ms-excel;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -469,10 +469,7 @@ export default function RedmineAtribuidosPage() {
                 <th className="text-left px-4 py-3 whitespace-nowrap">Alterado em</th>
                 <th className="text-left px-4 py-3 whitespace-nowrap">Tipo</th>
                 <th className="text-left px-4 py-3 whitespace-nowrap">Situação</th>
-                <th className="text-left px-4 py-3 whitespace-nowrap">Título</th>
                 <th className="text-left px-4 py-3 whitespace-nowrap">Atribuído para</th>
-                <th className="text-left px-4 py-3 whitespace-nowrap">Descrição</th>
-                <th className="text-left px-4 py-3 whitespace-nowrap">Últimas notas</th>
               </tr>
             </thead>
             <tbody>
@@ -563,14 +560,11 @@ export default function RedmineAtribuidosPage() {
                         ? <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${corSituacao(r.situacao)}`}>{r.situacao}</span>
                         : "—"}
                     </td>
-                    <td className="px-4 py-3"><CelulaTexto label="Título" texto={r.titulo} onClick={setTextoModal} /></td>
                     <td className="px-4 py-3">
                       {r.atribuidoPara
                         ? <span className="text-xs px-2 py-0.5 rounded-full whitespace-nowrap bg-blue-500/20 text-blue-300 border border-blue-500/30">{r.atribuidoPara}</span>
                         : <span className="text-gray-600 text-xs">—</span>}
                     </td>
-                    <td className="px-4 py-3"><CelulaTexto label="Descrição" texto={r.descricao} onClick={setTextoModal} /></td>
-                    <td className="px-4 py-3"><CelulaTexto label="Últimas notas" texto={r.ultimasNotas} onClick={setTextoModal} resolvidoId={r.id} /></td>
                   </tr>
                 );
               })}

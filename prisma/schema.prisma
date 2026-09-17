@@ -274,8 +274,10 @@ model Produtividade {
   numeroChamado     String
   dataAbertura      DateTime?
   equipeAtribuida   String?
+  usuarioAtribuido  String?
   usuarioFechamento String?
   dataResolucao     DateTime?
+  pausa             String?
   situacaoRegra     String?
   createdAt         DateTime  @default(now())
 }

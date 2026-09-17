@@ -140,6 +140,8 @@ async function migrate() {
   try { await client.query(\`ALTER TABLE \"Produtividade\" DROP COLUMN IF EXISTS \"descricaoResolucao\"\`); } catch(e) {}
   // Add equipeAtribuida if table existed before
   try { await client.query(\`ALTER TABLE \"Produtividade\" ADD COLUMN IF NOT EXISTS \"equipeAtribuida\" TEXT\`); } catch(e) {}
+  try { await client.query(\`ALTER TABLE \"Produtividade\" ADD COLUMN IF NOT EXISTS \"usuarioAtribuido\" TEXT\`); } catch(e) {}
+  try { await client.query(\`ALTER TABLE \"Produtividade\" ADD COLUMN IF NOT EXISTS \"pausa\" TEXT\`); } catch(e) {}
 
   // DnpjeMigracao table
   await client.query(\`CREATE TABLE IF NOT EXISTS \"DnpjeMigracao\" (

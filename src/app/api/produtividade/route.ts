@@ -156,7 +156,7 @@ export async function GET(request: NextRequest) {
       const est     = (c.estado     || "").toLowerCase();
       const ultAcao = (c.ultimaAcao || "").toLowerCase();
       const isResolvido = est.includes("resolvid") || est.includes("fechad") || est.includes("cancela");
-      const isPausado   = ultAcao.includes("parar");
+      const isPausado   = ultAcao.includes("parar") || ultAcao.includes("aguardando info");
       const key = normName(nome);
       if (isPausado) {
         chamadosPausado.set(key, (chamadosPausado.get(key) ?? 0) + 1);

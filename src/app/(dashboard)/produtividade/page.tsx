@@ -386,6 +386,22 @@ export default function ProdutividadePage() {
     doc.text(`Total: ${totalResolvidos.toLocaleString("pt-BR")} resolvidos`, 14, 26);
     doc.text(`Gerado em: ${geradoEm}`, 14, 31);
 
+    // Período selecionado
+    const fmtFiltro = (d: string) => d ? new Date(d + "T12:00:00").toLocaleDateString("pt-BR") : "";
+    const linhasFiltro: string[] = [];
+    if (anoRec) linhasFiltro.push(`Ano Recebimento: ${anoRec}`);
+    if (dataRecDe || dataRecAte) linhasFiltro.push(`Recebimento: ${fmtFiltro(dataRecDe) || "início"} → ${fmtFiltro(dataRecAte) || "hoje"}`);
+    if (anoRes) linhasFiltro.push(`Ano Resolução: ${anoRes}`);
+    if (dataResDe || dataResAte) linhasFiltro.push(`Resolução: ${fmtFiltro(dataResDe) || "início"} → ${fmtFiltro(dataResAte) || "hoje"}`);
+    if (equipe) linhasFiltro.push(`Equipe: ${equipe}`);
+    if (atendente) linhasFiltro.push(`Atendente: ${atendente}`);
+    if (linhasFiltro.length > 0) {
+      doc.setTextColor(30, 30, 30);
+      doc.setFont("helvetica", "bold");
+      doc.text(`Filtros: ${linhasFiltro.join("  ·  ")}`, 14, 37);
+      doc.setFont("helvetica", "normal");
+    }
+
     // Agrupa stats por equipe
     const porEquipe = new Map<string, UserStat[]>();
     for (const s of statsData.stats) {
@@ -400,9 +416,9 @@ export default function ProdutividadePage() {
     const donutItens = equipesSorted.map(([eq, us]) => ({ label: eq, value: us.reduce((s, u) => s + u.resolvidos, 0) }));
     const donutTotal = donutItens.reduce((s, d) => s + d.value, 0);
 
-    let y = 37;
+    let y = linhasFiltro.length > 0 ? 43 : 37;
     if (donutTotal > 0) {
-      const chartX = 14, chartY = 36, chartSz = 78;
+      const chartX = 14, chartY = y, chartSz = 78;
       desenharDonutPDF(doc, donutItens, donutTotal, chartX, chartY, chartSz);
       const legX = chartX + chartSz + 5;
       let legY = chartY + 5;

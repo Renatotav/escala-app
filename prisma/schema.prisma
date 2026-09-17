@@ -231,6 +231,16 @@ model ChamadoRedmine {
   createdAt        DateTime  @default(now())
 }
 
+model DnpjeMigracao {
+  id               Int       @id @default(autoincrement())
+  numero           String
+  dataAbertura     DateTime?
+  equipeAtribuida  String?
+  dataMovimentacao DateTime?
+  situacaoRegra    String?
+  createdAt        DateTime  @default(now())
+}
+
 model RedmineResolvido {
   id             Int      @id @default(autoincrement())
   numeroRedmine  String

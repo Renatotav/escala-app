@@ -38,25 +38,31 @@ export async function GET(request: NextRequest) {
   const dataResDe      = searchParams.get("dataResDe")?.trim() || null;
   const dataResAte     = searchParams.get("dataResAte")?.trim()|| null;
 
-  // Colaboradores → mapa nome→equipe (base para todos os filtros e selects)
+  // Normaliza nome: maiúsculo + sem acentos
+  function normName(s: string): string {
+    return s.toUpperCase().trim().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  }
+
+  // Colaboradores → mapa nomeNormalizado→equipe
   const colaboradores = await prisma.colaborador.findMany({
     select: { nome: true, equipe: { select: { nome: true } } },
   });
-  const nomeParaEquipe = new Map<string, string>();
+  const nomeParaEquipe = new Map<string, string>(); // key: nome normalizado, value: equipe
   for (const c of colaboradores) {
-    if (c.equipe?.nome) nomeParaEquipe.set(c.nome.toUpperCase().trim(), c.equipe.nome);
+    if (c.equipe?.nome) nomeParaEquipe.set(normName(c.nome), c.equipe.nome);
   }
 
   function resolveEquipe(usuario: string): string | null {
-    const upper = usuario.toUpperCase().trim();
-    if (nomeParaEquipe.has(upper)) return nomeParaEquipe.get(upper)!;
+    const norm = normName(usuario);
+    if (nomeParaEquipe.has(norm)) return nomeParaEquipe.get(norm)!;
+    // fallback: prefixo parcial
     for (const [nome, eq] of nomeParaEquipe) {
-      if (upper.startsWith(nome) || nome.startsWith(upper)) return eq;
+      if (norm.startsWith(nome) || nome.startsWith(norm)) return eq;
     }
     return null;
   }
 
-  // Nomes dos colaboradores pertencentes à equipe filtrada
+  // Nomes normalizados dos colaboradores de uma equipe (para filtrar usuarioFechamento no DB)
   function nomesDeEquipe(eq: string): string[] {
     return [...nomeParaEquipe.entries()].filter(([, e]) => e === eq).map(([n]) => n);
   }
@@ -106,8 +112,13 @@ export async function GET(request: NextRequest) {
   // ── STATS (Quantitativo) ──────────────────────────────────────────────────
   if (statsOnly) {
     const statsConditions: Record<string, unknown>[] = [];
-    if (equipe) statsConditions.push({ usuarioFechamento: { in: nomesDeEquipe(equipe) } });
     statsConditions.push(...dateConditions());
+    if (equipe) {
+      const nomes = nomesDeEquipe(equipe);
+      if (nomes.length > 0) {
+        statsConditions.push({ OR: nomes.map(n => ({ usuarioFechamento: { contains: n, mode: "insensitive" as const } })) });
+      }
+    }
     const whereStats = statsConditions.length === 0 ? {} : statsConditions.length === 1 ? statsConditions[0] : { AND: statsConditions };
 
     const todos = await prisma.produtividade.findMany({
@@ -182,7 +193,11 @@ export async function GET(request: NextRequest) {
 
   if (equipe) {
     const nomes = nomesDeEquipe(equipe);
-    if (nomes.length > 0) conditions.push({ usuarioFechamento: { in: nomes } });
+    if (nomes.length > 0) {
+      conditions.push({
+        OR: nomes.map(n => ({ usuarioFechamento: { contains: n, mode: "insensitive" as const } })),
+      });
+    }
   }
   conditions.push(...dateConditions());
   if (atendente) conditions.push({ usuarioFechamento: atendente });

@@ -168,14 +168,18 @@ export async function GET(request: NextRequest) {
       .map(([usuario, g]) => {
         const tmrH = g.tmrCount > 0 ? g.tmrHorasSum / g.tmrCount : 0;
         const normUsuario = normName(usuario);
+        const emAberto  = chamadosAberto.get(normUsuario)  ?? 0;
+        const pausados  = chamadosPausado.get(normUsuario) ?? 0;
+        const resolvidos = g.resolvidos;
+        const total = resolvidos + emAberto + pausados;
         return {
           usuario,
           equipe: resolveEquipe(usuario),
           recebidos: g.recebidos,
-          emAberto: chamadosAberto.get(normUsuario) ?? 0,
-          pausados: chamadosPausado.get(normUsuario) ?? 0,
-          resolvidos: g.resolvidos,
-          taxaResolucao: g.recebidos > 0 ? (g.resolvidos / g.recebidos) * 100 : 0,
+          emAberto,
+          pausados,
+          resolvidos,
+          taxaResolucao: total > 0 ? (resolvidos / total) * 100 : 0,
           tmrHoras: Math.round(tmrH),
           tmrDias: Math.round(tmrH / 24),
         };
@@ -188,9 +192,10 @@ export async function GET(request: NextRequest) {
     );
     const tmrGeralH = stats.reduce((s, r) => s + r.tmrHoras * (r.resolvidos || 1), 0) / Math.max(1, stats.reduce((s, r) => s + (r.resolvidos || 1), 0));
 
+    const totalDenominador = totais.resolvidos + totais.emAberto + totais.pausados;
     return NextResponse.json({
       stats,
-      totais: { ...totais, taxaResolucao: totais.recebidos > 0 ? (totais.resolvidos / totais.recebidos) * 100 : 0, tmrHoras: Math.round(tmrGeralH), tmrDias: Math.round(tmrGeralH / 24) },
+      totais: { ...totais, taxaResolucao: totalDenominador > 0 ? (totais.resolvidos / totalDenominador) * 100 : 0, tmrHoras: Math.round(tmrGeralH), tmrDias: Math.round(tmrGeralH / 24) },
       equipes, atendentes, atendentesCount, periodoInicio, periodoFim, totalRegistros,
     });
   }

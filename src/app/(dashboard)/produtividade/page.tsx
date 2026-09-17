@@ -390,16 +390,15 @@ export default function ProdutividadePage() {
     const fmtFiltro = (d: string) => d ? new Date(d + "T12:00:00").toLocaleDateString("pt-BR") : "";
     const linhasFiltro: string[] = [];
     if (anoRec) linhasFiltro.push(`Ano Recebimento: ${anoRec}`);
-    if (dataRecDe || dataRecAte) linhasFiltro.push(`Recebimento: ${fmtFiltro(dataRecDe) || "início"} → ${fmtFiltro(dataRecAte) || "hoje"}`);
-    if (anoRes) linhasFiltro.push(`Ano Resolução: ${anoRes}`);
-    if (dataResDe || dataResAte) linhasFiltro.push(`Resolução: ${fmtFiltro(dataResDe) || "início"} → ${fmtFiltro(dataResAte) || "hoje"}`);
+    if (dataRecDe || dataRecAte) linhasFiltro.push(`Recebimento: ${fmtFiltro(dataRecDe) || "inicio"} a ${fmtFiltro(dataRecAte) || "hoje"}`);
+    if (anoRes) linhasFiltro.push(`Ano Resolucao: ${anoRes}`);
+    if (dataResDe || dataResAte) linhasFiltro.push(`Resolucao: ${fmtFiltro(dataResDe) || "inicio"} a ${fmtFiltro(dataResAte) || "hoje"}`);
     if (equipe) linhasFiltro.push(`Equipe: ${equipe}`);
     if (atendente) linhasFiltro.push(`Atendente: ${atendente}`);
     if (linhasFiltro.length > 0) {
-      doc.setTextColor(30, 30, 30);
-      doc.setFont("helvetica", "bold");
-      doc.text(`Filtros: ${linhasFiltro.join("  ·  ")}`, 14, 37);
-      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8.5);
+      doc.setTextColor(80, 80, 80);
+      doc.text(`Periodo: ${linhasFiltro.join("  |  ")}`, 14, 37);
     }
 
     // Agrupa stats por equipe

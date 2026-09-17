@@ -374,7 +374,7 @@ export default function ProdutividadePage() {
       doc.text("RESOLVIDOS", cx, cy + 3.5, { align: "center", baseline: "middle" });
     }
 
-    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
     const geradoEm = new Date().toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
     const totalResolvidos = statsData.totais.resolvidos;
 
@@ -421,14 +421,14 @@ export default function ProdutividadePage() {
     }
 
     const COL_STYLES = {
-      0: { cellWidth: 7,  halign: "center" as const },
-      2: { cellWidth: 18, halign: "right"  as const },
-      3: { cellWidth: 18, halign: "right"  as const },
-      4: { cellWidth: 16, halign: "right"  as const },
-      5: { cellWidth: 18, halign: "right"  as const },
-      6: { cellWidth: 22, halign: "center" as const },
-      7: { cellWidth: 14, halign: "right"  as const },
-      8: { cellWidth: 16, halign: "right"  as const },
+      0: { cellWidth: 9,  halign: "center" as const },
+      2: { cellWidth: 24, halign: "right"  as const },
+      3: { cellWidth: 24, halign: "right"  as const },
+      4: { cellWidth: 22, halign: "right"  as const },
+      5: { cellWidth: 24, halign: "right"  as const },
+      6: { cellWidth: 30, halign: "center" as const },
+      7: { cellWidth: 20, halign: "right"  as const },
+      8: { cellWidth: 22, halign: "right"  as const },
     };
     const SUB_HEAD = ["Nº", "Atendente", "Recebidos", "Em Aberto", "Pausados", "Resolvidos", "Taxa Resolução", "TMR Dias", "TMR Horas"];
 

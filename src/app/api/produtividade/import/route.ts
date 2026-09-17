@@ -41,11 +41,14 @@ function toIso(value: unknown): string | null {
 
 export async function POST(request: NextRequest) {
   try {
-    const formData = await request.formData();
-    const file = formData.get("file") as File | null;
-    if (!file) return NextResponse.json({ error: "Arquivo não enviado" }, { status: 400 });
+    const { searchParams } = new URL(request.url);
+    const substituirParam = searchParams.get("substituir");
 
-    const buffer = Buffer.from(await file.arrayBuffer());
+    const arrayBuf = await request.arrayBuffer();
+    if (!arrayBuf || arrayBuf.byteLength === 0)
+      return NextResponse.json({ error: "Arquivo não enviado" }, { status: 400 });
+
+    const buffer = Buffer.from(arrayBuf);
     const workbook = XLSX.read(buffer, { type: "buffer", cellDates: true });
 
     const sheetName = workbook.SheetNames[0];
@@ -100,7 +103,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const substituir = formData.get("substituir") !== "0";
+    const substituir = substituirParam !== "0";
 
     let insertRows = rows;
     let skipped = 0;

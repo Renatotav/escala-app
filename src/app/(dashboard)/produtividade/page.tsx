@@ -269,10 +269,12 @@ export default function ProdutividadePage() {
     setImportResult(null);
     let totalCount = 0, totalSkipped = 0;
     for (let i = 0; i < selectedFiles.length; i++) {
-      const formData = new FormData();
-      formData.append("file", selectedFiles[i]);
-      formData.append("substituir", (i === 0 && substituir) ? "1" : "0");
-      const res = await fetch("/api/produtividade/import", { method: "POST", body: formData });
+      const sub = (i === 0 && substituir) ? "1" : "0";
+      const res = await fetch(`/api/produtividade/import?substituir=${sub}`, {
+        method: "POST",
+        body: selectedFiles[i],
+        headers: { "Content-Type": "application/octet-stream" },
+      });
       const data = await res.json();
       if (!res.ok) { setImportResult({ error: data.error ?? "Erro ao importar" }); setImporting(false); return; }
       totalCount += data.count ?? 0;

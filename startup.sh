@@ -200,6 +200,10 @@ async function migrate() {
   try { await client.query(\`ALTER TABLE \"RedmineAtribuido\" ADD COLUMN IF NOT EXISTS \"solicitadoObs\" TEXT\`); } catch(e) {}
   try { await client.query(\`ALTER TABLE \"RedmineAtribuido\" ADD COLUMN IF NOT EXISTS \"solicitadoOperador\" TEXT\`); } catch(e) {}
   try { await client.query(\`ALTER TABLE \"RedmineAtribuido\" ADD COLUMN IF NOT EXISTS \"historicoAcomp\" TEXT\`); } catch(e) {}
+  // LGPD: apaga colunas de conteúdo sensível da RedmineAtribuido
+  try { await client.query(\`ALTER TABLE \"RedmineAtribuido\" DROP COLUMN IF EXISTS \"titulo\"\`); } catch(e) {}
+  try { await client.query(\`ALTER TABLE \"RedmineAtribuido\" DROP COLUMN IF EXISTS \"descricao\"\`); } catch(e) {}
+  try { await client.query(\`ALTER TABLE \"RedmineAtribuido\" DROP COLUMN IF EXISTS \"ultimasNotas\"\`); } catch(e) {}
   try { await client.query(\`ALTER TABLE \"EscalaSemana\" ADD COLUMN IF NOT EXISTS \"unidade\" TEXT\`); } catch(e) {}
   // EscalaWhatsapp
   await client.query(\`CREATE TABLE IF NOT EXISTS \"EscalaWhatsapp\" (

@@ -136,7 +136,6 @@ export async function GET(request: NextRequest) {
       OR: [
         { numeroRedmine: { contains: busca, mode: "insensitive" } },
         { numerosAssyst: { contains: busca, mode: "insensitive" } },
-        { titulo: { contains: busca, mode: "insensitive" } },
         { atribuidoPara: { contains: busca, mode: "insensitive" } },
       ],
     });
@@ -176,10 +175,7 @@ export async function POST(request: NextRequest) {
   const iAlter   = idx(["alteradoem", "alterado", "atualizadoem", "atualizado", "updated"]);
   const iTipo    = idx(["tipo"]);
   const iSit     = idx(["situacao", "situac"]);
-  const iTitulo  = idx(["titulo", "title"]);
   const iAtrib   = idx(["atribuidopara", "atribuido", "responsavel"]);
-  const iDesc    = idx(["descricao", "descri", "description"]);
-  const iNota    = idx(["ultimasnota", "notas", "nota"]);
 
   const expectedCols = rows[0].length;
   const registros = [];
@@ -202,10 +198,7 @@ export async function POST(request: NextRequest) {
       alteradoEm:   r[iAlter]?.trim()  || null,
       tipo:         r[iTipo]?.trim()   || null,
       situacao:     r[iSit]?.trim()    || null,
-      titulo:       r[iTitulo]?.trim() || null,
       atribuidoPara: r[iAtrib]?.trim() || null,
-      descricao:    r[iDesc]?.trim()   || null,
-      ultimasNotas: r[iNota]?.trim()   || null,
     });
   }
 
@@ -225,7 +218,7 @@ export async function POST(request: NextRequest) {
     const ex = existingMap.get(r.numeroRedmine)!;
     return prisma.redmineAtribuido.update({
       where: { id: ex.id },
-      data: { numerosAssyst: r.numerosAssyst, criadoEm: r.criadoEm, alteradoEm: r.alteradoEm, tipo: r.tipo, situacao: r.situacao, titulo: r.titulo, atribuidoPara: r.atribuidoPara, descricao: r.descricao, ultimasNotas: r.ultimasNotas },
+      data: { numerosAssyst: r.numerosAssyst, criadoEm: r.criadoEm, alteradoEm: r.alteradoEm, tipo: r.tipo, situacao: r.situacao, atribuidoPara: r.atribuidoPara },
     });
   }));
 
@@ -242,7 +235,7 @@ export async function POST(request: NextRequest) {
 type EntradaAcomp = { em: string; obs: string | null; operador: string | null };
 
 export async function PATCH(request: NextRequest) {
-  const { id, ultimasNotas, solicitadoEm, solicitadoObs, solicitadoOperador, limparSolicitado } = await request.json();
+  const { id, solicitadoEm, solicitadoObs, solicitadoOperador, limparSolicitado } = await request.json();
   if (limparSolicitado) {
     await prisma.redmineAtribuido.update({ where: { id }, data: { solicitadoEm: null, solicitadoObs: null, solicitadoOperador: null, historicoAcomp: null } });
   } else if (solicitadoEm !== undefined) {
@@ -255,8 +248,6 @@ export async function PATCH(request: NextRequest) {
     }
     historico.push({ em: solicitadoEm, obs: solicitadoObs ?? null, operador: solicitadoOperador ?? null });
     await prisma.redmineAtribuido.update({ where: { id }, data: { solicitadoEm: new Date(solicitadoEm), solicitadoObs: solicitadoObs ?? null, solicitadoOperador: solicitadoOperador ?? null, historicoAcomp: JSON.stringify(historico) } });
-  } else {
-    await prisma.redmineAtribuido.update({ where: { id }, data: { ultimasNotas } });
   }
   return NextResponse.json({ ok: true });
 }

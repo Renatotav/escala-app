@@ -121,55 +121,62 @@ export async function GET(request: NextRequest) {
     }
     const whereStats = statsConditions.length === 0 ? {} : statsConditions.length === 1 ? statsConditions[0] : { AND: statsConditions };
 
+    // Produtividade: recebidos + resolvidos + TMR
     const todos = await prisma.produtividade.findMany({
-      select: { usuarioFechamento: true, dataAbertura: true, dataResolucao: true, pausa: true, situacaoRegra: true },
+      select: { usuarioFechamento: true, dataAbertura: true, dataResolucao: true },
       where: whereStats,
     });
 
-    type Acc = { recebidos: number; emAberto: number; pausados: number; resolvidos: number; tmrHorasSum: number; tmrCount: number; tmpHorasSum: number; tmpCount: number };
+    type Acc = { recebidos: number; resolvidos: number; tmrHorasSum: number; tmrCount: number };
     const grupos = new Map<string, Acc>();
 
     for (const r of todos) {
       const usuario = r.usuarioFechamento || "(Sem usuário)";
-      if (!grupos.has(usuario)) grupos.set(usuario, { recebidos: 0, emAberto: 0, pausados: 0, resolvidos: 0, tmrHorasSum: 0, tmrCount: 0, tmpHorasSum: 0, tmpCount: 0 });
+      if (!grupos.has(usuario)) grupos.set(usuario, { recebidos: 0, resolvidos: 0, tmrHorasSum: 0, tmrCount: 0 });
       const g = grupos.get(usuario)!;
       g.recebidos++;
-
-      const sit = (r.situacaoRegra || "").toLowerCase();
-      const isResolvido = sit.includes("resolvid") || sit.includes("fechad") || r.dataResolucao !== null;
-      const pausaH = parsePausaHoras(r.pausa);
-      const isPausado = sit.includes("paus") || (pausaH > 0 && !isResolvido);
-
-      if (isResolvido) {
-        g.resolvidos++;
-        if (r.dataAbertura && r.dataResolucao) {
-          const diffH = (new Date(r.dataResolucao).getTime() - new Date(r.dataAbertura).getTime()) / 3_600_000;
-          if (diffH >= 0) { g.tmrHorasSum += diffH; g.tmrCount++; }
-        }
-      } else if (isPausado) {
-        g.pausados++;
-      } else {
-        g.emAberto++;
+      g.resolvidos++;
+      if (r.dataAbertura && r.dataResolucao) {
+        const diffH = (new Date(r.dataResolucao).getTime() - new Date(r.dataAbertura).getTime()) / 3_600_000;
+        if (diffH >= 0) { g.tmrHorasSum += diffH; g.tmrCount++; }
       }
-      if (pausaH > 0) { g.tmpHorasSum += pausaH; g.tmpCount++; }
+    }
+
+    // Chamados (Assyst): Em Aberto e Pausados por nomeUsuarioAtribuido
+    const chamados = await prisma.chamado.findMany({
+      select: { nomeUsuarioAtribuido: true, estado: true },
+    });
+
+    const chamadosAberto  = new Map<string, number>();
+    const chamadosPausado = new Map<string, number>();
+    for (const c of chamados) {
+      const nome = c.nomeUsuarioAtribuido;
+      if (!nome) continue;
+      const est = (c.estado || "").toLowerCase();
+      const isPausado = est.includes("paus") || est.includes("aguard") || est.includes("espera") || est.includes("suspen");
+      const isResolvido = est.includes("resolvid") || est.includes("fechad") || est.includes("cancela");
+      const key = normName(nome);
+      if (isPausado) {
+        chamadosPausado.set(key, (chamadosPausado.get(key) ?? 0) + 1);
+      } else if (!isResolvido) {
+        chamadosAberto.set(key, (chamadosAberto.get(key) ?? 0) + 1);
+      }
     }
 
     const stats = [...grupos.entries()]
       .map(([usuario, g]) => {
         const tmrH = g.tmrCount > 0 ? g.tmrHorasSum / g.tmrCount : 0;
-        const tmpH = g.tmpCount > 0 ? g.tmpHorasSum / g.tmpCount : 0;
+        const normUsuario = normName(usuario);
         return {
           usuario,
           equipe: resolveEquipe(usuario),
           recebidos: g.recebidos,
-          emAberto: g.emAberto,
-          pausados: g.pausados,
+          emAberto: chamadosAberto.get(normUsuario) ?? 0,
+          pausados: chamadosPausado.get(normUsuario) ?? 0,
           resolvidos: g.resolvidos,
           taxaResolucao: g.recebidos > 0 ? (g.resolvidos / g.recebidos) * 100 : 0,
           tmrHoras: Math.round(tmrH),
           tmrDias: Math.round(tmrH / 24),
-          tmpHoras: Math.round(tmpH),
-          tmpDias: Math.round(tmpH / 24),
         };
       })
       .sort((a, b) => a.usuario.localeCompare(b.usuario, "pt-BR"));
@@ -179,11 +186,10 @@ export async function GET(request: NextRequest) {
       { recebidos: 0, emAberto: 0, pausados: 0, resolvidos: 0 }
     );
     const tmrGeralH = stats.reduce((s, r) => s + r.tmrHoras * (r.resolvidos || 1), 0) / Math.max(1, stats.reduce((s, r) => s + (r.resolvidos || 1), 0));
-    const tmpGeralH = stats.reduce((s, r) => s + r.tmpHoras * (r.pausados  || 1), 0) / Math.max(1, stats.reduce((s, r) => s + (r.pausados  || 1), 0));
 
     return NextResponse.json({
       stats,
-      totais: { ...totais, taxaResolucao: totais.recebidos > 0 ? (totais.resolvidos / totais.recebidos) * 100 : 0, tmrHoras: Math.round(tmrGeralH), tmrDias: Math.round(tmrGeralH / 24), tmpHoras: Math.round(tmpGeralH), tmpDias: Math.round(tmpGeralH / 24) },
+      totais: { ...totais, taxaResolucao: totais.recebidos > 0 ? (totais.resolvidos / totais.recebidos) * 100 : 0, tmrHoras: Math.round(tmrGeralH), tmrDias: Math.round(tmrGeralH / 24) },
       equipes, atendentes, atendentesCount, periodoInicio, periodoFim, totalRegistros,
     });
   }

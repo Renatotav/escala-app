@@ -36,8 +36,6 @@ type UserStat = {
   taxaResolucao: number;
   tmrHoras: number;
   tmrDias: number;
-  tmpHoras: number;
-  tmpDias: number;
 };
 
 type Totais = UserStat & { usuario: never };
@@ -468,8 +466,6 @@ export default function ProdutividadePage() {
                   <th className="text-center px-3 py-3">Taxa Resolução</th>
                   <th className="text-right px-3 py-3">TMR Dias</th>
                   <th className="text-right px-3 py-3">TMR Horas</th>
-                  <th className="text-right px-3 py-3">TMP Dias</th>
-                  <th className="text-right px-3 py-3">TMP Horas</th>
                 </tr>
               </thead>
               <tbody>
@@ -488,8 +484,6 @@ export default function ProdutividadePage() {
                     <td className="px-3 py-2.5 text-center"><TaxaBadge taxa={s.taxaResolucao} /></td>
                     <td className="px-3 py-2.5 text-right font-mono text-sm text-gray-300 tabular-nums">{s.tmrDias || "—"}</td>
                     <td className="px-3 py-2.5 text-right font-mono text-sm text-gray-300 tabular-nums">{s.tmrHoras || "—"}</td>
-                    <td className="px-3 py-2.5 text-right font-mono text-sm text-gray-400 tabular-nums">{s.tmpDias || "—"}</td>
-                    <td className="px-3 py-2.5 text-right font-mono text-sm text-gray-400 tabular-nums">{s.tmpHoras || "—"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -509,8 +503,6 @@ export default function ProdutividadePage() {
                   <td className="px-3 py-3 text-center"><TaxaBadge taxa={statsData.totais.taxaResolucao} /></td>
                   <td className="px-3 py-3 text-right font-mono font-bold text-gray-200 tabular-nums">{statsData.totais.tmrDias || "—"}</td>
                   <td className="px-3 py-3 text-right font-mono font-bold text-gray-200 tabular-nums">{statsData.totais.tmrHoras || "—"}</td>
-                  <td className="px-3 py-3 text-right font-mono font-bold text-gray-300 tabular-nums">{statsData.totais.tmpDias || "—"}</td>
-                  <td className="px-3 py-3 text-right font-mono font-bold text-gray-300 tabular-nums">{statsData.totais.tmpHoras || "—"}</td>
                 </tr>
               </tfoot>
             </table>

@@ -119,6 +119,7 @@ export async function GET(request: NextRequest) {
         statsConditions.push({ OR: nomes.map(n => ({ usuarioFechamento: { contains: n, mode: "insensitive" as const } })) });
       }
     }
+    if (atendente) statsConditions.push({ usuarioFechamento: atendente });
     const whereStats = statsConditions.length === 0 ? {} : statsConditions.length === 1 ? statsConditions[0] : { AND: statsConditions };
 
     // Produtividade: recebidos + resolvidos + TMR
@@ -153,7 +154,7 @@ export async function GET(request: NextRequest) {
       const nome = c.nomeUsuarioAtribuido;
       if (!nome) continue;
       const est = (c.estado || "").toLowerCase();
-      const isPausado = est.includes("paus") || est.includes("aguard") || est.includes("espera") || est.includes("suspen");
+      const isPausado = est.includes("paus") || est.includes("parar") || est.includes("aguard") || est.includes("espera") || est.includes("suspen");
       const isResolvido = est.includes("resolvid") || est.includes("fechad") || est.includes("cancela");
       const key = normName(nome);
       if (isPausado) {

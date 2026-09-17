@@ -130,10 +130,11 @@ export default function ProdutividadePage() {
       .then((d: Dados) => { setDados(d); setLoading(false); });
   }
 
-  function loadStats(equipeQ = "") {
+  function loadStats(equipeQ = "", atendenteQ = "") {
     setLoadingStats(true);
     const params = new URLSearchParams({ stats: "1" });
-    if (equipeQ) params.set("equipe", equipeQ);
+    if (equipeQ)    params.set("equipe", equipeQ);
+    if (atendenteQ) params.set("atendente", atendenteQ);
     buildDateParams(params);
     fetch(`/api/produtividade?${params}`)
       .then(r => r.json())
@@ -143,9 +144,9 @@ export default function ProdutividadePage() {
   useEffect(() => { load(); }, []);
 
   useEffect(() => {
-    if (view === "quantitativo") loadStats(equipe);
+    if (view === "quantitativo") loadStats(equipe, atendente);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view, equipe, anoRec, dataRecDe, dataRecAte, anoRes, dataResDe, dataResAte]);
+  }, [view, equipe, atendente, anoRec, dataRecDe, dataRecAte, anoRes, dataResDe, dataResAte]);
 
   useEffect(() => {
     const t = setTimeout(() => load(1, busca, equipe, atendente), 300);
@@ -295,8 +296,8 @@ export default function ProdutividadePage() {
               {equipes.map(eq => <option key={eq} value={eq}>{eq}</option>)}
             </select>
           )}
-          {/* Atendente — só na Lista */}
-          {view === "lista" && atendentes.length > 0 && (
+          {/* Atendente — Lista e Quantitativo */}
+          {atendentes.length > 0 && (
             <select value={atendente} onChange={e => setAtendente(e.target.value)}
               className="bg-gray-900 border border-gray-700 text-white text-xs rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-56">
               <option value="">Todos os atendentes</option>

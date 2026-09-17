@@ -318,76 +318,193 @@ export default function ProdutividadePage() {
 
   function gerarPDF() {
     if (!statsData || statsData.stats.length === 0) return;
-    const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+
+    function hexToRgbPDF(hex: string): [number, number, number] {
+      return [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)];
+    }
+
+    function desenharDonutPDF(
+      doc: jsPDF,
+      dados: { label: string; value: number }[],
+      total: number,
+      ox: number, oy: number, sz: number
+    ) {
+      const cx = ox + sz / 2, cy = oy + sz / 2;
+      const R = sz / 2 * 0.90, ri = sz / 2 * 0.44;
+      const STEPS = 64;
+      let ang = -Math.PI / 2;
+      dados.forEach((d, i) => {
+        const frac = d.value / total;
+        const sa = ang, ea = ang + frac * 2 * Math.PI;
+        ang = ea;
+        const steps = Math.max(4, Math.ceil(STEPS * frac));
+        const pts: [number, number][] = [];
+        for (let j = 0; j <= steps; j++) {
+          const a = sa + (ea - sa) * j / steps;
+          pts.push([cx + R * Math.cos(a), cy + R * Math.sin(a)]);
+        }
+        for (let j = steps; j >= 0; j--) {
+          const a = sa + (ea - sa) * j / steps;
+          pts.push([cx + ri * Math.cos(a), cy + ri * Math.sin(a)]);
+        }
+        const [r, g, b] = hexToRgbPDF(CORES_CHART[i % CORES_CHART.length]);
+        doc.setFillColor(r, g, b);
+        doc.setDrawColor(255, 255, 255);
+        doc.setLineWidth(0.35);
+        const lines: [number, number][] = pts.slice(1).map((p, k) => [p[0] - pts[k][0], p[1] - pts[k][1]]);
+        doc.lines(lines, pts[0][0], pts[0][1], [1, 1], "FD", true);
+        if (frac >= 0.03) {
+          const ma = sa + (ea - sa) / 2, lr = (R + ri) / 2;
+          doc.setFontSize(6.5);
+          doc.setTextColor(255, 255, 255);
+          doc.setFont("helvetica", "bold");
+          doc.text(`${(frac * 100).toFixed(1)}%`, cx + lr * Math.cos(ma), cy + lr * Math.sin(ma), { align: "center", baseline: "middle" });
+        }
+      });
+      doc.setFillColor(255, 255, 255);
+      doc.setDrawColor(255, 255, 255);
+      doc.circle(cx, cy, ri, "F");
+      doc.setFontSize(9);
+      doc.setTextColor(30, 41, 59);
+      doc.setFont("helvetica", "bold");
+      doc.text(total.toLocaleString("pt-BR"), cx, cy - 1.5, { align: "center", baseline: "middle" });
+      doc.setFontSize(5);
+      doc.setTextColor(148, 163, 184);
+      doc.setFont("helvetica", "normal");
+      doc.text("RESOLVIDOS", cx, cy + 3.5, { align: "center", baseline: "middle" });
+    }
+
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
     const geradoEm = new Date().toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+    const totalResolvidos = statsData.totais.resolvidos;
+
     doc.setFontSize(16);
     doc.setTextColor(30, 30, 30);
     doc.text("Produtividade - Quantitativo", 14, 18);
     doc.setFontSize(9);
     doc.setTextColor(100, 100, 100);
-    doc.text(`Gerado em: ${geradoEm}`, 14, 26);
+    doc.text(`Total: ${totalResolvidos.toLocaleString("pt-BR")} resolvidos`, 14, 26);
+    doc.text(`Gerado em: ${geradoEm}`, 14, 31);
 
-    const rows = statsData.stats.map(s => [
-      s.usuario,
-      s.equipe ?? "—",
-      s.recebidos.toLocaleString("pt-BR"),
-      s.emAberto > 0 ? s.emAberto.toLocaleString("pt-BR") : "—",
-      s.pausados  > 0 ? s.pausados.toLocaleString("pt-BR")  : "—",
-      s.resolvidos.toLocaleString("pt-BR"),
-      `${s.taxaResolucao.toFixed(1)}%`,
-      s.tmrDias  || "—",
-      s.tmrHoras || "—",
-    ]);
+    // Agrupa stats por equipe
+    const porEquipe = new Map<string, UserStat[]>();
+    for (const s of statsData.stats) {
+      const eq = s.equipe ?? "Sem equipe";
+      if (!porEquipe.has(eq)) porEquipe.set(eq, []);
+      porEquipe.get(eq)!.push(s);
+    }
+    const equipesSorted = [...porEquipe.entries()].sort((a, b) =>
+      b[1].reduce((s, u) => s + u.resolvidos, 0) - a[1].reduce((s, u) => s + u.resolvidos, 0)
+    );
+
+    const donutItens = equipesSorted.map(([eq, us]) => ({ label: eq, value: us.reduce((s, u) => s + u.resolvidos, 0) }));
+    const donutTotal = donutItens.reduce((s, d) => s + d.value, 0);
+
+    let y = 37;
+    if (donutTotal > 0) {
+      const chartX = 14, chartY = 36, chartSz = 78;
+      desenharDonutPDF(doc, donutItens, donutTotal, chartX, chartY, chartSz);
+      const legX = chartX + chartSz + 5;
+      let legY = chartY + 5;
+      donutItens.forEach((d, i) => {
+        const [r, g, b] = hexToRgbPDF(CORES_CHART[i % CORES_CHART.length]);
+        doc.setFillColor(r, g, b);
+        doc.rect(legX, legY - 2.8, 3.5, 3.5, "F");
+        const pct = ((d.value / donutTotal) * 100).toFixed(1);
+        doc.setFontSize(7.5);
+        doc.setTextColor(40, 40, 40);
+        doc.setFont("helvetica", "normal");
+        doc.text(`${d.label}  ${d.value.toLocaleString("pt-BR")} (${pct}%)`, legX + 4.8, legY);
+        legY += 6.8;
+      });
+      y = chartY + chartSz + 8;
+    }
+
+    for (const [eq, usuarios] of equipesSorted) {
+      const eqResolvidos = usuarios.reduce((s, u) => s + u.resolvidos, 0);
+      const pct = donutTotal > 0 ? ((eqResolvidos / donutTotal) * 100).toFixed(1) : "0.0";
+      const rows = usuarios.map((u, i) => [
+        `${i + 1}`,
+        u.usuario,
+        u.recebidos.toLocaleString("pt-BR"),
+        u.emAberto > 0 ? u.emAberto.toLocaleString("pt-BR") : "—",
+        u.pausados  > 0 ? u.pausados.toLocaleString("pt-BR")  : "—",
+        u.resolvidos.toLocaleString("pt-BR"),
+        `${u.taxaResolucao.toFixed(1)}%`,
+        String(u.tmrDias || "—"),
+      ]);
+      autoTable(doc, {
+        startY: y,
+        head: [[{ content: `${eq}  -  ${eqResolvidos.toLocaleString("pt-BR")} resolvidos (${pct}%)`, colSpan: 8 }]],
+        body: rows,
+        columnStyles: {
+          0: { cellWidth: 8, halign: "center" },
+          2: { halign: "right" },
+          3: { halign: "right" },
+          4: { halign: "right" },
+          5: { halign: "right" },
+          6: { halign: "center", cellWidth: 22 },
+          7: { halign: "right", cellWidth: 16 },
+        },
+        headStyles: { fillColor: [30, 41, 59], textColor: [200, 200, 220], fontStyle: "bold", fontSize: 9 },
+        bodyStyles: { fontSize: 8, textColor: [40, 40, 40] },
+        alternateRowStyles: { fillColor: [248, 250, 252] },
+        margin: { left: 14, right: 14 },
+        didParseCell: (data) => {
+          if (data.section !== "body") return;
+          if (data.column.index === 6) {
+            const txt = String(data.cell.raw ?? "").replace("%", "").trim();
+            const taxa = parseFloat(txt);
+            if (!isNaN(taxa)) {
+              const [r, g, b] = taxa >= 98 ? [21, 128, 61] : taxa >= 95 ? [22, 163, 74] : taxa >= 90 ? [34, 197, 94] : taxa >= 80 ? [161, 98, 7] : [185, 28, 28];
+              data.cell.styles.fillColor = [r, g, b];
+              data.cell.styles.textColor = [255, 255, 255];
+            }
+          }
+        },
+        didDrawPage: () => { y = 14; },
+      });
+      y = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 6;
+    }
+
+    // Linha de totais
     const t = statsData.totais;
     const totalDen = t.resolvidos + t.emAberto + t.pausados;
-    rows.push([
-      "TOTAL", "",
-      t.recebidos.toLocaleString("pt-BR"),
-      t.emAberto  > 0 ? t.emAberto.toLocaleString("pt-BR")  : "—",
-      t.pausados  > 0 ? t.pausados.toLocaleString("pt-BR")  : "—",
-      t.resolvidos.toLocaleString("pt-BR"),
-      totalDen > 0 ? `${((t.resolvidos / totalDen) * 100).toFixed(1)}%` : "—",
-      t.tmrDias  || "—",
-      t.tmrHoras || "—",
-    ]);
-
     autoTable(doc, {
-      startY: 32,
-      head: [["Usuário Fechamento", "Equipe", "Recebidos", "Em Aberto", "Pausados", "Resolvidos", "Taxa Resolução", "TMR Dias", "TMR Horas"]],
-      body: rows,
+      startY: y,
+      body: [[
+        "", "TOTAL",
+        t.recebidos.toLocaleString("pt-BR"),
+        t.emAberto  > 0 ? t.emAberto.toLocaleString("pt-BR")  : "—",
+        t.pausados  > 0 ? t.pausados.toLocaleString("pt-BR")  : "—",
+        t.resolvidos.toLocaleString("pt-BR"),
+        totalDen > 0 ? `${((t.resolvidos / totalDen) * 100).toFixed(1)}%` : "—",
+        String(t.tmrDias || "—"),
+      ]],
       columnStyles: {
-        0: { cellWidth: 60 },
+        0: { cellWidth: 8, halign: "center" },
         2: { halign: "right" },
         3: { halign: "right" },
         4: { halign: "right" },
         5: { halign: "right" },
-        6: { halign: "center" },
-        7: { halign: "right" },
-        8: { halign: "right" },
+        6: { halign: "center", cellWidth: 22 },
+        7: { halign: "right", cellWidth: 16 },
       },
-      headStyles: { fillColor: [30, 41, 59], textColor: [200, 200, 220], fontStyle: "bold", fontSize: 8 },
-      bodyStyles: { fontSize: 8, textColor: [40, 40, 40] },
-      alternateRowStyles: { fillColor: [248, 250, 252] },
+      bodyStyles: { fontSize: 8.5, textColor: [40, 40, 40], fontStyle: "bold", fillColor: [226, 232, 240] },
+      margin: { left: 14, right: 14 },
       didParseCell: (data) => {
-        const isTotal = data.section === "body" && data.row.index === rows.length - 1;
-        if (isTotal) {
-          data.cell.styles.fontStyle = "bold";
-          data.cell.styles.fillColor = [226, 232, 240];
-        }
-        // Colore coluna Taxa Resolução (índice 6)
-        if (data.section === "body" && data.column.index === 6) {
+        if (data.column.index === 6) {
           const txt = String(data.cell.raw ?? "").replace("%", "").trim();
           const taxa = parseFloat(txt);
           if (!isNaN(taxa)) {
             const [r, g, b] = taxa >= 98 ? [21, 128, 61] : taxa >= 95 ? [22, 163, 74] : taxa >= 90 ? [34, 197, 94] : taxa >= 80 ? [161, 98, 7] : [185, 28, 28];
             data.cell.styles.fillColor = [r, g, b];
             data.cell.styles.textColor = [255, 255, 255];
-            data.cell.styles.fontStyle = isTotal ? "bold" : "normal";
           }
         }
       },
-      margin: { left: 14, right: 14 },
     });
+
     doc.save(`produtividade-quantitativo-${new Date().toISOString().slice(0, 10)}.pdf`);
   }
 

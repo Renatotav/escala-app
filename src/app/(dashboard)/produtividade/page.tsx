@@ -422,13 +422,13 @@ export default function ProdutividadePage() {
 
     const COL_STYLES = {
       0: { cellWidth: 9,  halign: "center" as const },
-      2: { cellWidth: 24, halign: "right"  as const },
-      3: { cellWidth: 24, halign: "right"  as const },
-      4: { cellWidth: 22, halign: "right"  as const },
-      5: { cellWidth: 24, halign: "right"  as const },
+      2: { cellWidth: 24, halign: "center" as const },
+      3: { cellWidth: 24, halign: "center" as const },
+      4: { cellWidth: 22, halign: "center" as const },
+      5: { cellWidth: 24, halign: "center" as const },
       6: { cellWidth: 30, halign: "center" as const },
-      7: { cellWidth: 20, halign: "right"  as const },
-      8: { cellWidth: 22, halign: "right"  as const },
+      7: { cellWidth: 20, halign: "center" as const },
+      8: { cellWidth: 22, halign: "center" as const },
     };
 
     function taxaColor(taxa: number): [number, number, number] {

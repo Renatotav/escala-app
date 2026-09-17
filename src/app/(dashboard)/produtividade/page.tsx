@@ -369,9 +369,21 @@ export default function ProdutividadePage() {
       bodyStyles: { fontSize: 8, textColor: [40, 40, 40] },
       alternateRowStyles: { fillColor: [248, 250, 252] },
       didParseCell: (data) => {
-        if (data.section === "body" && data.row.index === rows.length - 1) {
+        const isTotal = data.section === "body" && data.row.index === rows.length - 1;
+        if (isTotal) {
           data.cell.styles.fontStyle = "bold";
           data.cell.styles.fillColor = [226, 232, 240];
+        }
+        // Colore coluna Taxa Resolução (índice 6)
+        if (data.section === "body" && data.column.index === 6) {
+          const txt = String(data.cell.raw ?? "").replace("%", "").trim();
+          const taxa = parseFloat(txt);
+          if (!isNaN(taxa)) {
+            const [r, g, b] = taxa >= 98 ? [21, 128, 61] : taxa >= 95 ? [22, 163, 74] : taxa >= 90 ? [34, 197, 94] : taxa >= 80 ? [161, 98, 7] : [185, 28, 28];
+            data.cell.styles.fillColor = [r, g, b];
+            data.cell.styles.textColor = [255, 255, 255];
+            data.cell.styles.fontStyle = isTotal ? "bold" : "normal";
+          }
         }
       },
       margin: { left: 14, right: 14 },
@@ -430,9 +442,24 @@ export default function ProdutividadePage() {
       ];
       x = PAD + 8;
       for (let i = 0; i < cells.length; i++) {
-        ctx.fillStyle = isTotal ? "#e2e8f0" : i === 0 ? "#e2e8f0" : i === 3 && s.emAberto > 0 ? "#fbbf24" : i === 4 && s.pausados > 0 ? "#fb923c" : "#94a3b8";
-        ctx.font = isTotal ? "bold 10px monospace" : i === 0 ? "11px system-ui" : "10px monospace";
-        ctx.fillText(cells[i], x + 4, y + 19);
+        // Coluna Taxa Resolução (índice 6): badge colorido
+        if (i === 6) {
+          const taxa = s.taxaResolucao;
+          const bgColor = taxa >= 98 ? "#15803d" : taxa >= 95 ? "#16a34a" : taxa >= 90 ? "#22c55e" : taxa >= 80 ? "#a16207" : "#b91c1c";
+          const badgeW = COLS[i] - 12;
+          ctx.fillStyle = bgColor;
+          ctx.beginPath();
+          ctx.roundRect(x + 2, y + 6, badgeW, ROW_H - 12, 4);
+          ctx.fill();
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "bold 10px monospace";
+          const tw = ctx.measureText(cells[i]).width;
+          ctx.fillText(cells[i], x + 2 + (badgeW - tw) / 2, y + 19);
+        } else {
+          ctx.fillStyle = isTotal ? "#e2e8f0" : i === 0 ? "#e2e8f0" : i === 3 && s.emAberto > 0 ? "#fbbf24" : i === 4 && s.pausados > 0 ? "#fb923c" : "#94a3b8";
+          ctx.font = isTotal ? "bold 10px monospace" : i === 0 ? "11px system-ui" : "10px monospace";
+          ctx.fillText(cells[i], x + 4, y + 19);
+        }
         x += COLS[i];
       }
       y += ROW_H;

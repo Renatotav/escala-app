@@ -24,12 +24,19 @@ function parsePausaHoras(pausa: string | null): number {
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const page    = Math.max(1, Number(searchParams.get("page") ?? "1"));
-  const busca   = searchParams.get("busca")?.trim()    || null;
-  const equipe  = searchParams.get("equipe")?.trim()   || null;
+  const page      = Math.max(1, Number(searchParams.get("page") ?? "1"));
+  const busca     = searchParams.get("busca")?.trim()     || null;
+  const equipe    = searchParams.get("equipe")?.trim()    || null;
   const atendente = searchParams.get("atendente")?.trim() || null;
   const exportAll = searchParams.get("export") === "1";
   const statsOnly = searchParams.get("stats")  === "1";
+
+  const anoRecebimento = searchParams.get("anoRec")?.trim()    || null;
+  const dataRecDe      = searchParams.get("dataRecDe")?.trim() || null;
+  const dataRecAte     = searchParams.get("dataRecAte")?.trim()|| null;
+  const anoResolucao   = searchParams.get("anoRes")?.trim()    || null;
+  const dataResDe      = searchParams.get("dataResDe")?.trim() || null;
+  const dataResAte     = searchParams.get("dataResAte")?.trim()|| null;
 
   // Colaboradores → mapa nome→equipe (base para todos os filtros e selects)
   const colaboradores = await prisma.colaborador.findMany({
@@ -73,11 +80,35 @@ export async function GET(request: NextRequest) {
   const periodoInicio = periodo._min.dataAbertura?.toISOString() ?? null;
   const periodoFim    = periodo._max.dataAbertura?.toISOString() ?? null;
 
+  // Monta condições de data reutilizáveis
+  function dateConditions(): Record<string, unknown>[] {
+    const conds: Record<string, unknown>[] = [];
+    const abRange: Record<string, Date> = {};
+    if (anoRecebimento) {
+      abRange.gte = new Date(`${anoRecebimento}-01-01T00:00:00Z`);
+      abRange.lt  = new Date(`${Number(anoRecebimento) + 1}-01-01T00:00:00Z`);
+    }
+    if (dataRecDe)  abRange.gte = new Date(`${dataRecDe}T00:00:00Z`);
+    if (dataRecAte) abRange.lte = new Date(`${dataRecAte}T23:59:59Z`);
+    if (Object.keys(abRange).length) conds.push({ dataAbertura: abRange });
+
+    const resRange: Record<string, Date> = {};
+    if (anoResolucao) {
+      resRange.gte = new Date(`${anoResolucao}-01-01T00:00:00Z`);
+      resRange.lt  = new Date(`${Number(anoResolucao) + 1}-01-01T00:00:00Z`);
+    }
+    if (dataResDe)  resRange.gte = new Date(`${dataResDe}T00:00:00Z`);
+    if (dataResAte) resRange.lte = new Date(`${dataResAte}T23:59:59Z`);
+    if (Object.keys(resRange).length) conds.push({ dataResolucao: resRange });
+    return conds;
+  }
+
   // ── STATS (Quantitativo) ──────────────────────────────────────────────────
   if (statsOnly) {
-    const whereStats = equipe
-      ? { usuarioFechamento: { in: nomesDeEquipe(equipe) } }
-      : {};
+    const statsConditions: Record<string, unknown>[] = [];
+    if (equipe) statsConditions.push({ usuarioFechamento: { in: nomesDeEquipe(equipe) } });
+    statsConditions.push(...dateConditions());
+    const whereStats = statsConditions.length === 0 ? {} : statsConditions.length === 1 ? statsConditions[0] : { AND: statsConditions };
 
     const todos = await prisma.produtividade.findMany({
       select: { usuarioFechamento: true, dataAbertura: true, dataResolucao: true, pausa: true, situacaoRegra: true },
@@ -151,11 +182,9 @@ export async function GET(request: NextRequest) {
 
   if (equipe) {
     const nomes = nomesDeEquipe(equipe);
-    // Tenta match exato (uppercase) e fallback contains
-    if (nomes.length > 0) {
-      conditions.push({ usuarioFechamento: { in: nomes } });
-    }
+    if (nomes.length > 0) conditions.push({ usuarioFechamento: { in: nomes } });
   }
+  conditions.push(...dateConditions());
   if (atendente) conditions.push({ usuarioFechamento: atendente });
   if (busca) {
     conditions.push({

@@ -47,6 +47,8 @@ type DadosStats = {
   totais: Omit<UserStat, "usuario">;
   equipes: string[];
   totalRegistros: number;
+  periodoInicio: string | null;
+  periodoFim: string | null;
 };
 
 function fmtDate(iso: string | null) {
@@ -100,15 +102,31 @@ export default function ProdutividadePage() {
   const [busca, setBusca] = useState("");
   const [equipe, setEquipe] = useState("");
   const [atendente, setAtendente] = useState("");
+  const [anoRec, setAnoRec] = useState("");
+  const [dataRecDe, setDataRecDe] = useState("");
+  const [dataRecAte, setDataRecAte] = useState("");
+  const [anoRes, setAnoRes] = useState("");
+  const [dataResDe, setDataResDe] = useState("");
+  const [dataResAte, setDataResAte] = useState("");
   const [substituir, setSubstituir] = useState(true);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  function buildDateParams(p: URLSearchParams) {
+    if (anoRec)    p.set("anoRec", anoRec);
+    if (dataRecDe) p.set("dataRecDe", dataRecDe);
+    if (dataRecAte)p.set("dataRecAte", dataRecAte);
+    if (anoRes)    p.set("anoRes", anoRes);
+    if (dataResDe) p.set("dataResDe", dataResDe);
+    if (dataResAte)p.set("dataResAte", dataResAte);
+  }
 
   function load(pg = 1, buscaQ = "", equipeQ = "", atendenteQ = "") {
     setLoading(true);
     const params = new URLSearchParams({ page: String(pg) });
-    if (buscaQ) params.set("busca", buscaQ);
-    if (equipeQ) params.set("equipe", equipeQ);
-    if (atendenteQ) params.set("atendente", atendenteQ);
+    if (buscaQ)    params.set("busca", buscaQ);
+    if (equipeQ)   params.set("equipe", equipeQ);
+    if (atendenteQ)params.set("atendente", atendenteQ);
+    buildDateParams(params);
     fetch(`/api/produtividade?${params}`)
       .then(r => r.json())
       .then((d: Dados) => { setDados(d); setLoading(false); });
@@ -118,6 +136,7 @@ export default function ProdutividadePage() {
     setLoadingStats(true);
     const params = new URLSearchParams({ stats: "1" });
     if (equipeQ) params.set("equipe", equipeQ);
+    buildDateParams(params);
     fetch(`/api/produtividade?${params}`)
       .then(r => r.json())
       .then((d: DadosStats) => { setStatsData(d); setLoadingStats(false); });
@@ -128,13 +147,13 @@ export default function ProdutividadePage() {
   useEffect(() => {
     if (view === "quantitativo") loadStats(equipe);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view, equipe]);
+  }, [view, equipe, anoRec, dataRecDe, dataRecAte, anoRes, dataResDe, dataResAte]);
 
   useEffect(() => {
     const t = setTimeout(() => load(1, busca, equipe, atendente), 300);
     return () => clearTimeout(t);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [busca, equipe, atendente]);
+  }, [busca, equipe, atendente, anoRec, dataRecDe, dataRecAte, anoRes, dataResDe, dataResAte]);
 
   async function handleImport() {
     if (selectedFiles.length === 0) return;
@@ -196,7 +215,17 @@ export default function ProdutividadePage() {
   const total = dados?.total ?? 0;
   const equipes = dados?.equipes ?? statsData?.equipes ?? [];
   const atendentes = dados?.atendentes ?? [];
-  const temFiltro = !!(busca || equipe || atendente);
+  const temFiltro = !!(busca || equipe || atendente || anoRec || dataRecDe || dataRecAte || anoRes || dataResDe || dataResAte);
+
+  // Anos disponíveis derivados do período dos dados
+  const anosDisponiveis: number[] = (() => {
+    const ini = dados?.periodoInicio ?? statsData?.periodoInicio ?? null;
+    const fim = dados?.periodoFim    ?? statsData?.periodoFim    ?? null;
+    if (!ini || !fim) return [];
+    const start = new Date(ini).getFullYear();
+    const end   = new Date(fim).getFullYear();
+    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+  })();
 
   return (
     <div>
@@ -258,7 +287,8 @@ export default function ProdutividadePage() {
 
       {/* Filtros (Lista + Quantitativo) */}
       {totalRegistros > 0 && (
-        <div className="flex flex-wrap items-center gap-2 mb-4">
+        <div className="flex flex-col gap-2 mb-4">
+        <div className="flex flex-wrap items-center gap-2">
           {/* Equipe */}
           {equipes.length > 0 && (
             <select value={equipe} onChange={e => { setEquipe(e.target.value); setAtendente(""); }}
@@ -286,11 +316,50 @@ export default function ProdutividadePage() {
             </div>
           )}
           {temFiltro && (
-            <button onClick={() => { setBusca(""); setEquipe(""); setAtendente(""); }}
+            <button onClick={() => { setBusca(""); setEquipe(""); setAtendente(""); setAnoRec(""); setDataRecDe(""); setDataRecAte(""); setAnoRes(""); setDataResDe(""); setDataResAte(""); }}
               className="text-xs px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white border border-gray-700 transition">
               Limpar filtros
             </button>
           )}
+        </div>
+
+        {/* Filtros de data */}
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Recebimento */}
+          <div className="flex items-center gap-1.5 bg-gray-900 border border-gray-800 rounded-lg px-3 py-2">
+            <span className="text-xs text-gray-500 whitespace-nowrap">Ano Receb.</span>
+            <select value={anoRec} onChange={e => setAnoRec(e.target.value)}
+              className="bg-transparent text-white text-xs focus:outline-none">
+              <option value="">Todos</option>
+              {anosDisponiveis.map(a => <option key={a} value={String(a)}>{a}</option>)}
+            </select>
+          </div>
+          <div className="flex items-center gap-1.5 bg-gray-900 border border-gray-800 rounded-lg px-3 py-2">
+            <span className="text-xs text-gray-500 whitespace-nowrap">Data Receb.</span>
+            <input type="date" value={dataRecDe} onChange={e => setDataRecDe(e.target.value)}
+              className="bg-transparent text-white text-xs focus:outline-none w-32" />
+            <span className="text-gray-600 text-xs">→</span>
+            <input type="date" value={dataRecAte} onChange={e => setDataRecAte(e.target.value)}
+              className="bg-transparent text-white text-xs focus:outline-none w-32" />
+          </div>
+          {/* Resolução */}
+          <div className="flex items-center gap-1.5 bg-gray-900 border border-gray-800 rounded-lg px-3 py-2">
+            <span className="text-xs text-gray-500 whitespace-nowrap">Ano Resolução</span>
+            <select value={anoRes} onChange={e => setAnoRes(e.target.value)}
+              className="bg-transparent text-white text-xs focus:outline-none">
+              <option value="">Todos</option>
+              {anosDisponiveis.map(a => <option key={a} value={String(a)}>{a}</option>)}
+            </select>
+          </div>
+          <div className="flex items-center gap-1.5 bg-gray-900 border border-gray-800 rounded-lg px-3 py-2">
+            <span className="text-xs text-gray-500 whitespace-nowrap">Data Resolução</span>
+            <input type="date" value={dataResDe} onChange={e => setDataResDe(e.target.value)}
+              className="bg-transparent text-white text-xs focus:outline-none w-32" />
+            <span className="text-gray-600 text-xs">→</span>
+            <input type="date" value={dataResAte} onChange={e => setDataResAte(e.target.value)}
+              className="bg-transparent text-white text-xs focus:outline-none w-32" />
+          </div>
+        </div>
         </div>
       )}
 

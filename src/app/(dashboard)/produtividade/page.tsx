@@ -21,6 +21,9 @@ type Dados = {
   totalRegistros: number;
   equipes: string[];
   atendentes: string[];
+  atendentesCount: number;
+  periodoInicio: string | null;
+  periodoFim: string | null;
 };
 
 type UserStat = {
@@ -45,6 +48,12 @@ type DadosStats = {
   equipes: string[];
   totalRegistros: number;
 };
+
+function fmtDate(iso: string | null) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" });
+}
 
 function fmtDateTime(iso: string | null) {
   if (!iso) return "—";
@@ -230,15 +239,19 @@ export default function ProdutividadePage() {
       </div>
 
       {/* Stats cards (Lista) */}
-      {view === "lista" && dados && (
+      {dados && totalRegistros > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
-            <p className="text-xs text-gray-400 mb-1">Total de registros</p>
-            <p className="text-3xl font-bold text-white">{totalRegistros.toLocaleString("pt-BR")}</p>
+            <p className="text-xs text-gray-400 mb-1">Atendentes</p>
+            <p className="text-3xl font-bold text-white">{(dados.atendentesCount ?? 0).toLocaleString("pt-BR")}</p>
           </div>
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
-            <p className="text-xs text-gray-400 mb-1">Exibindo na pesquisa</p>
-            <p className="text-3xl font-bold text-white">{total.toLocaleString("pt-BR")}</p>
+            <p className="text-xs text-gray-400 mb-1">Período dos dados</p>
+            <p className="text-xl font-bold text-white">
+              {dados.periodoInicio && dados.periodoFim
+                ? `${fmtDate(dados.periodoInicio)} → ${fmtDate(dados.periodoFim)}`
+                : "—"}
+            </p>
           </div>
         </div>
       )}

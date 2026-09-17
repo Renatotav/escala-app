@@ -34,14 +34,18 @@ export async function GET(request: NextRequest) {
 
   const totalRegistros = await prisma.produtividade.count();
 
-  // Listas para os selects
-  const [todasEquipes, todosAtendentes] = await Promise.all([
+  // Listas para os selects + período dos dados
+  const [todasEquipes, todosAtendentes, periodo] = await Promise.all([
     prisma.produtividade.findMany({ select: { equipeAtribuida: true }, distinct: ["equipeAtribuida"] }),
     prisma.produtividade.findMany({ select: { usuarioFechamento: true }, distinct: ["usuarioFechamento"] }),
+    prisma.produtividade.aggregate({ _min: { dataAbertura: true }, _max: { dataAbertura: true } }),
   ]);
 
   const equipes = todasEquipes.map(r => r.equipeAtribuida).filter((v): v is string => !!v).sort();
   const atendentes = todosAtendentes.map(r => r.usuarioFechamento).filter((v): v is string => !!v).sort();
+  const periodoInicio = periodo._min.dataAbertura?.toISOString() ?? null;
+  const periodoFim = periodo._max.dataAbertura?.toISOString() ?? null;
+  const atendentesCount = atendentes.length;
 
   // Stats (quantitativo por usuário)
   if (statsOnly) {
@@ -165,6 +169,9 @@ export async function GET(request: NextRequest) {
       },
       equipes: equipesColaboradores,
       atendentes,
+      atendentesCount,
+      periodoInicio,
+      periodoFim,
       totalRegistros,
     });
   }
@@ -186,7 +193,7 @@ export async function GET(request: NextRequest) {
 
   if (exportAll) {
     const registros = await prisma.produtividade.findMany({ where, orderBy: { id: "asc" } });
-    return NextResponse.json({ registros, total: registros.length, page: 1, totalPages: 1, totalRegistros, equipes, atendentes });
+    return NextResponse.json({ registros, total: registros.length, page: 1, totalPages: 1, totalRegistros, equipes, atendentes, atendentesCount, periodoInicio, periodoFim });
   }
 
   const [total, registros] = await Promise.all([
@@ -194,7 +201,7 @@ export async function GET(request: NextRequest) {
     prisma.produtividade.findMany({ where, orderBy: { id: "asc" }, skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE }),
   ]);
 
-  return NextResponse.json({ registros, total, page, totalPages: Math.max(1, Math.ceil(total / PAGE_SIZE)), totalRegistros, equipes, atendentes });
+  return NextResponse.json({ registros, total, page, totalPages: Math.max(1, Math.ceil(total / PAGE_SIZE)), totalRegistros, equipes, atendentes, atendentesCount, periodoInicio, periodoFim });
 }
 
 export async function DELETE() {

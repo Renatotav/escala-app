@@ -25,6 +25,7 @@ type Dados = {
 
 type UserStat = {
   usuario: string;
+  equipe: string | null;
   recebidos: number;
   emAberto: number;
   pausados: number;
@@ -297,29 +298,25 @@ export default function ProdutividadePage() {
         <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto">
           <table className="w-full text-sm table-fixed">
             <colgroup>
-              <col className="w-[14%]" />
-              <col className="w-[13%]" />
+              <col className="w-[18%]" />
               <col className="w-[16%]" />
-              <col className="w-[13%]" />
+              <col className="w-[28%]" />
               <col className="w-[16%]" />
-              <col className="w-[14%]" />
-              <col className="w-[14%]" />
+              <col className="w-[22%]" />
             </colgroup>
             <thead>
               <tr className="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wide">
                 <th className="text-left px-4 py-3">Nº Chamado</th>
                 <th className="text-left px-4 py-3">Abertura</th>
-                <th className="text-left px-4 py-3">Usuário Atribuído</th>
-                <th className="text-left px-4 py-3">Resolução</th>
                 <th className="text-left px-4 py-3">Usuário Fechamento</th>
-                <th className="text-left px-4 py-3">Equipe</th>
+                <th className="text-left px-4 py-3">Resolução</th>
                 <th className="text-left px-4 py-3">Situação</th>
               </tr>
             </thead>
             <tbody>
-              {loading && <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-500">Carregando...</td></tr>}
+              {loading && <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-500">Carregando...</td></tr>}
               {!loading && registros.length === 0 && (
-                <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-500">
                   {totalRegistros === 0 ? "Nenhum registro importado" : "Nenhum registro encontrado"}
                 </td></tr>
               )}
@@ -340,12 +337,10 @@ export default function ProdutividadePage() {
                     <td className="px-4 py-3 text-gray-300 text-xs font-mono whitespace-nowrap">{fmtDateTime(r.dataAbertura)}</td>
                     <td className="px-4 py-3">
                       <span className="text-xs px-2 py-0.5 rounded bg-blue-900/50 text-blue-300 border border-blue-700/40 truncate block max-w-full">
-                        {r.usuarioAtribuido ?? "—"}
+                        {r.usuarioFechamento ?? "—"}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-gray-300 text-xs font-mono whitespace-nowrap">{fmtDateTime(r.dataResolucao)}</td>
-                    <td className="px-4 py-3 text-gray-400 text-xs truncate">{r.usuarioFechamento ?? "—"}</td>
-                    <td className="px-4 py-3 text-gray-400 text-xs truncate">{r.equipeAtribuida ?? "—"}</td>
                     <td className="px-4 py-3">
                       {r.situacaoRegra ? (
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
@@ -394,7 +389,8 @@ export default function ProdutividadePage() {
             <table className="w-full text-sm min-w-[900px]">
               <thead>
                 <tr className="border-b border-gray-700 text-gray-400 text-xs uppercase tracking-wide bg-gray-800/60">
-                  <th className="text-left px-4 py-3">Usuário Atribuído</th>
+                  <th className="text-left px-4 py-3">Usuário Fechamento</th>
+                  <th className="text-left px-3 py-3">Equipe</th>
                   <th className="text-right px-3 py-3">Recebidos</th>
                   <th className="text-right px-3 py-3">Em Aberto</th>
                   <th className="text-right px-3 py-3">Pausados</th>
@@ -410,6 +406,7 @@ export default function ProdutividadePage() {
                 {statsData.stats.map((s, i) => (
                   <tr key={s.usuario} className={`border-b border-gray-800/60 last:border-0 hover:bg-gray-800/40 transition ${i % 2 === 1 ? "bg-gray-800/20" : ""}`}>
                     <td className="px-4 py-2.5 text-sm text-gray-200 font-medium">{s.usuario}</td>
+                    <td className="px-3 py-2.5 text-xs text-gray-400">{s.equipe ?? "—"}</td>
                     <td className="px-3 py-2.5 text-right font-mono text-sm text-white tabular-nums">{s.recebidos.toLocaleString("pt-BR")}</td>
                     <td className="px-3 py-2.5 text-right font-mono text-sm tabular-nums">
                       {s.emAberto > 0 ? <span className="text-yellow-400 font-bold">{s.emAberto.toLocaleString("pt-BR")}</span> : <span className="text-gray-600">—</span>}
@@ -430,6 +427,7 @@ export default function ProdutividadePage() {
               <tfoot>
                 <tr className="border-t-2 border-gray-600 bg-gray-800/80">
                   <td className="px-4 py-3 text-sm font-bold text-white">TOTAL</td>
+                  <td className="px-3 py-3"></td>
                   <td className="px-3 py-3 text-right font-mono font-bold text-white tabular-nums">{statsData.totais.recebidos.toLocaleString("pt-BR")}</td>
                   <td className="px-3 py-3 text-right font-mono font-bold tabular-nums">
                     {statsData.totais.emAberto > 0 ? <span className="text-yellow-400">{statsData.totais.emAberto.toLocaleString("pt-BR")}</span> : <span className="text-gray-600">—</span>}

@@ -37,18 +37,37 @@ export async function GET(request: NextRequest) {
   // Listas para os selects
   const [todasEquipes, todosAtendentes] = await Promise.all([
     prisma.produtividade.findMany({ select: { equipeAtribuida: true }, distinct: ["equipeAtribuida"] }),
-    prisma.produtividade.findMany({ select: { usuarioAtribuido: true }, distinct: ["usuarioAtribuido"] }),
+    prisma.produtividade.findMany({ select: { usuarioFechamento: true }, distinct: ["usuarioFechamento"] }),
   ]);
 
   const equipes = todasEquipes.map(r => r.equipeAtribuida).filter((v): v is string => !!v).sort();
-  const atendentes = todosAtendentes.map(r => r.usuarioAtribuido).filter((v): v is string => !!v).sort();
+  const atendentes = todosAtendentes.map(r => r.usuarioFechamento).filter((v): v is string => !!v).sort();
 
   // Stats (quantitativo por usuário)
   if (statsOnly) {
-    const whereStats = equipe ? { equipeAtribuida: equipe } : {};
+    // Carrega colaboradores para cruzar equipe por nome
+    const colaboradores = await prisma.colaborador.findMany({
+      select: { nome: true, equipe: { select: { nome: true } } },
+    });
+    const nomeParaEquipe = new Map<string, string>();
+    for (const c of colaboradores) {
+      if (c.equipe?.nome) nomeParaEquipe.set(c.nome.toUpperCase().trim(), c.equipe.nome);
+    }
+    function resolveEquipe(usuario: string): string | null {
+      const upper = usuario.toUpperCase().trim();
+      if (nomeParaEquipe.has(upper)) return nomeParaEquipe.get(upper)!;
+      for (const [nome, eq] of nomeParaEquipe) {
+        if (upper.startsWith(nome) || nome.startsWith(upper)) return eq;
+      }
+      return null;
+    }
+
+    const whereStats = equipe
+      ? { usuarioFechamento: { in: [...nomeParaEquipe.entries()].filter(([, eq]) => eq === equipe).map(([n]) => n) } }
+      : {};
     const todos = await prisma.produtividade.findMany({
       select: {
-        usuarioAtribuido: true,
+        usuarioFechamento: true,
         dataAbertura: true,
         dataResolucao: true,
         pausa: true,
@@ -70,7 +89,7 @@ export async function GET(request: NextRequest) {
 
     const grupos = new Map<string, Acc>();
     for (const r of todos) {
-      const usuario = r.usuarioAtribuido || "(Sem usuário)";
+      const usuario = r.usuarioFechamento || "(Sem usuário)";
       if (!grupos.has(usuario)) {
         grupos.set(usuario, { recebidos: 0, emAberto: 0, pausados: 0, resolvidos: 0, tmrHorasSum: 0, tmrCount: 0, tmpHorasSum: 0, tmpCount: 0 });
       }
@@ -103,6 +122,7 @@ export async function GET(request: NextRequest) {
         const tmpH = g.tmpCount > 0 ? g.tmpHorasSum / g.tmpCount : 0;
         return {
           usuario,
+          equipe: resolveEquipe(usuario),
           recebidos: g.recebidos,
           emAberto: g.emAberto,
           pausados: g.pausados,
@@ -132,6 +152,7 @@ export async function GET(request: NextRequest) {
     const tmpGeralH = stats.reduce((s, r) => s + r.tmpHoras * (r.pausados || 1), 0) /
       Math.max(1, stats.reduce((s, r) => s + (r.pausados || 1), 0));
 
+    const equipesColaboradores = [...new Set([...nomeParaEquipe.values()])].sort();
     return NextResponse.json({
       stats,
       totais: {
@@ -142,7 +163,7 @@ export async function GET(request: NextRequest) {
         tmpHoras: Math.round(tmpGeralH),
         tmpDias: Math.round(tmpGeralH / 24),
       },
-      equipes,
+      equipes: equipesColaboradores,
       atendentes,
       totalRegistros,
     });
@@ -150,12 +171,11 @@ export async function GET(request: NextRequest) {
 
   const conditions: Record<string, unknown>[] = [];
   if (equipe) conditions.push({ equipeAtribuida: equipe });
-  if (atendente) conditions.push({ usuarioAtribuido: atendente });
+  if (atendente) conditions.push({ usuarioFechamento: atendente });
   if (busca) {
     conditions.push({
       OR: [
         { numeroChamado: { contains: busca, mode: "insensitive" as const } },
-        { usuarioAtribuido: { contains: busca, mode: "insensitive" as const } },
         { usuarioFechamento: { contains: busca, mode: "insensitive" as const } },
         { equipeAtribuida: { contains: busca, mode: "insensitive" as const } },
         { situacaoRegra: { contains: busca, mode: "insensitive" as const } },

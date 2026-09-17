@@ -470,10 +470,6 @@ export default function ProdutividadePage() {
         margin: { left: 14, right: 14 },
         didParseCell: (data) => {
           if (data.section !== "body") return;
-          if (data.column.index === 3) {
-            const v = String(data.cell.raw ?? "");
-            if (v !== "—") { data.cell.styles.textColor = [202, 138, 4]; data.cell.styles.fontStyle = "bold"; }
-          }
           if (data.column.index === 4) {
             const v = String(data.cell.raw ?? "");
             if (v !== "—") { data.cell.styles.textColor = [234, 88, 12]; data.cell.styles.fontStyle = "bold"; }

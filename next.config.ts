@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
   eslint: { ignoreDuringBuilds: true },
   experimental: {
     staleTimes: { dynamic: 0 },
+    serverActions: { bodySizeLimit: "50mb" },
   },
 };
 

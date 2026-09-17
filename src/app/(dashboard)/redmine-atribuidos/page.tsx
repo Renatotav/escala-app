@@ -459,17 +459,27 @@ export default function RedmineAtribuidosPage() {
         ) : registros.length === 0 ? (
           <p className="px-4 py-8 text-center text-gray-500 text-sm">Nenhum registro encontrado para os filtros selecionados.</p>
         ) : (
-          <table className="w-full min-w-[1100px] text-sm">
+          <table className="w-full text-sm table-fixed">
+            <colgroup>
+              <col className="w-[6%]" />
+              <col className="w-[8%]" />
+              <col className="w-[12%]" />
+              <col className="w-[13%]" />
+              <col className="w-[13%]" />
+              <col className="w-[16%]" />
+              <col className="w-[16%]" />
+              <col className="w-[16%]" />
+            </colgroup>
             <thead>
               <tr className="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wide">
-                <th className="text-left px-4 py-3 whitespace-nowrap">Acomp.</th>
-                <th className="text-left px-4 py-3 whitespace-nowrap">Redmine #</th>
-                <th className="text-left px-4 py-3 whitespace-nowrap">Nº Assyst</th>
-                <th className="text-left px-4 py-3 whitespace-nowrap">Criado em</th>
-                <th className="text-left px-4 py-3 whitespace-nowrap">Alterado em</th>
-                <th className="text-left px-4 py-3 whitespace-nowrap">Tipo</th>
-                <th className="text-left px-4 py-3 whitespace-nowrap">Situação</th>
-                <th className="text-left px-4 py-3 whitespace-nowrap">Atribuído para</th>
+                <th className="text-left px-4 py-3">Acomp.</th>
+                <th className="text-left px-4 py-3">Redmine #</th>
+                <th className="text-left px-4 py-3">Nº Assyst</th>
+                <th className="text-left px-4 py-3">Criado em</th>
+                <th className="text-left px-4 py-3">Alterado em</th>
+                <th className="text-left px-4 py-3">Tipo</th>
+                <th className="text-left px-4 py-3">Situação</th>
+                <th className="text-left px-4 py-3">Atribuído para</th>
               </tr>
             </thead>
             <tbody>

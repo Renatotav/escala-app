@@ -145,7 +145,7 @@ export async function GET(request: NextRequest) {
 
     // Chamados (Assyst): Em Aberto e Pausados por nomeUsuarioAtribuido
     const chamados = await prisma.chamado.findMany({
-      select: { nomeUsuarioAtribuido: true, estado: true },
+      select: { nomeUsuarioAtribuido: true, estado: true, ultimaAcao: true },
     });
 
     const chamadosAberto  = new Map<string, number>();
@@ -153,9 +153,11 @@ export async function GET(request: NextRequest) {
     for (const c of chamados) {
       const nome = c.nomeUsuarioAtribuido;
       if (!nome) continue;
-      const est = (c.estado || "").toLowerCase();
+      const est     = (c.estado     || "").toLowerCase();
+      const ultAcao = (c.ultimaAcao || "").toLowerCase();
       const isResolvido = est.includes("resolvid") || est.includes("fechad") || est.includes("cancela");
-      const isPausado   = est.includes("parar") || est.includes("paus") || est.includes("suspen") || est.includes("aguard") || est.includes("espera");
+      const isPausado   = ultAcao.includes("parar") || ultAcao.includes("paus") || ultAcao.includes("suspen")
+                       || est.includes("parar")     || est.includes("paus")     || est.includes("suspen");
       const key = normName(nome);
       if (isPausado) {
         chamadosPausado.set(key, (chamadosPausado.get(key) ?? 0) + 1);

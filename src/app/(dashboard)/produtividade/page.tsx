@@ -8,7 +8,6 @@ type Produtividade = {
   dataAbertura: string | null;
   usuarioFechamento: string | null;
   dataResolucao: string | null;
-  descricaoResolucao: string | null;
   situacaoRegra: string | null;
 };
 
@@ -71,7 +70,6 @@ export default function ProdutividadePage() {
   const [importModal, setImportModal] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [importResult, setImportResult] = useState<{ count?: number; skipped?: number; error?: string } | null>(null);
-  const [descModal, setDescModal] = useState<string | null>(null);
   const [busca, setBusca] = useState("");
   const [substituir, setSubstituir] = useState(true);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -137,9 +135,9 @@ export default function ProdutividadePage() {
 
       function esc(s: string) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
       const dataRows = todos.map(r =>
-        `<tr><td>${esc(r.numeroChamado)}</td><td>${esc(fmtDateTime(r.dataAbertura))}</td><td>${esc(r.usuarioFechamento ?? "")}</td><td>${esc(fmtDateTime(r.dataResolucao))}</td><td>${esc(r.descricaoResolucao ?? "")}</td><td>${esc(r.situacaoRegra ?? "")}</td></tr>`
+        `<tr><td>${esc(r.numeroChamado)}</td><td>${esc(fmtDateTime(r.dataAbertura))}</td><td>${esc(r.usuarioFechamento ?? "")}</td><td>${esc(fmtDateTime(r.dataResolucao))}</td><td>${esc(r.situacaoRegra ?? "")}</td></tr>`
       ).join("");
-      const html = `<html><head><meta charset="UTF-8"><style>table{border-collapse:collapse}th,td{border:1px solid #ccc;padding:4px 8px;font-size:12px}th{background:#f0f0f0}</style></head><body><table><tr><th>Nº Chamado</th><th>Data/Hora Abertura</th><th>Usuário Fechamento</th><th>Data/Hora Resolução</th><th>Descrição Resolução</th><th>Situação Regra</th></tr>${dataRows}</table></body></html>`;
+      const html = `<html><head><meta charset="UTF-8"><style>table{border-collapse:collapse}th,td{border:1px solid #ccc;padding:4px 8px;font-size:12px}th{background:#f0f0f0}</style></head><body><table><tr><th>Nº Chamado</th><th>Data/Hora Abertura</th><th>Usuário Fechamento</th><th>Data/Hora Resolução</th><th>Situação Regra</th></tr>${dataRows}</table></body></html>`;
       const blob = new Blob([html], { type: "application/vnd.ms-excel;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -218,12 +216,11 @@ export default function ProdutividadePage() {
       <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto">
         <table className="w-full text-sm table-fixed">
           <colgroup>
-            <col className="w-[14%]" />
-            <col className="w-[13%]" />
-            <col className="w-[16%]" />
-            <col className="w-[13%]" />
-            <col className="w-[31%]" />
-            <col className="w-[13%]" />
+            <col className="w-[18%]" />
+            <col className="w-[18%]" />
+            <col className="w-[22%]" />
+            <col className="w-[18%]" />
+            <col className="w-[24%]" />
           </colgroup>
           <thead>
             <tr className="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wide">
@@ -231,16 +228,15 @@ export default function ProdutividadePage() {
               <th className="text-left px-4 py-3">Abertura</th>
               <th className="text-left px-4 py-3">Usuário Fechamento</th>
               <th className="text-left px-4 py-3">Resolução</th>
-              <th className="text-left px-4 py-3">Descrição Resolução</th>
               <th className="text-left px-4 py-3">Situação</th>
             </tr>
           </thead>
           <tbody>
             {loading && (
-              <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-500">Carregando...</td></tr>
+              <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-500">Carregando...</td></tr>
             )}
             {!loading && registros.length === 0 && (
-              <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-500">
+              <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-500">
                 {totalRegistros === 0 ? "Nenhum registro importado" : "Nenhum registro encontrado"}
               </td></tr>
             )}
@@ -267,19 +263,6 @@ export default function ProdutividadePage() {
                   </span>
                 </td>
                 <td className="px-4 py-3 text-gray-300 text-xs font-mono whitespace-nowrap">{fmtDateTime(r.dataResolucao)}</td>
-                <td className="px-4 py-3 text-gray-300 text-xs">
-                  <div className="flex items-center gap-1 min-w-0">
-                    <span className="truncate">{r.descricaoResolucao || "—"}</span>
-                    {r.descricaoResolucao && (
-                      <button
-                        onClick={() => setDescModal(r.descricaoResolucao)}
-                        className="shrink-0 text-gray-500 hover:text-blue-400 transition text-xs leading-none"
-                        title="Ver completo">
-                        ↗
-                      </button>
-                    )}
-                  </div>
-                </td>
                 <td className="px-4 py-3">
                   {r.situacaoRegra ? (
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
@@ -313,19 +296,6 @@ export default function ProdutividadePage() {
               className="px-3 py-1.5 text-xs rounded-lg bg-gray-800 hover:bg-gray-700 disabled:opacity-40 text-gray-300 transition">
               Próxima →
             </button>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Descrição Completa */}
-      {descModal !== null && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4" onClick={() => setDescModal(null)}>
-          <div className="bg-gray-900 border border-gray-800 rounded-xl w-full max-w-lg p-6" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-white">Descrição da Resolução</h3>
-              <button onClick={() => setDescModal(null)} className="text-gray-500 hover:text-white text-lg leading-none">✕</button>
-            </div>
-            <p className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">{descModal}</p>
           </div>
         </div>
       )}

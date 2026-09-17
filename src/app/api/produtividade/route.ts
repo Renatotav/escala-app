@@ -17,8 +17,7 @@ export async function GET(request: NextRequest) {
           { numeroChamado: { contains: busca, mode: "insensitive" as const } },
           { usuarioFechamento: { contains: busca, mode: "insensitive" as const } },
           { situacaoRegra: { contains: busca, mode: "insensitive" as const } },
-          { descricaoResolucao: { contains: busca, mode: "insensitive" as const } },
-        ],
+          ],
       }
     : {};
 

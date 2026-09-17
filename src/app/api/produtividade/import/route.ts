@@ -16,7 +16,6 @@ const HEADER_MAP: Record<string, string> = {
   "data/hora da abertura":      "dataAbertura",
   "usuario fechamento":         "usuarioFechamento",
   "data/hora da resolucao":     "dataResolucao",
-  "descricao da resolucao":     "descricaoResolucao",
   "situacao regra":             "situacaoRegra",
 };
 
@@ -64,7 +63,6 @@ export async function POST(request: NextRequest) {
       dataAbertura: string | null;
       usuarioFechamento: string | null;
       dataResolucao: string | null;
-      descricaoResolucao: string | null;
       situacaoRegra: string | null;
     }[] = [];
 
@@ -83,7 +81,6 @@ export async function POST(request: NextRequest) {
         dataAbertura: toIso(obj.dataAbertura),
         usuarioFechamento: obj.usuarioFechamento ? String(obj.usuarioFechamento).trim() : null,
         dataResolucao: toIso(obj.dataResolucao),
-        descricaoResolucao: obj.descricaoResolucao ? String(obj.descricaoResolucao).trim() : null,
         situacaoRegra: obj.situacaoRegra ? String(obj.situacaoRegra).trim() : null,
       });
     }
@@ -114,7 +111,6 @@ export async function POST(request: NextRequest) {
         dataAbertura: r.dataAbertura ? new Date(r.dataAbertura) : null,
         usuarioFechamento: r.usuarioFechamento || null,
         dataResolucao: r.dataResolucao ? new Date(r.dataResolucao) : null,
-        descricaoResolucao: r.descricaoResolucao || null,
         situacaoRegra: r.situacaoRegra || null,
       })),
     });

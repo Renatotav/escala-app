@@ -132,10 +132,11 @@ async function migrate() {
     \"dataAbertura\" TIMESTAMP(3),
     \"usuarioFechamento\" TEXT,
     \"dataResolucao\" TIMESTAMP(3),
-    \"descricaoResolucao\" TEXT,
     \"situacaoRegra\" TEXT,
     \"createdAt\" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
   )\`);
+  // LGPD: remove descricaoResolucao se existir
+  try { await client.query(\`ALTER TABLE \"Produtividade\" DROP COLUMN IF EXISTS \"descricaoResolucao\"\`); } catch(e) {}
 
   // DnpjeMigracao table
   await client.query(\`CREATE TABLE IF NOT EXISTS \"DnpjeMigracao\" (

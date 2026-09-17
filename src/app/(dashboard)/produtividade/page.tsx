@@ -78,6 +78,107 @@ function DiasBadge({ dias }: { dias: number }) {
   return <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-green-600 text-white text-xs font-bold">{dias}d</span>;
 }
 
+const CORES_CHART = [
+  "#4f8ef7","#34d399","#fb923c","#a78bfa","#f472b6",
+  "#38bdf8","#facc15","#4ade80","#e879f9","#2dd4bf",
+  "#fbbf24","#818cf8","#f87171",
+];
+
+function DonutChartProd({ itens, onSelect, selecionado }: {
+  itens: { label: string; value: number }[];
+  onSelect?: (label: string) => void;
+  selecionado?: string;
+}) {
+  const total = itens.reduce((s, d) => s + d.value, 0);
+  if (total === 0) return null;
+  const cx = 150, cy = 150, or_ = 128, ir = 68;
+  let ang = -Math.PI / 2;
+  const fatias = itens.map((d, i) => {
+    const frac = d.value / total;
+    const sa = ang, ea = ang + frac * 2 * Math.PI; ang = ea;
+    const ox1 = cx + or_ * Math.cos(sa), oy1 = cy + or_ * Math.sin(sa);
+    const ox2 = cx + or_ * Math.cos(ea), oy2 = cy + or_ * Math.sin(ea);
+    const ix1 = cx + ir * Math.cos(sa),  iy1 = cy + ir * Math.sin(sa);
+    const ix2 = cx + ir * Math.cos(ea),  iy2 = cy + ir * Math.sin(ea);
+    const large = (ea - sa) > Math.PI ? 1 : 0;
+    const path = `M${ox1.toFixed(1)},${oy1.toFixed(1)} A${or_},${or_} 0 ${large} 1 ${ox2.toFixed(1)},${oy2.toFixed(1)} L${ix2.toFixed(1)},${iy2.toFixed(1)} A${ir},${ir} 0 ${large} 0 ${ix1.toFixed(1)},${iy1.toFixed(1)} Z`;
+    const ma = sa + (ea - sa) / 2, lr = (or_ + ir) / 2;
+    const cor = CORES_CHART[i % CORES_CHART.length];
+    return { label: d.label, value: d.value, path, cor, sel: d.label === selecionado,
+      pct: (frac * 100).toFixed(1),
+      lx: (cx + lr * Math.cos(ma)).toFixed(1), ly: (cy + lr * Math.sin(ma)).toFixed(1),
+      show: frac >= 0.03 };
+  });
+  return (
+    <div className="flex flex-col gap-4">
+      <svg viewBox="0 0 300 300" className="w-full max-w-[260px] mx-auto">
+        {fatias.map((f, i) => (
+          <path key={i} d={f.path} fill={f.cor} stroke="#0f172a" strokeWidth="1.5"
+            style={f.sel ? { filter: "brightness(1.25) drop-shadow(0 0 6px rgba(255,255,255,0.25))" } : {}}
+            className={onSelect ? "cursor-pointer hover:brightness-110 transition-all" : ""}
+            onClick={() => onSelect?.(f.label === selecionado ? "" : f.label)} />
+        ))}
+        <text x={cx} y={cy - 10} textAnchor="middle" fontSize="26" fontWeight="800" fill="white">
+          {total.toLocaleString("pt-BR")}
+        </text>
+        <text x={cx} y={cy + 14} textAnchor="middle" fontSize="10" fill="#64748b" letterSpacing="2">
+          RECEBIDOS
+        </text>
+        {fatias.filter(f => f.show).map((f, i) => (
+          <text key={i} x={f.lx} y={f.ly} textAnchor="middle" dominantBaseline="middle"
+            fontSize="10.5" fontWeight="700" fill="white" style={{ pointerEvents: "none" }}>
+            {f.pct}%
+          </text>
+        ))}
+      </svg>
+      <div className="space-y-1 max-h-56 overflow-y-auto pr-1">
+        {fatias.map((f, i) => (
+          <div key={i} onClick={() => onSelect?.(f.label === selecionado ? "" : f.label)}
+            className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs transition
+              ${onSelect ? "cursor-pointer hover:bg-white/5" : ""}
+              ${f.sel ? "bg-white/10 ring-1 ring-white/20" : ""}`}>
+            <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ background: f.cor }} />
+            <span className="flex-1 text-gray-300 font-medium truncate" title={f.label}>{f.label}</span>
+            <span className="font-mono font-bold text-white tabular-nums">{f.value.toLocaleString("pt-BR")}</span>
+            <span className="text-gray-500 w-11 text-right">{f.pct}%</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function BarrasProd({ itens, total }: { itens: { nome: string; total: number }[]; total: number }) {
+  if (itens.length === 0) return null;
+  const max = Math.max(...itens.map(d => d.total), 1);
+  return (
+    <div className="space-y-1.5 overflow-y-auto max-h-[400px] pr-1">
+      {itens.map((d, i) => {
+        const pct = ((d.total / total) * 100).toFixed(1);
+        const barW = ((d.total / max) * 100).toFixed(1);
+        return (
+          <div key={d.nome} className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-white/5 transition">
+            <span className="text-xs font-mono text-gray-600 w-5 shrink-0 text-right">{i + 1}</span>
+            <span className="text-xs font-medium truncate w-40 shrink-0 text-gray-200" title={d.nome}>{d.nome}</span>
+            <div className="flex-1 h-3.5 bg-gray-800 rounded-full overflow-hidden">
+              <div className="h-full rounded-full bg-blue-500/60" style={{ width: `${barW}%` }} />
+            </div>
+            <span className="font-mono font-bold text-sm tabular-nums w-10 text-right shrink-0 text-white">{d.total}</span>
+            <span className="text-gray-500 text-xs w-10 text-right shrink-0">{pct}%</span>
+          </div>
+        );
+      })}
+      <div className="flex items-center gap-2.5 px-3 py-2 mt-1 border-t border-gray-800">
+        <span className="text-xs text-gray-500 w-5 shrink-0" />
+        <span className="text-xs font-semibold text-gray-400 w-40 shrink-0">Total</span>
+        <span className="flex-1" />
+        <span className="font-mono font-bold text-sm text-white w-10 text-right shrink-0">{total.toLocaleString("pt-BR")}</span>
+        <span className="text-gray-500 text-xs w-10 text-right shrink-0">100%</span>
+      </div>
+    </div>
+  );
+}
+
 function TaxaBadge({ taxa }: { taxa: number }) {
   const t = taxa;
   const bg = t >= 100 ? "bg-green-800" : t >= 98 ? "bg-green-700" : t >= 95 ? "bg-green-600" : t >= 90 ? "bg-yellow-600" : "bg-red-700";
@@ -109,6 +210,8 @@ export default function ProdutividadePage() {
   const [dataResDe, setDataResDe] = useState("");
   const [dataResAte, setDataResAte] = useState("");
   const [substituir, setSubstituir] = useState(true);
+  const [subViewQuant, setSubViewQuant] = useState<"lista" | "graficos">("lista");
+  const [equipeGrafico, setEquipeGrafico] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
   function buildDateParams(p: URLSearchParams) {
@@ -408,6 +511,20 @@ export default function ProdutividadePage() {
         </button>
       </div>
 
+      {/* Sub-abas do Quantitativo */}
+      {view === "quantitativo" && statsData && statsData.stats.length > 0 && (
+        <div className="flex gap-1 mb-4 bg-gray-900 border border-gray-800 rounded-lg p-1 w-fit">
+          <button onClick={() => setSubViewQuant("lista")}
+            className={`text-xs px-3 py-1.5 rounded transition ${subViewQuant === "lista" ? "bg-gray-700 text-white font-medium" : "text-gray-500 hover:text-gray-300"}`}>
+            Lista
+          </button>
+          <button onClick={() => { setSubViewQuant("graficos"); setEquipeGrafico(""); }}
+            className={`text-xs px-3 py-1.5 rounded transition ${subViewQuant === "graficos" ? "bg-gray-700 text-white font-medium" : "text-gray-500 hover:text-gray-300"}`}>
+            Gráficos
+          </button>
+        </div>
+      )}
+
       {/* Stats cards (Lista) */}
       {dados && totalRegistros > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -595,7 +712,51 @@ export default function ProdutividadePage() {
           <div className="bg-gray-900 rounded-xl border border-gray-800 p-12 text-center">
             <p className="text-gray-500 text-sm">Nenhum dado importado ainda.</p>
           </div>
-        ) : (
+        ) : subViewQuant === "graficos" ? (() => {
+          // Agrupa por equipe para o donut
+          const porEquipe = new Map<string, { total: number; usuarios: { nome: string; total: number }[] }>();
+          for (const s of statsData.stats) {
+            const eq = s.equipe ?? "(Sem equipe)";
+            if (!porEquipe.has(eq)) porEquipe.set(eq, { total: 0, usuarios: [] });
+            const g = porEquipe.get(eq)!;
+            g.total += s.recebidos;
+            g.usuarios.push({ nome: s.usuario, total: s.recebidos });
+          }
+          const equipesList = [...porEquipe.entries()].map(([equipe, g]) => ({ equipe, ...g }))
+            .sort((a, b) => b.total - a.total);
+          const donutItens = equipesList.map(e => ({ label: e.equipe, value: e.total }));
+          const eqSel = equipeGrafico ? equipesList.find(e => e.equipe === equipeGrafico) : null;
+          return (
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
+                <p className="text-sm font-semibold text-white mb-0.5">Distribuição por equipe</p>
+                <p className="text-xs text-gray-500 mb-5">Clique numa fatia ou item da legenda para ver os atendentes</p>
+                <DonutChartProd itens={donutItens} onSelect={setEquipeGrafico} selecionado={equipeGrafico} />
+              </div>
+              <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
+                {eqSel ? (
+                  <>
+                    <p className="text-sm font-semibold text-white mb-0.5">{eqSel.equipe}</p>
+                    <p className="text-xs text-gray-500 mb-5">
+                      {eqSel.total.toLocaleString("pt-BR")} recebidos · {eqSel.usuarios.length} atendente{eqSel.usuarios.length !== 1 ? "s" : ""}
+                    </p>
+                    <BarrasProd itens={eqSel.usuarios.sort((a, b) => b.total - a.total)} total={eqSel.total} />
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full min-h-[360px] gap-4 text-center">
+                    <div className="w-14 h-14 rounded-full bg-gray-800 flex items-center justify-center">
+                      <span className="text-2xl opacity-40">📊</span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-400">Selecione uma equipe</p>
+                      <p className="text-xs text-gray-600 mt-1">Clique em uma fatia do gráfico ao lado<br/>para ver a distribuição por atendente</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })() : (
           <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto">
             <table className="w-full text-sm min-w-[900px]">
               <thead>

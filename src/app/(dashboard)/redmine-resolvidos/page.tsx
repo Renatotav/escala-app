@@ -244,9 +244,6 @@ export default function RedmineResolvidosPage() {
           <td>${assystCell}</td>
           <td>${esc(r.tipo ?? "")}</td>
           <td>${esc(r.situacao ?? "")}</td>
-          <td>${esc(r.titulo ?? "")}</td>
-          <td>${esc(r.descricao ?? "")}</td>
-          <td>${esc(r.ultimasNotas ?? "")}</td>
         </tr>`;
       }).join("");
 
@@ -262,9 +259,6 @@ export default function RedmineResolvidosPage() {
             <th>Nº Assyst</th>
             <th>Tipo</th>
             <th>Situação</th>
-            <th>Título</th>
-            <th>Descrição</th>
-            <th>Últimas notas</th>
           </tr>
           ${rows}
         </table></body></html>`;
@@ -438,9 +432,6 @@ export default function RedmineResolvidosPage() {
                 <th className="text-left px-4 py-3 whitespace-nowrap">Nº Assyst</th>
                 <th className="text-left px-4 py-3 whitespace-nowrap">Tipo</th>
                 <th className="text-left px-4 py-3 whitespace-nowrap">Situação</th>
-                <th className="text-left px-4 py-3 whitespace-nowrap">Título</th>
-                <th className="text-left px-4 py-3 whitespace-nowrap">Descrição</th>
-                <th className="text-left px-4 py-3 whitespace-nowrap">Últimas notas</th>
               </tr>
             </thead>
             <tbody>
@@ -451,7 +442,7 @@ export default function RedmineResolvidosPage() {
                 if (esMarcado) {
                   rows.push(
                     <tr key={`div-${r.id}`}>
-                      <td colSpan={7} className="px-4 py-2 bg-blue-950/50 border-y border-blue-500/40">
+                      <td colSpan={4} className="px-4 py-2 bg-blue-950/50 border-y border-blue-500/40">
                         <span className="text-xs text-blue-300 font-semibold flex items-center gap-2">
                           📍 Você parou aqui — continue a partir deste chamado
                         </span>
@@ -502,9 +493,6 @@ export default function RedmineResolvidosPage() {
                         <span className="text-xs px-2 py-0.5 rounded-full whitespace-nowrap bg-green-500/20 text-green-400 border border-green-500/30">{r.situacao}</span>
                       ) : "—"}
                     </td>
-                    <td className="px-4 py-3"><CelulaTexto label="Título" texto={r.titulo} onClick={setTextoModal} /></td>
-                    <td className="px-4 py-3"><CelulaTexto label="Descrição" texto={r.descricao} onClick={setTextoModal} /></td>
-                    <td className="px-4 py-3"><CelulaTexto label="Últimas notas" texto={r.ultimasNotas} onClick={setTextoModal} assystNums={splitAssyst(r.numerosAssyst)} resolvidoId={r.id} /></td>
                   </tr>
                 );
                 return rows;

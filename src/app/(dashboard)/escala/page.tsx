@@ -484,7 +484,7 @@ export default function EscalaPage() {
         </div>
       </div>
 
-      <div className="flex gap-4 mb-6 text-xs">
+      <div className="flex gap-4 mb-6 text-xs items-center flex-wrap">
         {(["VERDE", "AMARELO", "VERMELHO"] as Sinal[]).map(s => {
           const cfg = sinalConfig[s];
           return (
@@ -494,6 +494,10 @@ export default function EscalaPage() {
             </span>
           );
         })}
+        <a href="/escala/como-funciona" target="_blank" rel="noopener noreferrer"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-900/30 border border-blue-700/40 text-blue-400 hover:bg-blue-800/40 hover:text-blue-300 transition font-medium ml-auto">
+          <span>ℹ</span> Como funciona?
+        </a>
       </div>
 
       {loading ? (

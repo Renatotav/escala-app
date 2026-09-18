@@ -697,7 +697,7 @@ export default function ProdutividadePage() {
             Quantitativo
           </button>
         </div>
-        <a href="https://claude.ai/artifact/3szdkVYvrUhhbApqMyG8KQ" target="_blank" rel="noopener noreferrer"
+        <a href="/produtividade/como-funciona" target="_blank" rel="noopener noreferrer"
           className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-blue-900/30 border border-blue-700/40 text-blue-400 hover:bg-blue-800/40 hover:text-blue-300 transition font-medium">
           <span>ℹ</span> Como funciona?
         </a>

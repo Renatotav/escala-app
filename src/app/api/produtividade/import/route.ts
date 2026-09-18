@@ -105,16 +105,22 @@ export async function POST(request: NextRequest) {
 
     const substituir = substituirParam !== "0";
 
-    let insertRows = rows;
-    let skipped = 0;
+    // Deduplica por numeroChamado — mantém a última ocorrência de cada número
+    const deduped = new Map<string, typeof rows[0]>();
+    for (const r of rows) deduped.set(r.numeroChamado, r);
+    const uniqueRows = [...deduped.values()];
+    const duplicatesRemoved = rows.length - uniqueRows.length;
+
+    let insertRows = uniqueRows;
+    let skipped = duplicatesRemoved;
 
     if (substituir) {
       await prisma.produtividade.deleteMany({});
     } else {
       const existing = await prisma.produtividade.findMany({ select: { numeroChamado: true } });
       const existingSet = new Set(existing.map(e => e.numeroChamado));
-      insertRows = rows.filter(r => !existingSet.has(r.numeroChamado));
-      skipped = rows.length - insertRows.length;
+      insertRows = uniqueRows.filter(r => !existingSet.has(r.numeroChamado));
+      skipped = duplicatesRemoved + (uniqueRows.length - insertRows.length);
     }
 
     await prisma.produtividade.createMany({

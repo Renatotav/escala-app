@@ -89,7 +89,6 @@ export async function GET(request: NextRequest) {
     OR: [
       { numeroRedmine: { contains: busca, mode: "insensitive" as const } },
       { numerosAssyst: { contains: busca, mode: "insensitive" as const } },
-      { titulo: { contains: busca, mode: "insensitive" as const } },
     ],
   } : null;
   const where = buscaWhere ? { AND: [baseWhere, buscaWhere] } : baseWhere;
@@ -126,9 +125,6 @@ export async function POST(request: NextRequest) {
   const iAssyst = idx(["assyst", "nchamado", "chamado"]);
   const iTipo = idx(["tipo"]);
   const iSit = idx(["situacao", "situac"]);
-  const iTitulo = idx(["titulo", "title"]);
-  const iDesc = idx(["descricao", "descri", "description"]);
-  const iNota = idx(["ultimasnota", "notas", "nota"]);
 
   const expectedCols = rows[0].length; // número de colunas do header
 
@@ -155,9 +151,6 @@ export async function POST(request: NextRequest) {
       numerosAssyst: numerosAssyst.trim(),
       tipo: r[iTipo]?.trim() || null,
       situacao: r[iSit]?.trim() || null,
-      titulo: r[iTitulo]?.trim() || null,
-      descricao: r[iDesc]?.trim() || null,
-      ultimasNotas: r[iNota]?.trim() || null,
     });
   }
 
@@ -204,12 +197,6 @@ export async function POST(request: NextRequest) {
     await prisma.redmineResolvido.createMany({ data: insertData.slice(i, i + BATCH) });
   }
   return NextResponse.json({ count: insertData.length, skipped, protegidos });
-}
-
-export async function PATCH(request: NextRequest) {
-  const { id, ultimasNotas } = await request.json();
-  await prisma.redmineResolvido.update({ where: { id }, data: { ultimasNotas } });
-  return NextResponse.json({ ok: true });
 }
 
 export async function DELETE() {

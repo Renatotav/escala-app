@@ -8,9 +8,6 @@ type Resolvido = {
   numerosAssyst: string;
   tipo: string | null;
   situacao: string | null;
-  titulo: string | null;
-  descricao: string | null;
-  ultimasNotas: string | null;
 };
 
 type Dados = {
@@ -85,21 +82,6 @@ function preview(texto: string, max = 55): string {
   return (ultimoEspaco > 10 ? cortado.slice(0, ultimoEspaco) : cortado) + "…";
 }
 
-function CelulaTexto({ label, texto, onClick, assystNums, resolvidoId }: {
-  label: string;
-  texto: string | null | undefined;
-  onClick: (t: { titulo: string; corpo: string; assystNums?: string[]; resolvidoId?: number }) => void;
-  assystNums?: string[];
-  resolvidoId?: number;
-}) {
-  if (!texto) return <span className="text-gray-600">—</span>;
-  return (
-    <button onClick={() => onClick({ titulo: label, corpo: texto, assystNums, resolvidoId })}
-      className="text-left text-xs text-gray-300 hover:text-blue-400 transition block underline-offset-2 hover:underline cursor-pointer">
-      {preview(texto)}
-    </button>
-  );
-}
 
 function splitAssyst(raw: string): string[] {
   return raw.split(/[;/,|\\]|\s+e\s+/i).map(s => s.trim()).filter(Boolean);
@@ -126,10 +108,7 @@ export default function RedmineResolvidosPage() {
   const [paginaEsq, setPaginaEsq] = useState(1);
   const POR_PAGINA = 100;
   const [substituir, setSubstituir] = useState(true);
-  const [textoModal, setTextoModal] = useState<{ titulo: string; corpo: string; assystNums?: string[]; resolvidoId?: number } | null>(null);
-  const [editMode, setEditMode] = useState(false);
-  const [editValue, setEditValue] = useState("");
-  const [saving, setSaving] = useState(false);
+
   const [marcadorRes, setMarcadorResState] = useState<{ assyst: string; page: number } | null>(null);
   const marcadorResRef = useRef<HTMLTableRowElement>(null);
   const marcadorResNavigated = useRef(false);
@@ -536,73 +515,6 @@ export default function RedmineResolvidosPage() {
               className="px-3 py-1.5 text-xs rounded-lg bg-gray-800 hover:bg-gray-700 disabled:opacity-40 text-gray-300 transition">
               Próxima →
             </button>
-          </div>
-        </div>
-      )}
-
-      {/* Modal leitura de texto */}
-      {textoModal && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4" onClick={() => { setTextoModal(null); setEditMode(false); }}>
-          <div className="bg-gray-900 border border-gray-700 rounded-xl w-full max-w-2xl max-h-[80vh] flex flex-col shadow-2xl"
-            onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-800">
-              <h3 className="text-sm font-semibold text-white">{textoModal.titulo}</h3>
-              <div className="flex items-center gap-2">
-                {textoModal.titulo === "Últimas notas" && textoModal.resolvidoId && !editMode && (
-                  <button onClick={() => { setEditValue(textoModal.corpo); setEditMode(true); }}
-                    className="text-xs px-3 py-1 rounded bg-blue-700 hover:bg-blue-600 text-white transition">
-                    ✏ Editar
-                  </button>
-                )}
-                <button onClick={() => { setTextoModal(null); setEditMode(false); }} className="text-gray-400 hover:text-white text-lg leading-none">✕</button>
-              </div>
-            </div>
-            {editMode ? (
-              <div className="flex flex-col gap-3 px-5 py-4">
-                <textarea
-                  value={editValue}
-                  onChange={e => setEditValue(e.target.value)}
-                  rows={10}
-                  className="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-200 resize-y focus:outline-none focus:border-blue-500"
-                />
-                <div className="flex gap-2 justify-end">
-                  <button onClick={() => setEditMode(false)}
-                    className="text-sm px-4 py-1.5 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 transition">
-                    Cancelar
-                  </button>
-                  <button disabled={saving} onClick={async () => {
-                    if (!textoModal.resolvidoId) return;
-                    setSaving(true);
-                    await fetch("/api/redmine-resolvidos", {
-                      method: "PATCH",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ id: textoModal.resolvidoId, ultimasNotas: editValue }),
-                    });
-                    setSaving(false);
-                    setEditMode(false);
-                    setTextoModal({ ...textoModal, corpo: editValue });
-                    setDados(d => d ? {
-                      ...d,
-                      resolvidos: d.resolvidos.map(r => r.id === textoModal.resolvidoId ? { ...r, ultimasNotas: editValue } : r)
-                    } : d);
-                  }}
-                    className="text-sm px-4 py-1.5 rounded bg-green-700 hover:bg-green-600 disabled:opacity-50 text-white font-medium transition">
-                    {saving ? "Salvando..." : "Salvar"}
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="px-5 py-4 overflow-y-auto text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">
-                {textoModal.titulo === "Últimas notas"
-                  ? <TextoComLinks
-                      texto={textoModal.corpo}
-                      resolvidosSet={resolvidosRedmineSet}
-                      redmineToAssystMap={redmineToAssystMap}
-                      assystNums={textoModal.assystNums}
-                    />
-                  : textoModal.corpo}
-              </div>
-            )}
           </div>
         </div>
       )}

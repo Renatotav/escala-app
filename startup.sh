@@ -192,8 +192,9 @@ async function migrate() {
     \"ultimasNotas\" TEXT,
     \"createdAt\" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
   )\`);
-  await client.query(\`ALTER TABLE \"RedmineResolvido\" ADD COLUMN IF NOT EXISTS \"titulo\" TEXT\`);
-  await client.query(\`ALTER TABLE \"RedmineResolvido\" ADD COLUMN IF NOT EXISTS \"descricao\" TEXT\`);
+  try { await client.query(\`ALTER TABLE \"RedmineResolvido\" DROP COLUMN IF EXISTS \"titulo\"\`); } catch(e) {}
+  try { await client.query(\`ALTER TABLE \"RedmineResolvido\" DROP COLUMN IF EXISTS \"descricao\"\`); } catch(e) {}
+  try { await client.query(\`ALTER TABLE \"RedmineResolvido\" DROP COLUMN IF EXISTS \"ultimasNotas\"\`); } catch(e) {}
   await client.query(\`CREATE INDEX IF NOT EXISTS \"idx_RedmineResolvido_numeroRedmine\" ON \"RedmineResolvido\"(\"numeroRedmine\")\`);
   // RedmineAtribuido
   await client.query(\`CREATE TABLE IF NOT EXISTS \"RedmineAtribuido\" (

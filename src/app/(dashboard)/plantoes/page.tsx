@@ -596,7 +596,8 @@ export default function PlantoesPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-4 bg-gray-900 border border-gray-800 rounded-lg p-1 overflow-x-auto w-full md:w-fit">
+      <div className="flex items-center gap-3 mb-4 flex-wrap">
+      <div className="flex gap-1 bg-gray-900 border border-gray-800 rounded-lg p-1 overflow-x-auto w-full md:w-fit">
         {(["ranking", "historico", "saldo", "folgas", "escala"] as const).map((t) => (
           <button
             key={t}
@@ -610,6 +611,11 @@ export default function PlantoesPage() {
               : "Escala do Mês"}
           </button>
         ))}
+      </div>
+        <a href="/plantoes/como-funciona" target="_blank" rel="noopener noreferrer"
+          className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-blue-900/30 border border-blue-700/40 text-blue-400 hover:bg-blue-800/40 hover:text-blue-300 transition font-medium">
+          <span>ℹ</span> Como funciona?
+        </a>
       </div>
 
       {/* SEQUÊNCIA (RANKING) */}

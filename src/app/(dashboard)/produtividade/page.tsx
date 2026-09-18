@@ -686,15 +686,21 @@ export default function ProdutividadePage() {
       </div>
 
       {/* Abas */}
-      <div className="flex gap-1 mb-6 bg-gray-900 border border-gray-800 rounded-lg p-1 w-fit">
-        <button onClick={() => setView("lista")}
-          className={`text-sm px-4 py-1.5 rounded-md transition ${view === "lista" ? "bg-gray-700 text-white font-medium" : "text-gray-500 hover:text-gray-300"}`}>
-          Lista
-        </button>
-        <button onClick={() => setView("quantitativo")}
-          className={`text-sm px-4 py-1.5 rounded-md transition ${view === "quantitativo" ? "bg-gray-700 text-white font-medium" : "text-gray-500 hover:text-gray-300"}`}>
-          Quantitativo
-        </button>
+      <div className="flex items-center gap-3 mb-6 flex-wrap">
+        <div className="flex gap-1 bg-gray-900 border border-gray-800 rounded-lg p-1">
+          <button onClick={() => setView("lista")}
+            className={`text-sm px-4 py-1.5 rounded-md transition ${view === "lista" ? "bg-gray-700 text-white font-medium" : "text-gray-500 hover:text-gray-300"}`}>
+            Lista
+          </button>
+          <button onClick={() => setView("quantitativo")}
+            className={`text-sm px-4 py-1.5 rounded-md transition ${view === "quantitativo" ? "bg-gray-700 text-white font-medium" : "text-gray-500 hover:text-gray-300"}`}>
+            Quantitativo
+          </button>
+        </div>
+        <a href="https://claude.ai/artifact/3szdkVYvrUhhbApqMyG8KQ" target="_blank" rel="noopener noreferrer"
+          className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-blue-900/30 border border-blue-700/40 text-blue-400 hover:bg-blue-800/40 hover:text-blue-300 transition font-medium">
+          <span>ℹ</span> Como funciona?
+        </a>
       </div>
 
       {/* Sub-abas do Quantitativo */}

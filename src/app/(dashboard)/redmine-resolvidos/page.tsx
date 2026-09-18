@@ -407,10 +407,10 @@ export default function RedmineResolvidosPage() {
           <table className="w-full min-w-[900px] text-sm">
             <thead>
               <tr className="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wide">
-                <th className="text-center px-4 py-3 whitespace-nowrap">Redmine #</th>
-                <th className="text-center px-4 py-3 whitespace-nowrap">Nº Assyst</th>
-                <th className="text-center px-4 py-3 whitespace-nowrap">Tipo</th>
-                <th className="text-center px-4 py-3 whitespace-nowrap">Situação</th>
+                <th className="text-left px-4 py-3 whitespace-nowrap">Redmine #</th>
+                <th className="text-left px-4 py-3 whitespace-nowrap">Nº Assyst</th>
+                <th className="text-left px-4 py-3 whitespace-nowrap">Tipo</th>
+                <th className="text-left px-4 py-3 whitespace-nowrap">Situação</th>
               </tr>
             </thead>
             <tbody>
@@ -432,15 +432,15 @@ export default function RedmineResolvidosPage() {
                 rows.push(
                   <tr key={r.id} ref={esMarcado ? marcadorResRef : undefined}
                     className={`border-b border-gray-800 last:border-0 transition border-l-2 ${esMarcado ? "bg-blue-950/20 border-l-blue-500 hover:bg-blue-950/30" : "border-l-transparent hover:bg-gray-800/50"}`}>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-4 py-3">
                       <a href={redmineUrl(r.numeroRedmine)} target="_blank" rel="noopener noreferrer"
                         className="font-mono text-xs text-blue-400 hover:text-blue-300 hover:underline transition">
                         {r.numeroRedmine}
                       </a>
                     </td>
-                    <td className="px-4 py-3 text-xs text-center">
+                    <td className="px-4 py-3 text-xs">
                       {nums.length > 0 ? (
-                        <div className="flex flex-col gap-1 items-center">
+                        <div className="flex flex-col gap-1">
                           {nums.map(n => {
                             const dias = diasAberto(chamadosMap[n.toUpperCase()]);
                             const esMarcadoAssyst = marcadorRes?.assyst === n.toUpperCase();
@@ -466,8 +466,8 @@ export default function RedmineResolvidosPage() {
                         </div>
                       ) : <span className="text-gray-500">—</span>}
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap text-center">{r.tipo ?? "—"}</td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">{r.tipo ?? "—"}</td>
+                    <td className="px-4 py-3">
                       {r.situacao ? (
                         <span className="text-xs px-2 py-0.5 rounded-full whitespace-nowrap bg-green-500/20 text-green-400 border border-green-500/30">{r.situacao}</span>
                       ) : "—"}

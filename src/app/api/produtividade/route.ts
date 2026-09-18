@@ -147,15 +147,28 @@ export async function GET(request: NextRequest) {
     }
 
     // Chamados (Assyst): Em Aberto e Pausados por nomeUsuarioAtribuido
-    // Aplica o mesmo filtro de data de recebimento usado na produtividade (dataRegistro)
+    // Filtra por dataRegistro usando o mesmo período ativo (recebimento tem prioridade, senão usa resolução)
     const chamadoDateWhere: Record<string, unknown> = {};
     const abRangeCh: Record<string, Date> = {};
-    if (anoRecebimento) {
-      abRangeCh.gte = new Date(`${anoRecebimento}-01-01T00:00:00Z`);
-      abRangeCh.lt  = new Date(`${Number(anoRecebimento) + 1}-01-01T00:00:00Z`);
+    const temFiltroRec = !!(anoRecebimento || dataRecDe || dataRecAte);
+    const temFiltroRes = !!(anoResolucao || dataResDe || dataResAte);
+
+    if (temFiltroRec) {
+      if (anoRecebimento) {
+        abRangeCh.gte = new Date(`${anoRecebimento}-01-01T00:00:00Z`);
+        abRangeCh.lt  = new Date(`${Number(anoRecebimento) + 1}-01-01T00:00:00Z`);
+      }
+      if (dataRecDe)  abRangeCh.gte = new Date(`${dataRecDe}T00:00:00Z`);
+      if (dataRecAte) abRangeCh.lte = new Date(`${dataRecAte}T23:59:59Z`);
+    } else if (temFiltroRes) {
+      // Usa o período de resolução para filtrar chamados por dataRegistro
+      if (anoResolucao) {
+        abRangeCh.gte = new Date(`${anoResolucao}-01-01T00:00:00Z`);
+        abRangeCh.lt  = new Date(`${Number(anoResolucao) + 1}-01-01T00:00:00Z`);
+      }
+      if (dataResDe)  abRangeCh.gte = new Date(`${dataResDe}T00:00:00Z`);
+      if (dataResAte) abRangeCh.lte = new Date(`${dataResAte}T23:59:59Z`);
     }
-    if (dataRecDe)  abRangeCh.gte = new Date(`${dataRecDe}T00:00:00Z`);
-    if (dataRecAte) abRangeCh.lte = new Date(`${dataRecAte}T23:59:59Z`);
     if (Object.keys(abRangeCh).length) chamadoDateWhere.dataRegistro = abRangeCh;
 
     const chamados = await prisma.chamado.findMany({

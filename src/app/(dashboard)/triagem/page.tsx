@@ -439,6 +439,13 @@ export default function TriagemPage() {
         </div>
       </div>
 
+      <div className="flex items-center gap-3 mb-4 flex-wrap">
+        <a href="/triagem/como-funciona" target="_blank" rel="noopener noreferrer"
+          className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-blue-900/30 border border-blue-700/40 text-blue-400 hover:bg-blue-800/40 hover:text-blue-300 transition font-medium">
+          <span>ℹ</span> Como funciona?
+        </a>
+      </div>
+
       {totalFora > 0 && (
         <div className="mb-4 bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 flex items-center gap-3">
           <span className="text-red-400 text-lg">⚠</span>

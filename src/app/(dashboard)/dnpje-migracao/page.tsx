@@ -261,11 +261,11 @@ export default function DnpjeMigracaoPage() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wide">
-              <th className="text-left px-4 py-3">Nº Chamado (Assyst)</th>
-              <th className="text-left px-4 py-3">Abertura</th>
-              <th className="text-left px-4 py-3">Equipe Atribuída</th>
-              <th className="text-left px-4 py-3">Movimentação</th>
-              <th className="text-left px-4 py-3">Situação</th>
+              <th className="text-center px-4 py-3">Nº Chamado (Assyst)</th>
+              <th className="text-center px-4 py-3">Abertura</th>
+              <th className="text-center px-4 py-3">Equipe Atribuída</th>
+              <th className="text-center px-4 py-3">Movimentação</th>
+              <th className="text-center px-4 py-3">Situação</th>
             </tr>
           </thead>
           <tbody>
@@ -283,8 +283,8 @@ export default function DnpjeMigracaoPage() {
               return (
                 <tr key={c.id}
                   className={`border-b border-gray-800 last:border-0 transition ${atrasado ? "bg-red-950/30 hover:bg-red-950/50 border-l-2 border-l-red-600" : "hover:bg-gray-800/50"}`}>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
+                  <td className="px-4 py-3 text-center">
+                    <div className="flex items-center justify-center gap-2">
                       <a
                         href={`https://cati.tjce.jus.br/assystnet/#events/${c.numero}?eventType=1&currentIndex=0`}
                         target="_blank"
@@ -295,14 +295,14 @@ export default function DnpjeMigracaoPage() {
                       <DiasBadge dias={dias} />
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-gray-300 text-xs font-mono whitespace-nowrap">{fmtDateTime(c.dataAbertura)}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 text-center text-gray-300 text-xs font-mono whitespace-nowrap">{fmtDateTime(c.dataAbertura)}</td>
+                  <td className="px-4 py-3 text-center">
                     <span className="text-xs px-2 py-0.5 rounded bg-gray-700 text-gray-300 whitespace-nowrap">
                       {c.equipeAtribuida ?? "—"}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-gray-300 text-xs font-mono whitespace-nowrap">{fmtDateTime(c.dataMovimentacao)}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 text-center text-gray-300 text-xs font-mono whitespace-nowrap">{fmtDateTime(c.dataMovimentacao)}</td>
+                  <td className="px-4 py-3 text-center">
                     {c.situacaoRegra ? (
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                         c.situacaoRegra.toLowerCase() === "aberto"

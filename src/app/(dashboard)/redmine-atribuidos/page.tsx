@@ -472,14 +472,14 @@ export default function RedmineAtribuidosPage() {
             </colgroup>
             <thead>
               <tr className="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wide">
-                <th className="text-left px-4 py-3">Acomp.</th>
-                <th className="text-left px-4 py-3">Redmine #</th>
-                <th className="text-left px-4 py-3">Nº Assyst</th>
-                <th className="text-left px-4 py-3">Criado em</th>
-                <th className="text-left px-4 py-3">Alterado em</th>
-                <th className="text-left px-4 py-3">Tipo</th>
-                <th className="text-left px-4 py-3">Situação</th>
-                <th className="text-left px-4 py-3">Atribuído para</th>
+                <th className="text-center px-4 py-3">Acomp.</th>
+                <th className="text-center px-4 py-3">Redmine #</th>
+                <th className="text-center px-4 py-3">Nº Assyst</th>
+                <th className="text-center px-4 py-3">Criado em</th>
+                <th className="text-center px-4 py-3">Alterado em</th>
+                <th className="text-center px-4 py-3">Tipo</th>
+                <th className="text-center px-4 py-3">Situação</th>
+                <th className="text-center px-4 py-3">Atribuído para</th>
               </tr>
             </thead>
             <tbody>
@@ -487,7 +487,7 @@ export default function RedmineAtribuidosPage() {
                 const nums = splitAssyst(r.numerosAssyst);
                 return (
                   <tr key={r.id} className={`border-b border-gray-800 last:border-0 hover:bg-gray-800/50 transition ${r.solicitadoEm ? "border-l-2 border-l-orange-500/60" : ""}`}>
-                    <td className="px-3 py-3 whitespace-nowrap align-top">
+                    <td className="px-3 py-3 whitespace-nowrap align-top text-center">
                       {r.solicitadoEm ? (() => {
                         let hist: { em: string; obs: string | null; operador: string | null }[] = [];
                         try { hist = JSON.parse(r.historicoAcomp ?? "[]"); } catch { hist = []; }
@@ -530,15 +530,15 @@ export default function RedmineAtribuidosPage() {
                         </button>
                       )}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 text-center">
                       <a href={redmineUrl(r.numeroRedmine)} target="_blank" rel="noopener noreferrer"
                         className="font-mono text-xs text-blue-400 hover:text-blue-300 hover:underline transition">
                         {r.numeroRedmine}
                       </a>
                     </td>
-                    <td className="px-4 py-3 text-xs">
+                    <td className="px-4 py-3 text-xs text-center">
                       {nums.length > 0 ? (
-                        <div className="flex flex-col gap-0.5">
+                        <div className="flex flex-col gap-0.5 items-center">
                           {nums.map(n => (
                             <a key={n} href={assystUrl(n)} target="_blank" rel="noopener noreferrer"
                               className="font-mono text-blue-400 hover:text-blue-300 hover:underline transition">
@@ -553,24 +553,24 @@ export default function RedmineAtribuidosPage() {
                         </div>
                       ) : <span className="text-gray-500">—</span>}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
+                    <td className="px-4 py-3 whitespace-nowrap text-center">
                       {r.criadoEm
                         ? <span className="text-xs px-2 py-0.5 rounded-full bg-gray-700/60 text-gray-300 border border-gray-600/40">{r.criadoEm}</span>
                         : <span className="text-gray-600 text-xs">—</span>}
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">
-                      <div className="flex items-center gap-1.5">
+                    <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap text-center">
+                      <div className="flex items-center justify-center gap-1.5">
                         <span>{r.alteradoEm ?? "—"}</span>
                         {(() => { const b = badgeDias(parseDias(r.alteradoEm)); return b ? <span title="Chamado atrasado" className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold animate-pulse cursor-help ${b.cls}`}>{b.label}</span> : null; })()}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">{r.tipo ?? "—"}</td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap text-center">{r.tipo ?? "—"}</td>
+                    <td className="px-4 py-3 text-center">
                       {r.situacao
                         ? <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${corSituacao(r.situacao)}`}>{r.situacao}</span>
                         : "—"}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 text-center">
                       {r.atribuidoPara
                         ? <span className="text-xs px-2 py-0.5 rounded-full whitespace-nowrap bg-blue-500/20 text-blue-300 border border-blue-500/30">{r.atribuidoPara}</span>
                         : <span className="text-gray-600 text-xs">—</span>}

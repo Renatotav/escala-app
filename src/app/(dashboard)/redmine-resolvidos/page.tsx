@@ -379,8 +379,8 @@ export default function RedmineResolvidosPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wide">
-                <th className="text-left px-4 py-3">Nº Chamado (Assyst)</th>
-                <th className="text-left px-4 py-3">Status</th>
+                <th className="text-center px-4 py-3">Nº Chamado (Assyst)</th>
+                <th className="text-center px-4 py-3">Status</th>
               </tr>
             </thead>
             <tbody>
@@ -388,13 +388,13 @@ export default function RedmineResolvidosPage() {
                 <tr><td colSpan={2} className="px-4 py-8 text-center text-green-400 text-sm">Todos os chamados foram resolvidos!</td></tr>
               ) : semResolvidoPag.map(num => (
                 <tr key={num} className="border-b border-gray-800 last:border-0 bg-red-950/20 border-l-2 border-l-red-600 hover:bg-red-950/30 transition">
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 text-center">
                     <a href={assystUrl(num)} target="_blank" rel="noopener noreferrer"
                       className="font-mono text-sm text-blue-400 hover:text-blue-300 hover:underline transition">
                       {num}
                     </a>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 text-center">
                     <span className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full bg-red-600 text-white animate-pulse">
                       ⚠ Ainda não resolvido
                     </span>

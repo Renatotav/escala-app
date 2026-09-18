@@ -52,7 +52,7 @@ export default function ComoFuncionaRedmineAtribuidosPage() {
       <Section label="Funcionalidade Principal" title="Como funciona o pin de acompanhamento 📌?">
         <p style={p}>O pin serve para registrar que alguém da equipe está ativamente acompanhando um chamado — seja cobrando o responsável, aguardando retorno, verificando com o usuário etc.</p>
         <Item emoji="1️⃣"><>Clique no ícone 📌 cinza na coluna "Acomp." da linha do chamado.</>  </Item>
-        <Item emoji="2️⃣"><>Um painel aparece pedindo: <strong>Operador</strong> (quem está acompanhando) e <strong>Observação</strong> (o que foi feito ou o que está sendo aguardado).</></>  </Item>
+        <Item emoji="2️⃣"><>Um painel aparece pedindo: <strong>Operador</strong> (quem está acompanhando) e <strong>Observação</strong> (o que foi feito ou o que está sendo aguardado).</>  </Item>
         <Item emoji="3️⃣"><>Ao salvar, o pin fica laranja mostrando quantos dias fazem desde o primeiro registro.</>  </Item>
         <Item emoji="4️⃣"><>Cada nova cobrança é acumulada no histórico. Se foi cobrado mais de uma vez, aparece <strong>"🔁 3× cobrado"</strong> — clique para ver todo o histórico.</>  </Item>
         <Item emoji="5️⃣"><>Para remover o acompanhamento, clique no pin laranja e depois em "✕ limpar".</>  </Item>
@@ -62,8 +62,8 @@ export default function ComoFuncionaRedmineAtribuidosPage() {
       <Section label="Alerta Especial" title='O que é "Devolver à TI"?'>
         <p style={p}>Esse alerta aparece quando o sistema detecta que o número Assyst vinculado a um Redmine não está mais na fila de chamados ativos do CATI.</p>
         <p style={p}>Isso pode significar que o chamado no Assyst foi encerrado pelo operador — mas o Redmine ainda está aberto. Clicando no card, abre uma lista dividida em dois grupos:</p>
-        <Item emoji="✅"><><strong>Assyst encerrado — pode fechar o Redmine:</strong> o chamado no CATI foi fechado. Basta encerrar o Redmine correspondente.</></>  </Item>
-        <Item emoji="⚠️"><><strong>Ainda aberto em Chamados — cobrar operador:</strong> o Assyst ainda aparece como ativo. O operador precisa finalizar antes de fechar o Redmine.</></>  </Item>
+        <Item emoji="✅"><><strong>Assyst encerrado — pode fechar o Redmine:</strong> o chamado no CATI foi fechado. Basta encerrar o Redmine correspondente.</>  </Item>
+        <Item emoji="⚠️"><><strong>Ainda aberto em Chamados — cobrar operador:</strong> o Assyst ainda aparece como ativo. O operador precisa finalizar antes de fechar o Redmine.</>  </Item>
       </Section>
 
       <Section label="Filtros" title="Filtros disponíveis">
@@ -81,8 +81,8 @@ export default function ComoFuncionaRedmineAtribuidosPage() {
 
       <Section label="Importação" title="Como importar os dados?">
         <p style={p}>Clique em "Importar Atribuídos" e selecione o arquivo CSV exportado do Redmine. Há dois modos:</p>
-        <Item emoji="🔄"><><strong>Sincronizar fila:</strong> remove chamados que saíram do CSV (exceto os que têm 📌). Use para manter a lista atualizada com a fila atual do Redmine.</></>  </Item>
-        <Item emoji="➕"><><strong>Atualizar e adicionar:</strong> mantém tudo que já estava, insere os novos e atualiza os dados dos existentes. Não remove nada.</></>  </Item>
+        <Item emoji="🔄"><><strong>Sincronizar fila:</strong> remove chamados que saíram do CSV (exceto os que têm 📌). Use para manter a lista atualizada com a fila atual do Redmine.</>  </Item>
+        <Item emoji="➕"><><strong>Atualizar e adicionar:</strong> mantém tudo que já estava, insere os novos e atualiza os dados dos existentes. Não remove nada.</>  </Item>
         <Aviso>Você pode importar múltiplos arquivos CSV de uma vez — o sistema combina tudo automaticamente.</Aviso>
       </Section>
 

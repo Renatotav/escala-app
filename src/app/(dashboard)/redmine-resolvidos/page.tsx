@@ -407,10 +407,10 @@ export default function RedmineResolvidosPage() {
           <table className="w-full min-w-[900px] text-sm">
             <thead>
               <tr className="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wide">
-                <th className="text-left px-4 py-3 whitespace-nowrap">Redmine #</th>
-                <th className="text-left px-4 py-3 whitespace-nowrap">Nº Assyst</th>
-                <th className="text-left px-4 py-3 whitespace-nowrap">Tipo</th>
-                <th className="text-left px-4 py-3 whitespace-nowrap">Situação</th>
+                <th className="text-center px-4 py-3 whitespace-nowrap">Redmine #</th>
+                <th className="text-center px-4 py-3 whitespace-nowrap">Nº Assyst</th>
+                <th className="text-center px-4 py-3 whitespace-nowrap">Tipo</th>
+                <th className="text-center px-4 py-3 whitespace-nowrap">Situação</th>
               </tr>
             </thead>
             <tbody>

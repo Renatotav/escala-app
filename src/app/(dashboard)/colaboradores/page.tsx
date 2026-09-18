@@ -200,6 +200,13 @@ export default function ColaboradoresPage() {
         </div>
       </div>
 
+      <div className="flex items-center gap-3 mb-4 flex-wrap">
+        <a href="/colaboradores/como-funciona" target="_blank" rel="noopener noreferrer"
+          className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-blue-900/30 border border-blue-700/40 text-blue-400 hover:bg-blue-800/40 hover:text-blue-300 transition font-medium">
+          <span>ℹ</span> Como funciona?
+        </a>
+      </div>
+
       <div className="flex flex-wrap gap-2 mb-4">
         <div className="flex rounded-lg overflow-hidden border border-gray-700">
           {(["ativos", "inativos", "todos"] as const).map(s => (

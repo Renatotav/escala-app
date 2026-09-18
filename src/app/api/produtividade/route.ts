@@ -147,8 +147,20 @@ export async function GET(request: NextRequest) {
     }
 
     // Chamados (Assyst): Em Aberto e Pausados por nomeUsuarioAtribuido
+    // Aplica o mesmo filtro de data de recebimento usado na produtividade (dataRegistro)
+    const chamadoDateWhere: Record<string, unknown> = {};
+    const abRangeCh: Record<string, Date> = {};
+    if (anoRecebimento) {
+      abRangeCh.gte = new Date(`${anoRecebimento}-01-01T00:00:00Z`);
+      abRangeCh.lt  = new Date(`${Number(anoRecebimento) + 1}-01-01T00:00:00Z`);
+    }
+    if (dataRecDe)  abRangeCh.gte = new Date(`${dataRecDe}T00:00:00Z`);
+    if (dataRecAte) abRangeCh.lte = new Date(`${dataRecAte}T23:59:59Z`);
+    if (Object.keys(abRangeCh).length) chamadoDateWhere.dataRegistro = abRangeCh;
+
     const chamados = await prisma.chamado.findMany({
       select: { nomeUsuarioAtribuido: true, estado: true, ultimaAcao: true },
+      where: chamadoDateWhere,
     });
 
     const chamadosAberto  = new Map<string, number>();

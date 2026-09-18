@@ -59,7 +59,15 @@ export async function POST(request: NextRequest) {
 
     if (rawRows.length < 2) return NextResponse.json({ error: "Nenhuma linha encontrada" }, { status: 400 });
 
-    const headerRow = rawRows[0] as unknown[];
+    // Detecta automaticamente a linha de cabeçalho (primeira linha que tenha ao menos um campo reconhecido)
+    let headerRowIndex = 0;
+    for (let i = 0; i < Math.min(5, rawRows.length); i++) {
+      const row = rawRows[i] as unknown[];
+      const matches = row.filter(h => HEADER_MAP[normalize(String(h ?? ""))]).length;
+      if (matches >= 2) { headerRowIndex = i; break; }
+    }
+
+    const headerRow = rawRows[headerRowIndex] as unknown[];
     const fieldMap: (string | null)[] = headerRow.map(h =>
       HEADER_MAP[normalize(String(h ?? ""))] ?? null
     );
@@ -75,7 +83,7 @@ export async function POST(request: NextRequest) {
       situacaoRegra: string | null;
     }[] = [];
 
-    for (let i = 1; i < rawRows.length; i++) {
+    for (let i = headerRowIndex + 1; i < rawRows.length; i++) {
       const cols = rawRows[i] as unknown[];
       const obj: Record<string, unknown> = {};
       for (let j = 0; j < fieldMap.length; j++) {

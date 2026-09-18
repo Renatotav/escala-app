@@ -432,15 +432,15 @@ export default function RedmineResolvidosPage() {
                 rows.push(
                   <tr key={r.id} ref={esMarcado ? marcadorResRef : undefined}
                     className={`border-b border-gray-800 last:border-0 transition border-l-2 ${esMarcado ? "bg-blue-950/20 border-l-blue-500 hover:bg-blue-950/30" : "border-l-transparent hover:bg-gray-800/50"}`}>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 text-center">
                       <a href={redmineUrl(r.numeroRedmine)} target="_blank" rel="noopener noreferrer"
                         className="font-mono text-xs text-blue-400 hover:text-blue-300 hover:underline transition">
                         {r.numeroRedmine}
                       </a>
                     </td>
-                    <td className="px-4 py-3 text-xs">
+                    <td className="px-4 py-3 text-xs text-center">
                       {nums.length > 0 ? (
-                        <div className="flex flex-col gap-1">
+                        <div className="flex flex-col gap-1 items-center">
                           {nums.map(n => {
                             const dias = diasAberto(chamadosMap[n.toUpperCase()]);
                             const esMarcadoAssyst = marcadorRes?.assyst === n.toUpperCase();
@@ -466,8 +466,8 @@ export default function RedmineResolvidosPage() {
                         </div>
                       ) : <span className="text-gray-500">—</span>}
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">{r.tipo ?? "—"}</td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap text-center">{r.tipo ?? "—"}</td>
+                    <td className="px-4 py-3 text-center">
                       {r.situacao ? (
                         <span className="text-xs px-2 py-0.5 rounded-full whitespace-nowrap bg-green-500/20 text-green-400 border border-green-500/30">{r.situacao}</span>
                       ) : "—"}

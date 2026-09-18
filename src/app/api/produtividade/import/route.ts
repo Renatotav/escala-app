@@ -13,13 +13,22 @@ function normalize(s: string) {
 
 const HEADER_MAP: Record<string, string> = {
   "numero do chamado":          "numeroChamado",
+  "numero de chamado":          "numeroChamado",
+  "numero chamado":             "numeroChamado",
+  "chamado":                    "numeroChamado",
   "data/hora da abertura":      "dataAbertura",
+  "data hora da abertura":      "dataAbertura",
+  "data abertura":              "dataAbertura",
   "equipe atribuida":           "equipeAtribuida",
+  "equipe":                     "equipeAtribuida",
   "usuario atribuido":          "usuarioAtribuido",
   "usuario fechamento":         "usuarioFechamento",
   "data/hora da resolucao":     "dataResolucao",
+  "data hora da resolucao":     "dataResolucao",
+  "data resolucao":             "dataResolucao",
   "pausa":                      "pausa",
   "situacao regra":             "situacaoRegra",
+  "situacao":                   "situacaoRegra",
 };
 
 function toIso(value: unknown): string | null {
@@ -59,12 +68,12 @@ export async function POST(request: NextRequest) {
 
     if (rawRows.length < 2) return NextResponse.json({ error: "Nenhuma linha encontrada" }, { status: 400 });
 
-    // Detecta automaticamente a linha de cabeçalho (primeira linha que tenha ao menos um campo reconhecido)
+    // Detecta automaticamente a linha de cabeçalho (primeira linha com ao menos 1 campo reconhecido)
     let headerRowIndex = 0;
     for (let i = 0; i < Math.min(5, rawRows.length); i++) {
       const row = rawRows[i] as unknown[];
       const matches = row.filter(h => HEADER_MAP[normalize(String(h ?? ""))]).length;
-      if (matches >= 2) { headerRowIndex = i; break; }
+      if (matches >= 1) { headerRowIndex = i; break; }
     }
 
     const headerRow = rawRows[headerRowIndex] as unknown[];

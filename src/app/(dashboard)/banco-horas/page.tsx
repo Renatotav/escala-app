@@ -191,6 +191,14 @@ export default function BancoHorasPage() {
         </div>
       </div>
 
+      {/* Como funciona */}
+      <div className="flex items-center gap-3 mb-4 flex-wrap">
+        <a href="/banco-horas/como-funciona" target="_blank" rel="noopener noreferrer"
+          className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-blue-900/30 border border-blue-700/40 text-blue-400 hover:bg-blue-800/40 hover:text-blue-300 transition font-medium">
+          <span>ℹ</span> Como funciona?
+        </a>
+      </div>
+
       {/* Resumo */}
       <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="bg-gray-900 rounded-xl border border-gray-800 p-4">

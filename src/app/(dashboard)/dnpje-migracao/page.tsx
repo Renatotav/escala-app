@@ -186,6 +186,13 @@ export default function DnpjeMigracaoPage() {
         </div>
       </div>
 
+      <div className="flex items-center gap-3 mb-6 flex-wrap">
+        <a href="/dnpje-migracao/como-funciona" target="_blank" rel="noopener noreferrer"
+          className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-blue-900/30 border border-blue-700/40 text-blue-400 hover:bg-blue-800/40 hover:text-blue-300 transition font-medium">
+          <span>ℹ</span> Como funciona?
+        </a>
+      </div>
+
       {/* Stats */}
       {dados && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">

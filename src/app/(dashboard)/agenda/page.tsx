@@ -20,6 +20,12 @@ const emptyForm = {
   local: "", participantes: "", observacao: "",
 };
 
+function fmtDataNota(iso: string) {
+  return new Date(iso + "T12:00:00").toLocaleDateString("pt-BR", {
+    weekday: "long", day: "numeric", month: "long", year: "numeric",
+  });
+}
+
 const EVENT_COLORS = [
   "bg-blue-500", "bg-purple-500", "bg-emerald-500",
   "bg-orange-500", "bg-teal-500", "bg-pink-500",
@@ -116,8 +122,8 @@ export default function AgendaPage() {
   }
   function closeModal() { setModal(false); setEditingId(null); setForm(emptyForm); }
 
-  async function handleSubmit(e: { preventDefault(): void }) {
-    e.preventDefault();
+  async function handleSubmit(e?: { preventDefault(): void }) {
+    e?.preventDefault();
     setSaving(true);
     if (editingId !== null) {
       await fetch("/api/agenda", {
@@ -243,9 +249,9 @@ export default function AgendaPage() {
             </>
           )}
           <button
-            onClick={() => openNew()}
+            onClick={() => openNew(hoje)}
             className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
-            + Novo compromisso
+            + Nova nota
           </button>
         </div>
       </div>
@@ -415,125 +421,95 @@ export default function AgendaPage() {
         </>
       )}
 
-      {/* Detalhe do evento */}
-      {detalhe && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4" onClick={() => setDetalheId(null)}>
-          <div className="bg-gray-900 border border-gray-800 rounded-xl w-full max-w-sm p-5" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-start justify-between gap-2 mb-4">
-              <div className="flex items-center gap-2">
-                <span className={`w-3 h-3 rounded-full shrink-0 ${eventColor(detalhe.id)}`} />
-                <span className="text-white font-semibold">{detalhe.titulo}</span>
-              </div>
-              <button onClick={() => setDetalheId(null)} className="text-gray-500 hover:text-white leading-none text-lg">✕</button>
+      {/* Detalhe do evento — abre direto no modo edição (bloco de notas) */}
+      {detalhe && !modal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4" onClick={() => setDetalheId(null)}>
+          <div className="bg-[#1c1c1e] border border-gray-700/50 rounded-2xl w-full max-w-lg flex flex-col shadow-2xl overflow-hidden"
+            style={{ maxHeight: "85vh" }} onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-700/40">
+              <span className="text-xs text-gray-500 font-medium capitalize">{fmtDataNota(detalhe.data)}</span>
+              <button onClick={() => setDetalheId(null)} className="text-gray-600 hover:text-gray-300 text-lg leading-none transition">✕</button>
             </div>
-            <div className="space-y-2 text-sm text-gray-400">
-              <p>
-                <span className="mr-1">📅</span>
-                {detalhe.data.split("-").reverse().join("/")}
-                {horarioStr(detalhe) && <span className="ml-1 font-mono text-gray-300">{horarioStr(detalhe)}</span>}
-              </p>
-              {detalhe.local && <p><span className="mr-1">📍</span>{detalhe.local}</p>}
-              {detalhe.participantes && <p><span className="mr-1">👥</span>{detalhe.participantes}</p>}
-              {detalhe.observacao && <p className="text-gray-500 mt-1">{detalhe.observacao}</p>}
+            <div className="flex flex-col flex-1 overflow-hidden px-5 py-4 gap-3">
+              <p className="text-white text-xl font-semibold">{detalhe.titulo}</p>
+              {detalhe.observacao && (
+                <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">{detalhe.observacao}</p>
+              )}
             </div>
-            <div className="flex gap-2 mt-5">
-              <button
-                onClick={() => openEdit(detalhe)}
-                className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-lg py-2 transition">
-                Editar
+            <div className="flex items-center justify-between px-5 py-4 border-t border-gray-700/40">
+              <button onClick={() => handleDelete(detalhe.id)} className="text-xs text-red-500 hover:text-red-400 transition">
+                Excluir nota
               </button>
-              <button
-                onClick={() => handleDelete(detalhe.id)}
-                className="bg-red-900/40 hover:bg-red-800/60 text-red-400 text-sm rounded-lg py-2 px-4 transition">
-                Excluir
+              <button onClick={() => openEdit(detalhe)}
+                className="text-sm px-5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium transition">
+                Editar
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Modal criar/editar */}
+      {/* Bloco de Notas */}
       {modal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4">
-          <div className="bg-gray-900 border border-gray-800 rounded-xl w-full max-w-sm p-6">
-            <h3 className="text-base font-semibold text-white mb-4">
-              {editingId ? "Editar compromisso" : "Novo compromisso"}
-            </h3>
-            <form onSubmit={handleSubmit} className="space-y-3">
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4" onClick={closeModal}>
+          <div
+            className="bg-[#1c1c1e] border border-gray-700/50 rounded-2xl w-full max-w-lg flex flex-col shadow-2xl overflow-hidden"
+            style={{ maxHeight: "85vh" }}
+            onClick={(e) => e.stopPropagation()}>
+
+            {/* Topo estilo notas */}
+            <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-700/40">
+              <span className="text-xs text-gray-500 font-medium capitalize">
+                {form.data ? fmtDataNota(form.data) : "Nova nota"}
+              </span>
+              <button onClick={closeModal} className="text-gray-600 hover:text-gray-300 text-lg leading-none transition">✕</button>
+            </div>
+
+            {/* Área de escrita */}
+            <div className="flex flex-col flex-1 overflow-hidden px-5 py-4 gap-3">
+              {/* Título */}
+              <input
+                autoFocus
+                value={form.titulo}
+                onChange={(e) => setForm((f) => ({ ...f, titulo: e.target.value }))}
+                placeholder="Título"
+                className="w-full bg-transparent text-white text-xl font-semibold placeholder-gray-600 focus:outline-none border-none"
+              />
+              {/* Corpo da nota */}
+              <textarea
+                value={form.observacao}
+                onChange={(e) => setForm((f) => ({ ...f, observacao: e.target.value }))}
+                placeholder="Escreva aqui..."
+                rows={10}
+                className="w-full flex-1 bg-transparent text-gray-300 text-sm placeholder-gray-600 focus:outline-none resize-none leading-relaxed border-none"
+              />
+            </div>
+
+            {/* Rodapé */}
+            <div className="flex items-center justify-between px-5 py-4 border-t border-gray-700/40">
               <div>
-                <label className="block text-xs text-gray-400 mb-1">Título</label>
-                <input
-                  value={form.titulo}
-                  onChange={(e) => setForm((f) => ({ ...f, titulo: e.target.value }))}
-                  required
-                  placeholder="Ex: Reunião de equipe"
-                  className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                {editingId !== null && (
+                  <button
+                    onClick={() => handleDelete(editingId)}
+                    className="text-xs text-red-500 hover:text-red-400 transition">
+                    Excluir nota
+                  </button>
+                )}
               </div>
-              <div>
-                <label className="block text-xs text-gray-400 mb-1">Data</label>
-                <input
-                  type="date"
-                  value={form.data}
-                  onChange={(e) => setForm((f) => ({ ...f, data: e.target.value }))}
-                  required
-                  className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs text-gray-400 mb-1">Hora início <span className="text-gray-600">(opcional)</span></label>
-                  <input
-                    type="time"
-                    value={form.horaInicio}
-                    onChange={(e) => setForm((f) => ({ ...f, horaInicio: e.target.value }))}
-                    className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-400 mb-1">Hora fim <span className="text-gray-600">(opcional)</span></label>
-                  <input
-                    type="time"
-                    value={form.horaFim}
-                    onChange={(e) => setForm((f) => ({ ...f, horaFim: e.target.value }))}
-                    className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs text-gray-400 mb-1">Local <span className="text-gray-600">(opcional)</span></label>
-                <input
-                  value={form.local}
-                  onChange={(e) => setForm((f) => ({ ...f, local: e.target.value }))}
-                  placeholder="Ex: Sala de reuniões, videochamada..."
-                  className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-400 mb-1">Participantes <span className="text-gray-600">(opcional)</span></label>
-                <input
-                  value={form.participantes}
-                  onChange={(e) => setForm((f) => ({ ...f, participantes: e.target.value }))}
-                  placeholder="Ex: Ana, Bruno, equipe toda..."
-                  className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-400 mb-1">Observação <span className="text-gray-600">(opcional)</span></label>
-                <input
-                  value={form.observacao}
-                  onChange={(e) => setForm((f) => ({ ...f, observacao: e.target.value }))}
-                  className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              </div>
-              <div className="flex gap-2 pt-2">
+              <div className="flex gap-2">
                 <button
-                  type="button"
                   onClick={closeModal}
-                  className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-lg py-2 transition">
+                  className="text-sm px-4 py-1.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white transition">
                   Cancelar
                 </button>
                 <button
-                  type="submit"
-                  disabled={saving}
-                  className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg py-2 transition">
-                  {saving ? "Salvando..." : editingId ? "Salvar" : "Registrar"}
+                  disabled={saving || !form.titulo.trim()}
+                  onClick={() => handleSubmit()}
+                  className="text-sm px-5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white font-medium transition">
+                  {saving ? "Salvando..." : "Salvar"}
                 </button>
               </div>
-            </form>
+            </div>
           </div>
         </div>
       )}

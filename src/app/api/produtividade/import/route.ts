@@ -89,8 +89,9 @@ function buildFinalRows(rawRows: RawRow[]) {
       const firstMatch = movs.find(m => m.usuarioAtribuido?.trim().toUpperCase() === resolver);
       dataMovimentacao = firstMatch?.dataMovimentacao ?? null;
     }
-    // Fallback: última movimentação (casos onde resolver nunca foi formalmente atribuído)
-    if (!dataMovimentacao) dataMovimentacao = lastMov.dataMovimentacao ?? movs[0].dataMovimentacao;
+    // Fallback: quando o resolver nunca apareceu em "Usuário Atribuido", usa a data de resolução
+    // (chamado foi ao REDMINES ou aberto diretamente pela triagem — ela pegou para fechar)
+    if (!dataMovimentacao) dataMovimentacao = lastMov.dataResolucao ?? lastMov.dataMovimentacao ?? movs[0].dataMovimentacao;
 
     result.push({
       numeroChamado,
@@ -177,10 +178,18 @@ export async function POST(request: NextRequest) {
     if (substituir) {
       await prisma.produtividade.deleteMany({});
     } else {
-      const existing = await prisma.produtividade.findMany({ select: { numeroChamado: true } });
+      // Upsert: remove registros existentes que estão na importação, depois re-insere todos.
+      // Isso permite acumular meses sem perder dados já importados.
+      const incomingNums = finalRows.map(r => r.numeroChamado);
+      const existing = await prisma.produtividade.findMany({
+        select: { numeroChamado: true },
+        where: { numeroChamado: { in: incomingNums } },
+      });
       const existingSet = new Set(existing.map(e => e.numeroChamado));
-      insertRows = finalRows.filter(r => !existingSet.has(r.numeroChamado));
-      skipped = finalRows.length - insertRows.length;
+      if (existingSet.size > 0) {
+        await prisma.produtividade.deleteMany({ where: { numeroChamado: { in: [...existingSet] } } });
+      }
+      skipped = existingSet.size; // registros atualizados (já existiam)
     }
 
     await prisma.produtividade.createMany({

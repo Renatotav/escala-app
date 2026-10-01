@@ -158,7 +158,7 @@ export async function GET(request: NextRequest) {
     // Queries paralelas
     const [todos, producaoList] = await Promise.all([
       prisma.produtividade.findMany({
-        select: { usuarioFechamento: true, dataAbertura: true, dataResolucao: true },
+        select: { usuarioFechamento: true, dataMovimentacao: true, dataResolucao: true },
         where: whereStats,
       }),
       temFiltroRes
@@ -167,17 +167,18 @@ export async function GET(request: NextRequest) {
     ]);
 
     // Agrupa Produtividade: chamados recebidos no período que já foram resolvidos
-    type Acc = { resolvidos: number; tmrHorasSum: number; tmrCount: number };
+    type Acc = { resolvidos: number; tmrHorasSum: number; tmrCount: number; tmrValores: number[] };
     const grupos = new Map<string, Acc>();
+    const tmrTodosValores: number[] = [];
 
     for (const r of todos) {
       const usuario = r.usuarioFechamento || "(Sem usuário)";
-      if (!grupos.has(usuario)) grupos.set(usuario, { resolvidos: 0, tmrHorasSum: 0, tmrCount: 0 });
+      if (!grupos.has(usuario)) grupos.set(usuario, { resolvidos: 0, tmrHorasSum: 0, tmrCount: 0, tmrValores: [] });
       const g = grupos.get(usuario)!;
       g.resolvidos++;
-      if (r.dataAbertura && r.dataResolucao) {
-        const diffH = (new Date(r.dataResolucao).getTime() - new Date(r.dataAbertura).getTime()) / 3_600_000;
-        if (diffH >= 0) { g.tmrHorasSum += diffH; g.tmrCount++; }
+      if (r.dataMovimentacao && r.dataResolucao) {
+        const diffH = (new Date(r.dataResolucao).getTime() - new Date(r.dataMovimentacao).getTime()) / 3_600_000;
+        if (diffH >= 0) { g.tmrHorasSum += diffH; g.tmrCount++; g.tmrValores.push(diffH); tmrTodosValores.push(diffH); }
       }
     }
 
@@ -217,6 +218,9 @@ export async function GET(request: NextRequest) {
     const stats = [...grupos.entries()]
       .map(([usuario, g]) => {
         const tmrH = g.tmrCount > 0 ? g.tmrHorasSum / g.tmrCount : 0;
+        const sorted = [...g.tmrValores].sort((a, b) => a - b);
+        const mid = Math.floor(sorted.length / 2);
+        const tmrMedianaH = sorted.length === 0 ? 0 : sorted.length % 2 === 1 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
         const normUsuario = normName(usuario);
         const emAberto  = chamadosAberto.get(normUsuario)  ?? 0;
         const pausados  = chamadosPausado.get(normUsuario) ?? 0;
@@ -235,6 +239,8 @@ export async function GET(request: NextRequest) {
           vazao: (producao !== null && recebidos > 0) ? (producao / recebidos) * 100 : null,
           tmrHoras: Math.round(tmrH),
           tmrDias: Math.round(tmrH / 24),
+          tmrMedianaHoras: Math.round(tmrMedianaH),
+          tmrMedianaDias: Math.round(tmrMedianaH / 24),
         };
       })
       .sort((a, b) => a.usuario.localeCompare(b.usuario, "pt-BR"));
@@ -248,6 +254,11 @@ export async function GET(request: NextRequest) {
       { recebidos: 0, emAberto: 0, pausados: 0, resolvidos: 0, producao: null as number | null }
     );
     const tmrGeralH = stats.reduce((s, r) => s + r.tmrHoras * (r.resolvidos || 1), 0) / Math.max(1, stats.reduce((s, r) => s + (r.resolvidos || 1), 0));
+    const tmrTodosOrdenados = [...tmrTodosValores].sort((a, b) => a - b);
+    const tmrTotalMid = Math.floor(tmrTodosOrdenados.length / 2);
+    const tmrMedianaGeralH = tmrTodosOrdenados.length === 0 ? 0
+      : tmrTodosOrdenados.length % 2 === 1 ? tmrTodosOrdenados[tmrTotalMid]
+      : (tmrTodosOrdenados[tmrTotalMid - 1] + tmrTodosOrdenados[tmrTotalMid]) / 2;
 
     const totalDenominador = totais.recebidos;
     return NextResponse.json({
@@ -258,6 +269,8 @@ export async function GET(request: NextRequest) {
         vazao: (totais.producao !== null && totalDenominador > 0) ? (totais.producao / totalDenominador) * 100 : null,
         tmrHoras: Math.round(tmrGeralH),
         tmrDias: Math.round(tmrGeralH / 24),
+        tmrMedianaHoras: Math.round(tmrMedianaGeralH),
+        tmrMedianaDias: Math.round(tmrMedianaGeralH / 24),
       },
       temFiltroRes,
       equipes, atendentes, atendentesCount, periodoInicio, periodoFim, periodoResInicio, periodoResFim, totalRegistros,

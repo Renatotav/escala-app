@@ -42,6 +42,8 @@ type UserStat = {
   vazao: number | null;
   tmrHoras: number;
   tmrDias: number;
+  tmrMedianaHoras: number;
+  tmrMedianaDias: number;
 };
 
 type Totais = UserStat & { usuario: never };
@@ -464,7 +466,7 @@ export default function ProdutividadePage() {
       return taxa >= 85 ? [34, 197, 94] : taxa >= 80 ? [161, 98, 7] : [185, 28, 28];
     }
 
-    const COL_HEAD = ["Nº", "Atendente", "Recebidos", "Em Aberto", "Pausados", "Resolvidos", "Taxa Resolução", "TMR Dias", "TMR Horas"];
+    const COL_HEAD = ["Nº", "Atendente", "Recebidos", "Em Aberto", "Pausados", "Resolvidos", "Taxa Resolução", "TMR Média (d)", "TMR Mediana (d)"];
 
     for (const [eq, usuarios] of equipesSorted) {
       const eqResolvidos = usuarios.reduce((s, u) => s + u.resolvidos, 0);
@@ -477,8 +479,8 @@ export default function ProdutividadePage() {
         u.pausados  > 0 ? u.pausados.toLocaleString("pt-BR")  : "—",
         u.resolvidos.toLocaleString("pt-BR"),
         `${u.taxaResolucao.toFixed(1)}%`,
-        String(u.tmrDias  || "—"),
-        String(u.tmrHoras || "—"),
+        String(u.tmrDias        || "—"),
+        String(u.tmrMedianaDias || "—"),
       ]);
 
       // Título da equipe como texto acima da tabela
@@ -531,8 +533,8 @@ export default function ProdutividadePage() {
         t.pausados  > 0 ? t.pausados.toLocaleString("pt-BR")  : "—",
         t.resolvidos.toLocaleString("pt-BR"),
         taxaTotalStr,
-        String(t.tmrDias  || "—"),
-        String(t.tmrHoras || "—"),
+        String(t.tmrDias        || "—"),
+        String(t.tmrMedianaDias || "—"),
       ]],
       columnStyles: COL_STYLES,
       bodyStyles: { fontSize: 8.5, textColor: [40, 40, 40], fontStyle: "bold", fillColor: [226, 232, 240] },
@@ -560,7 +562,7 @@ export default function ProdutividadePage() {
     const ROW_H = 28;
     const HEADER_H = 80;
     const COLS = [300, 140, 80, 80, 80, 80, 100, 80, 80];
-    const HEADS = ["Usuário Fechamento", "Equipe", "Recebidos", "Em Aberto", "Pausados", "Resolvidos", "Taxa Resolução", "TMR Dias", "TMR Horas"];
+    const HEADS = ["Usuário Fechamento", "Equipe", "Recebidos", "Em Aberto", "Pausados", "Resolvidos", "Taxa Resolução", "TMR Média (d)", "TMR Mediana (d)"];
     const totalH = HEADER_H + (ROW_H * 1.5) + (statsData.stats.length + 1) * ROW_H + PAD;
 
     const canvas = document.createElement("canvas");
@@ -599,8 +601,8 @@ export default function ProdutividadePage() {
         s.pausados  > 0 ? s.pausados.toLocaleString("pt-BR")  : "—",
         s.resolvidos.toLocaleString("pt-BR"),
         `${s.taxaResolucao.toFixed(1)}%`,
-        String(s.tmrDias  || "—"),
-        String(s.tmrHoras || "—"),
+        String(s.tmrDias        || "—"),
+        String((s as UserStat).tmrMedianaDias ?? s.tmrDias || "—"),
       ];
       x = PAD + 8;
       for (let i = 0; i < cells.length; i++) {
@@ -974,8 +976,8 @@ export default function ProdutividadePage() {
                   <th className="text-center px-3 py-3">Taxa Res.</th>
                   {statsData.temFiltroRes && <th className="text-center px-3 py-3 text-blue-400">Produção</th>}
                   {statsData.temFiltroRes && <th className="text-center px-3 py-3 text-blue-400">Vazão</th>}
-                  <th className="text-center px-3 py-3">TMR Dias</th>
-                  <th className="text-center px-3 py-3">TMR Horas</th>
+                  <th className="text-center px-3 py-3">TMR Média (d)</th>
+                  <th className="text-center px-3 py-3 text-purple-400">TMR Mediana (d)</th>
                 </tr>
               </thead>
               <tbody>
@@ -1003,7 +1005,7 @@ export default function ProdutividadePage() {
                       </td>
                     )}
                     <td className="px-3 py-2.5 text-center font-mono text-sm text-gray-300 tabular-nums">{s.tmrDias || "—"}</td>
-                    <td className="px-3 py-2.5 text-center font-mono text-sm text-gray-300 tabular-nums">{s.tmrHoras || "—"}</td>
+                    <td className="px-3 py-2.5 text-center font-mono text-sm text-purple-300 tabular-nums">{s.tmrMedianaDias || "—"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -1032,7 +1034,7 @@ export default function ProdutividadePage() {
                     </td>
                   )}
                   <td className="px-3 py-3 text-center font-mono font-bold text-gray-200 tabular-nums">{statsData.totais.tmrDias || "—"}</td>
-                  <td className="px-3 py-3 text-center font-mono font-bold text-gray-200 tabular-nums">{statsData.totais.tmrHoras || "—"}</td>
+                  <td className="px-3 py-3 text-center font-mono font-bold text-purple-300 tabular-nums">{statsData.totais.tmrMedianaDias || "—"}</td>
                 </tr>
               </tfoot>
             </table>

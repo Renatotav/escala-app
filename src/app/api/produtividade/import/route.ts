@@ -33,6 +33,9 @@ const HEADER_MAP: Record<string, string> = {
   "pausa":                      "pausa",
   "situacao regra":             "situacaoRegra",
   "situacao":                   "situacaoRegra",
+  "contador acao":              "contadorAcao",
+  "contador de acao":           "contadorAcao",
+  "contador":                   "contadorAcao",
 };
 
 function toIso(value: unknown): string | null {
@@ -60,6 +63,7 @@ type RawRow = {
   pausa: string | null;
   situacaoRegra: string | null;
   tmrExclusivoHoras: number | null;
+  contadorAcao: number | null;
 };
 
 function buildFinalRows(rawRows: RawRow[]) {
@@ -72,35 +76,48 @@ function buildFinalRows(rawRows: RawRow[]) {
 
   const result: RawRow[] = [];
   for (const [numeroChamado, movs] of grouped) {
-    // Ordena por dataMovimentacao crescente (mais antiga primeiro)
+    // Ordena por dataMovimentacao crescente; "Contador Ação" como desempate
+    // para linhas com mesma data (a planilha vem ordenada por equipe, não por data)
     movs.sort((a, b) => {
       const da = a.dataMovimentacao ? new Date(a.dataMovimentacao).getTime() : 0;
       const db = b.dataMovimentacao ? new Date(b.dataMovimentacao).getTime() : 0;
-      return da - db;
+      if (da !== db) return da - db;
+      return (a.contadorAcao ?? 0) - (b.contadorAcao ?? 0);
     });
 
-    const lastMov = movs[movs.length - 1];
+    // Remove linhas duplicadas por equipe: Power BI exporta o mesmo movimento
+    // uma vez por equipe atribuída, então (dataMovimentacao + usuarioAtribuido) iguais
+    // representam o mesmo evento e devem ser contados apenas uma vez.
+    const seenMovKey = new Set<string>();
+    const deduped = movs.filter(m => {
+      const key = `${m.dataMovimentacao ?? ""}|${(m.usuarioAtribuido ?? "").trim().toUpperCase()}`;
+      if (seenMovKey.has(key)) return false;
+      seenMovKey.add(key);
+      return true;
+    });
+
+    const lastMov = deduped[deduped.length - 1];
 
     // Resolver = usuarioFechamento de qualquer linha que tenha
-    const resolver = movs.find(m => m.usuarioFechamento)?.usuarioFechamento?.trim().toUpperCase() ?? null;
+    const resolver = deduped.find(m => m.usuarioFechamento)?.usuarioFechamento?.trim().toUpperCase() ?? null;
 
     // Primeira vez que o resolver foi atribuído (usuarioAtribuido) a este chamado
     let dataMovimentacao: string | null = null;
     if (resolver) {
-      const firstMatch = movs.find(m => m.usuarioAtribuido?.trim().toUpperCase() === resolver);
+      const firstMatch = deduped.find(m => m.usuarioAtribuido?.trim().toUpperCase() === resolver);
       dataMovimentacao = firstMatch?.dataMovimentacao ?? null;
     }
     // Fallback: quando o resolver nunca apareceu em "Usuário Atribuido", usa a data de resolução
     // (chamado foi ao REDMINES ou aberto diretamente pela triagem — ela pegou para fechar)
-    if (!dataMovimentacao) dataMovimentacao = lastMov.dataResolucao ?? lastMov.dataMovimentacao ?? movs[0].dataMovimentacao;
+    if (!dataMovimentacao) dataMovimentacao = lastMov.dataResolucao ?? lastMov.dataMovimentacao ?? deduped[0].dataMovimentacao;
 
     // Calcula o tempo exclusivo com o resolver (soma dos períodos em que estava com ele)
     let tmrExclusivoHoras: number | null = null;
-    const dataResolucaoFinal = movs.find(m => m.dataResolucao)?.dataResolucao ?? null;
+    const dataResolucaoFinal = deduped.find(m => m.dataResolucao)?.dataResolucao ?? null;
     if (resolver && dataResolucaoFinal) {
       let totalH = 0;
       let periodStart: Date | null = null;
-      for (const m of movs) {
+      for (const m of deduped) {
         const isHis = m.usuarioAtribuido?.trim().toUpperCase() === resolver;
         const movDate = m.dataMovimentacao ? new Date(m.dataMovimentacao) : null;
         if (isHis && !periodStart && movDate) {
@@ -120,15 +137,16 @@ function buildFinalRows(rawRows: RawRow[]) {
 
     result.push({
       numeroChamado,
-      dataAbertura: movs[0].dataAbertura,
+      dataAbertura: deduped[0].dataAbertura,
       dataMovimentacao,
       equipeAtribuida: lastMov.equipeAtribuida,
       usuarioAtribuido: lastMov.usuarioAtribuido,
-      usuarioFechamento: lastMov.usuarioFechamento || movs.find(m => m.usuarioFechamento)?.usuarioFechamento || null,
-      dataResolucao: movs.find(m => m.dataResolucao)?.dataResolucao ?? null,
+      usuarioFechamento: lastMov.usuarioFechamento || deduped.find(m => m.usuarioFechamento)?.usuarioFechamento || null,
+      dataResolucao: deduped.find(m => m.dataResolucao)?.dataResolucao ?? null,
       pausa: lastMov.pausa,
       situacaoRegra: lastMov.situacaoRegra,
       tmrExclusivoHoras,
+      contadorAcao: null,
     });
   }
   return result;
@@ -175,6 +193,10 @@ export async function POST(request: NextRequest) {
       }
       const numeroChamado = String(obj.numeroChamado ?? "").trim();
       if (!numeroChamado || numeroChamado.includes(" ")) continue;
+      const contadorRaw = obj.contadorAcao;
+      const contadorAcao = contadorRaw !== null && contadorRaw !== undefined && contadorRaw !== ""
+        ? Number(contadorRaw) || null
+        : null;
       parsed.push({
         numeroChamado,
         dataAbertura: toIso(obj.dataAbertura),
@@ -186,6 +208,7 @@ export async function POST(request: NextRequest) {
         pausa: obj.pausa ? String(obj.pausa).trim() : null,
         situacaoRegra: obj.situacaoRegra ? String(obj.situacaoRegra).trim() : null,
         tmrExclusivoHoras: null,
+        contadorAcao,
       });
     }
 

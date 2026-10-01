@@ -169,7 +169,7 @@ export async function GET(request: NextRequest) {
       if (dataRecDe)  abRangeCh.gte = new Date(`${dataRecDe}T00:00:00Z`);
       if (dataRecAte) abRangeCh.lte = new Date(`${dataRecAte}T23:59:59Z`);
     }
-    if (Object.keys(abRangeCh).length) chamadoDateWhere.dataAbertura = abRangeCh;
+    if (Object.keys(abRangeCh).length) chamadoDateWhere.dataMovimentacao = abRangeCh;
 
     const chamadosPbi = await prisma.chamadoPowerbi.findMany({
       select: { usuarioAtribuido: true, situacaoRegra: true },

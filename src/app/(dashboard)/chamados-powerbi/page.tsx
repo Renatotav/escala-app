@@ -217,7 +217,8 @@ export default function ChamadosPowerbiPage() {
             {porCategoria.map(cat => {
               const ativo = filtroCategoria === cat.categoria;
               const sla = getSLA(cat.categoria);
-              const label = cat.categoria.split(" ").slice(-2).join(" ");
+              const tipoMatch = SLA_RULES.find(r => cat.categoria.toLowerCase().includes(r.keyword.toLowerCase()));
+              const label = tipoMatch ? tipoMatch.keyword : cat.categoria;
               const colorMap: Record<string, string> = {
                 "Erro ou Falha": "border-t-red-500",
                 Cadastro:        "border-t-sky-500",
@@ -243,7 +244,7 @@ export default function ChamadosPowerbiPage() {
                       ? "bg-gray-700 border-gray-500 ring-2 ring-white/20"
                       : "bg-gray-900 border-gray-800 hover:bg-gray-800"
                   }`}>
-                  <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">{label}</p>
+                  <p className="text-sm font-medium text-gray-300 mb-2">{label}</p>
                   <p className={`text-3xl font-bold tabular-nums ${numColor[accent] ?? "text-white"}`}>
                     {cat.total.toLocaleString("pt-BR")}
                   </p>

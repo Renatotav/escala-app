@@ -213,15 +213,6 @@ export default function ChamadosPowerbiPage() {
               <p className="text-xs text-gray-500 mt-1">chamados</p>
             </div>
 
-            {/* Período */}
-            <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 min-w-[150px] border-t-2 border-t-gray-600">
-              <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">Período</p>
-              <p className="text-xs font-medium text-gray-300">
-                {dados.periodoMin ? fmtDateTime(dados.periodoMin).slice(0, 10) : "—"}
-              </p>
-              <p className="text-xs text-gray-500">→ {dados.periodoMax ? fmtDateTime(dados.periodoMax).slice(0, 10) : "—"}</p>
-            </div>
-
             {/* Categorias */}
             {porCategoria.map(cat => {
               const ativo = filtroCategoria === cat.categoria;
@@ -261,6 +252,15 @@ export default function ChamadosPowerbiPage() {
                 </button>
               );
             })}
+
+            {/* Período — por último */}
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 min-w-[150px] border-t-2 border-t-gray-600">
+              <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">Período</p>
+              <p className="text-xs font-medium text-gray-300">
+                {dados.periodoMin ? fmtDateTime(dados.periodoMin).slice(0, 10) : "—"}
+              </p>
+              <p className="text-xs text-gray-500">→ {dados.periodoMax ? fmtDateTime(dados.periodoMax).slice(0, 10) : "—"}</p>
+            </div>
           </div>
 
           {/* Indicador de filtro ativo */}

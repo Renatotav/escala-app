@@ -125,6 +125,18 @@ async function migrate() {
     \"createdAt\" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
   )\`);
 
+  // ChamadoPowerbi table
+  await client.query(\`CREATE TABLE IF NOT EXISTS "ChamadoPowerbi" (
+    "id" SERIAL PRIMARY KEY,
+    "numero" TEXT NOT NULL,
+    "dataAbertura" TIMESTAMP(3),
+    "equipeAtribuida" TEXT,
+    "usuarioAtribuido" TEXT,
+    "dataMovimentacao" TIMESTAMP(3),
+    "situacaoRegra" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+  )\`);
+
   // Produtividade table
   await client.query(\`CREATE TABLE IF NOT EXISTS \"Produtividade\" (
     \"id\" SERIAL PRIMARY KEY,

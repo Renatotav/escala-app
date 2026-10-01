@@ -231,6 +231,17 @@ model ChamadoRedmine {
   createdAt        DateTime  @default(now())
 }
 
+model ChamadoPowerbi {
+  id               Int       @id @default(autoincrement())
+  numero           String
+  dataAbertura     DateTime?
+  equipeAtribuida  String?
+  usuarioAtribuido String?
+  dataMovimentacao DateTime?
+  situacaoRegra    String?
+  createdAt        DateTime  @default(now())
+}
+
 model DnpjeMigracao {
   id               Int       @id @default(autoincrement())
   numero           String

@@ -23,6 +23,7 @@ const navItems: NavItem[] = [
   { href: "/chamados", label: "Chamados", icon: "🎫" },
   { href: "/produtividade", label: "Produtividade", icon: "📊" },
   { href: "/chamados-redmine", label: "Chamados Redmine", icon: "🔴" },
+  { href: "/chamados-powerbi", label: "Chamados Powerbi", icon: "🟡" },
   { href: "/dnpje-migracao", label: "Dnpje Migração", icon: "🟠" },
   { href: "/redmine-resolvidos", label: "Redmine Resolvidos", icon: "🟢" },
   { href: "/redmine-atribuidos", label: "Redmine Atribuídos", icon: "🔵" },

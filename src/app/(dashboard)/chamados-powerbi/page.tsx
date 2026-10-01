@@ -204,45 +204,64 @@ export default function ChamadosPowerbiPage() {
       {/* Stats principais */}
       {dados && (
         <>
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
-              <p className="text-xs text-gray-400 mb-1">Total de chamados</p>
-              <p className="text-3xl font-bold text-white">{totalValidos.toLocaleString("pt-BR")}</p>
+          {/* Todos os cards numa linha só */}
+          <div className="flex flex-wrap gap-3 mb-4">
+            {/* Total */}
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 min-w-[150px] border-t-2 border-t-blue-600">
+              <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">Total</p>
+              <p className="text-3xl font-bold text-white tabular-nums">{totalValidos.toLocaleString("pt-BR")}</p>
+              <p className="text-xs text-gray-500 mt-1">chamados</p>
             </div>
 
-            <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
-              <p className="text-xs text-gray-400 mb-1">Período dos dados</p>
-              <p className="text-xs font-medium text-gray-300 mt-2">
-                {dados.periodoMin ? fmtDateTime(dados.periodoMin).slice(0, 10) : "—"} → {dados.periodoMax ? fmtDateTime(dados.periodoMax).slice(0, 10) : "—"}
+            {/* Período */}
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 min-w-[150px] border-t-2 border-t-gray-600">
+              <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">Período</p>
+              <p className="text-xs font-medium text-gray-300">
+                {dados.periodoMin ? fmtDateTime(dados.periodoMin).slice(0, 10) : "—"}
               </p>
+              <p className="text-xs text-gray-500">→ {dados.periodoMax ? fmtDateTime(dados.periodoMax).slice(0, 10) : "—"}</p>
             </div>
-          </div>
 
-          {/* Cards por categoria (clicáveis) */}
-          {porCategoria.length > 0 && (
-            <div className="flex flex-wrap gap-3 mb-4">
-              {porCategoria.map(cat => {
-                const ativo = filtroCategoria === cat.categoria;
-                return (
-                  <button
-                    key={cat.categoria}
-                    onClick={() => toggleCategoria(cat.categoria)}
-                    className={`rounded-xl px-4 py-3 border text-left transition min-w-[160px] ${
-                      ativo
-                        ? "bg-blue-800 border-blue-400 ring-2 ring-blue-300"
-                        : "bg-gray-900 border-gray-700 hover:bg-gray-800 hover:border-gray-500"
-                    }`}>
-                    <p className="text-xs text-gray-500 mb-0.5 truncate max-w-[200px]" title={cat.categoria}>{cat.categoria}</p>
-                    <p className="text-2xl font-bold text-white tabular-nums">{cat.total.toLocaleString("pt-BR")}</p>
-                    {getSLA(cat.categoria) !== null && (
-                      <p className="text-xs text-gray-500 mt-1">≥{getSLA(cat.categoria)} dias</p>
-                    )}
-                    {ativo && <p className="text-xs text-blue-400 mt-1">✓ Filtro ativo</p>}
-                  </button>
-                );
-              })}
-            </div>
-          )}
+            {/* Categorias */}
+            {porCategoria.map(cat => {
+              const ativo = filtroCategoria === cat.categoria;
+              const sla = getSLA(cat.categoria);
+              const label = cat.categoria.split(" ").slice(-2).join(" ");
+              const colorMap: Record<string, string> = {
+                "Erro ou Falha": "border-t-red-500",
+                Cadastro:        "border-t-sky-500",
+                Orientação:      "border-t-green-500",
+                Migração:        "border-t-orange-500",
+              };
+              const numColor: Record<string, string> = {
+                "Erro ou Falha": "text-red-400",
+                Cadastro:        "text-sky-400",
+                Orientação:      "text-green-400",
+                Migração:        "text-orange-400",
+              };
+              const accent = Object.keys(colorMap).find(k => cat.categoria.includes(k)) ?? "";
+              return (
+                <button
+                  key={cat.categoria}
+                  onClick={() => toggleCategoria(cat.categoria)}
+                  title={cat.categoria}
+                  className={`rounded-xl px-4 py-4 border text-left transition min-w-[150px] border-t-2 ${
+                    colorMap[accent] ?? "border-t-gray-500"
+                  } ${
+                    ativo
+                      ? "bg-gray-700 border-gray-500 ring-2 ring-white/20"
+                      : "bg-gray-900 border-gray-800 hover:bg-gray-800"
+                  }`}>
+                  <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">{label}</p>
+                  <p className={`text-3xl font-bold tabular-nums ${numColor[accent] ?? "text-white"}`}>
+                    {cat.total.toLocaleString("pt-BR")}
+                  </p>
+                  {sla !== null && <p className="text-xs text-gray-500 mt-1">≥{sla} dias</p>}
+                  {ativo && <p className="text-xs text-white/60 mt-1">✓ filtrado</p>}
+                </button>
+              );
+            })}
+          </div>
 
           {/* Indicador de filtro ativo */}
           {temFiltro && (

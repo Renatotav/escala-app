@@ -100,7 +100,7 @@ function buildFinalRows(rawRows: RawRow[]) {
       equipeAtribuida: lastMov.equipeAtribuida,
       usuarioAtribuido: lastMov.usuarioAtribuido,
       usuarioFechamento: lastMov.usuarioFechamento || movs.find(m => m.usuarioFechamento)?.usuarioFechamento || null,
-      dataResolucao: lastMov.dataResolucao,
+      dataResolucao: movs.find(m => m.dataResolucao)?.dataResolucao ?? null,
       pausa: lastMov.pausa,
       situacaoRegra: lastMov.situacaoRegra,
     });

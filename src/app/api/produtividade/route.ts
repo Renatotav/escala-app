@@ -144,17 +144,16 @@ export async function GET(request: NextRequest) {
     });
 
     // Agrupa Produtividade: chamados recebidos no período que já foram resolvidos
-    type Acc = { resolvidos: number; tmrHorasSum: number; tmrCount: number; tmrValores: number[] };
+    type Acc = { resolvidos: number; tmrHorasSum: number; tmrCount: number };
     const grupos = new Map<string, Acc>();
-    const tmrTodosValores: number[] = [];
 
     for (const r of todos) {
       const usuario = r.usuarioFechamento || "(Sem usuário)";
-      if (!grupos.has(usuario)) grupos.set(usuario, { resolvidos: 0, tmrHorasSum: 0, tmrCount: 0, tmrValores: [] });
+      if (!grupos.has(usuario)) grupos.set(usuario, { resolvidos: 0, tmrHorasSum: 0, tmrCount: 0 });
       const g = grupos.get(usuario)!;
       g.resolvidos++;
       const h = r.tmrExclusivoHoras;
-      if (h !== null && h > 0) { g.tmrHorasSum += h; g.tmrCount++; g.tmrValores.push(h); tmrTodosValores.push(h); }
+      if (h !== null && h > 0) { g.tmrHorasSum += h; g.tmrCount++; }
     }
 
     // ChamadoPowerbi: sempre filtrado pelo mesmo mvRange (dataMovimentacao)
@@ -185,9 +184,6 @@ export async function GET(request: NextRequest) {
     const stats = [...grupos.entries()]
       .map(([usuario, g]) => {
         const tmrH = g.tmrCount > 0 ? g.tmrHorasSum / g.tmrCount : 0;
-        const sorted = [...g.tmrValores].sort((a, b) => a - b);
-        const mid = Math.floor(sorted.length / 2);
-        const tmrMedianaH = sorted.length === 0 ? 0 : sorted.length % 2 === 1 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
         const normUsuario = normName(usuario);
         const emAberto  = chamadosAberto.get(normUsuario)  ?? 0;
         const pausados  = chamadosPausado.get(normUsuario) ?? 0;
@@ -203,8 +199,6 @@ export async function GET(request: NextRequest) {
           taxaResolucao: recebidos > 0 ? (resolvidos / recebidos) * 100 : 0,
           tmrHoras: Math.round(tmrH),
           tmrDias: Math.round(tmrH / 24),
-          tmrMedianaHoras: Math.round(tmrMedianaH),
-          tmrMedianaDias: Math.round(tmrMedianaH / 24),
         };
       })
       .sort((a, b) => a.usuario.localeCompare(b.usuario, "pt-BR"));
@@ -217,11 +211,6 @@ export async function GET(request: NextRequest) {
       { recebidos: 0, emAberto: 0, pausados: 0, resolvidos: 0 }
     );
     const tmrGeralH = stats.reduce((s, r) => s + r.tmrHoras * (r.resolvidos || 1), 0) / Math.max(1, stats.reduce((s, r) => s + (r.resolvidos || 1), 0));
-    const tmrTodosOrdenados = [...tmrTodosValores].sort((a, b) => a - b);
-    const tmrTotalMid = Math.floor(tmrTodosOrdenados.length / 2);
-    const tmrMedianaGeralH = tmrTodosOrdenados.length === 0 ? 0
-      : tmrTodosOrdenados.length % 2 === 1 ? tmrTodosOrdenados[tmrTotalMid]
-      : (tmrTodosOrdenados[tmrTotalMid - 1] + tmrTodosOrdenados[tmrTotalMid]) / 2;
 
     const totalDenominador = totais.recebidos;
     return NextResponse.json({
@@ -231,8 +220,6 @@ export async function GET(request: NextRequest) {
         taxaResolucao: totalDenominador > 0 ? (totais.resolvidos / totalDenominador) * 100 : 0,
         tmrHoras: Math.round(tmrGeralH),
         tmrDias: Math.round(tmrGeralH / 24),
-        tmrMedianaHoras: Math.round(tmrMedianaGeralH),
-        tmrMedianaDias: Math.round(tmrMedianaGeralH / 24),
       },
       equipes, atendentes, atendentesCount, periodoInicio, periodoFim, periodoResInicio, periodoResFim, totalRegistros,
     });

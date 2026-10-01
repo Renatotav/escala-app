@@ -40,16 +40,71 @@ function toIso(value: unknown): string | null {
   if (value instanceof Date) return value.toISOString();
   if (typeof value === "number") {
     const d = XLSX.SSF.parse_date_code(value);
-    if (d) {
-      const dt = new Date(Date.UTC(d.y, d.m - 1, d.d, d.H, d.M, d.S));
-      return dt.toISOString();
-    }
+    if (d) return new Date(Date.UTC(d.y, d.m - 1, d.d, d.H, d.M, d.S)).toISOString();
   }
   if (typeof value === "string") {
     const d = new Date(value.trim());
     return isNaN(d.getTime()) ? null : d.toISOString();
   }
   return null;
+}
+
+type RawRow = {
+  numeroChamado: string;
+  dataAbertura: string | null;
+  dataMovimentacao: string | null;
+  equipeAtribuida: string | null;
+  usuarioAtribuido: string | null;
+  usuarioFechamento: string | null;
+  dataResolucao: string | null;
+  pausa: string | null;
+  situacaoRegra: string | null;
+};
+
+function buildFinalRows(rawRows: RawRow[]) {
+  // Agrupa todas as movimentações por número de chamado
+  const grouped = new Map<string, RawRow[]>();
+  for (const row of rawRows) {
+    if (!grouped.has(row.numeroChamado)) grouped.set(row.numeroChamado, []);
+    grouped.get(row.numeroChamado)!.push(row);
+  }
+
+  const result: RawRow[] = [];
+  for (const [numeroChamado, movs] of grouped) {
+    // Ordena por dataMovimentacao crescente (mais antiga primeiro)
+    movs.sort((a, b) => {
+      const da = a.dataMovimentacao ? new Date(a.dataMovimentacao).getTime() : 0;
+      const db = b.dataMovimentacao ? new Date(b.dataMovimentacao).getTime() : 0;
+      return da - db;
+    });
+
+    const lastMov = movs[movs.length - 1];
+
+    // Resolver = usuarioFechamento de qualquer linha que tenha
+    const resolver = movs.find(m => m.usuarioFechamento)?.usuarioFechamento?.trim().toUpperCase() ?? null;
+
+    // Primeira vez que o resolver foi atribuído (usuarioAtribuido) a este chamado
+    let dataMovimentacao: string | null = null;
+    if (resolver) {
+      const firstMatch = movs.find(m => m.usuarioAtribuido?.trim().toUpperCase() === resolver);
+      dataMovimentacao = firstMatch?.dataMovimentacao ?? null;
+    }
+    // Fallback: última movimentação (casos onde resolver nunca foi formalmente atribuído)
+    if (!dataMovimentacao) dataMovimentacao = lastMov.dataMovimentacao ?? movs[0].dataMovimentacao;
+
+    result.push({
+      numeroChamado,
+      dataAbertura: movs[0].dataAbertura,
+      dataMovimentacao,
+      equipeAtribuida: lastMov.equipeAtribuida,
+      usuarioAtribuido: lastMov.usuarioAtribuido,
+      usuarioFechamento: lastMov.usuarioFechamento || movs.find(m => m.usuarioFechamento)?.usuarioFechamento || null,
+      dataResolucao: lastMov.dataResolucao,
+      pausa: lastMov.pausa,
+      situacaoRegra: lastMov.situacaoRegra,
+    });
+  }
+  return result;
 }
 
 export async function POST(request: NextRequest) {
@@ -69,10 +124,9 @@ export async function POST(request: NextRequest) {
 
     const sheet = workbook.Sheets[sheetName];
     const rawRows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: null });
-
     if (rawRows.length < 2) return NextResponse.json({ error: "Nenhuma linha encontrada" }, { status: 400 });
 
-    // Detecta automaticamente a linha de cabeçalho (primeira linha com ao menos 1 campo reconhecido)
+    // Detecta automaticamente a linha de cabeçalho
     let headerRowIndex = 0;
     for (let i = 0; i < Math.min(5, rawRows.length); i++) {
       const row = rawRows[i] as unknown[];
@@ -81,22 +135,9 @@ export async function POST(request: NextRequest) {
     }
 
     const headerRow = rawRows[headerRowIndex] as unknown[];
-    const fieldMap: (string | null)[] = headerRow.map(h =>
-      HEADER_MAP[normalize(String(h ?? ""))] ?? null
-    );
+    const fieldMap: (string | null)[] = headerRow.map(h => HEADER_MAP[normalize(String(h ?? ""))] ?? null);
 
-    const rows: {
-      numeroChamado: string;
-      dataAbertura: string | null;
-      dataMovimentacao: string | null;
-      equipeAtribuida: string | null;
-      usuarioAtribuido: string | null;
-      usuarioFechamento: string | null;
-      dataResolucao: string | null;
-      pausa: string | null;
-      situacaoRegra: string | null;
-    }[] = [];
-
+    const parsed: RawRow[] = [];
     for (let i = headerRowIndex + 1; i < rawRows.length; i++) {
       const cols = rawRows[i] as unknown[];
       const obj: Record<string, unknown> = {};
@@ -107,7 +148,7 @@ export async function POST(request: NextRequest) {
       }
       const numeroChamado = String(obj.numeroChamado ?? "").trim();
       if (!numeroChamado || numeroChamado.includes(" ")) continue;
-      rows.push({
+      parsed.push({
         numeroChamado,
         dataAbertura: toIso(obj.dataAbertura),
         dataMovimentacao: toIso(obj.dataMovimentacao),
@@ -120,30 +161,26 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    if (rows.length === 0) {
+    if (parsed.length === 0) {
       return NextResponse.json({
         error: "Nenhum registro encontrado. Verifique se os cabeçalhos do arquivo correspondem aos esperados.",
       }, { status: 400 });
     }
 
+    // Agrupa movimentações → 1 linha por chamado com primeira atribuição correta
+    const finalRows = buildFinalRows(parsed);
     const substituir = substituirParam !== "0";
 
-    // Deduplica por numeroChamado — mantém a última ocorrência de cada número
-    const deduped = new Map<string, typeof rows[0]>();
-    for (const r of rows) deduped.set(r.numeroChamado, r);
-    const uniqueRows = [...deduped.values()];
-    const duplicatesRemoved = rows.length - uniqueRows.length;
-
-    let insertRows = uniqueRows;
-    let skipped = duplicatesRemoved;
+    let insertRows = finalRows;
+    let skipped = 0;
 
     if (substituir) {
       await prisma.produtividade.deleteMany({});
     } else {
       const existing = await prisma.produtividade.findMany({ select: { numeroChamado: true } });
       const existingSet = new Set(existing.map(e => e.numeroChamado));
-      insertRows = uniqueRows.filter(r => !existingSet.has(r.numeroChamado));
-      skipped = duplicatesRemoved + (uniqueRows.length - insertRows.length);
+      insertRows = finalRows.filter(r => !existingSet.has(r.numeroChamado));
+      skipped = finalRows.length - insertRows.length;
     }
 
     await prisma.produtividade.createMany({

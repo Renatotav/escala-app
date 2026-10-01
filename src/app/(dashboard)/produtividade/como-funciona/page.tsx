@@ -23,11 +23,11 @@ export default function ComoFuncionaPage() {
         </div>
         <Formula>Taxa = Resolvidos ÷ (Resolvidos + Em Aberto + Pausados) × 100</Formula>
         <Exemplo label="Exemplo — Amanda">
-          <p style={{ fontSize: 13.5, marginBottom: 6, color: "#334155" }}>Resolvidos: <strong>333</strong> &nbsp;|&nbsp; Em Aberto: <strong>54</strong> &nbsp;|&nbsp; Pausados: <strong>0</strong></p>
+          <p style={{ fontSize: 13.5, marginBottom: 6, color: "#334155" }}>Resolvidos: <strong>131</strong> &nbsp;|&nbsp; Em Aberto: <strong>83</strong> &nbsp;|&nbsp; Pausados: <strong>0</strong></p>
           <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 8, padding: "12px 16px", marginTop: 10, fontFamily: "Courier New, monospace", fontSize: 13, color: "#0f172a", lineHeight: 2 }}>
-            Taxa = 333 ÷ (333 + 54 + 0) × 100<br/>
-            Taxa = 333 ÷ 387 × 100<br/>
-            <span style={{ fontWeight: 700, color: "#16a34a" }}>Taxa = 86,0% → Verde</span>
+            Taxa = 131 ÷ (131 + 83 + 0) × 100<br/>
+            Taxa = 131 ÷ 214 × 100<br/>
+            <span style={{ fontWeight: 700, color: "#dc2626" }}>Taxa = 61,2% → Vermelho</span>
           </div>
         </Exemplo>
         <Divider />
@@ -47,38 +47,46 @@ export default function ComoFuncionaPage() {
 
       {/* TMR */}
       <Section label="Indicador 2" title="TMR — Tempo Médio de Resolução">
-        <Pergunta>Quanto tempo eu levo, em média, para resolver um chamado do começo ao fim?</Pergunta>
-        <p style={p}>Para cada chamado resolvido, o sistema registra dois momentos:</p>
+        <Pergunta>Quanto tempo o chamado ficou comigo, do momento em que recebi até fechar?</Pergunta>
+        <p style={p}>O TMR mede <strong>apenas o tempo em que o chamado estava nas mãos do atendente</strong> — excluindo o tempo que ficou no REDMINES, com outro operador ou aguardando outra equipe.</p>
+        <p style={p}>Para cada chamado resolvido, o sistema percorre o histórico de movimentações e soma os períodos em que o atendente estava responsável:</p>
         <div style={{ display: "flex", flexDirection: "column", gap: 8, margin: "16px 0" }}>
-          <Item emoji="🕐"><strong>Data de Abertura</strong> — quando o chamado chegou</Item>
-          <Item emoji="🕔"><strong>Data de Resolução</strong> — quando foi fechado</Item>
+          <Item emoji="▶️"><strong>Início do período</strong> — quando o chamado foi atribuído ao atendente</Item>
+          <Item emoji="⏸️"><strong>Pausa do período</strong> — quando o chamado saiu das mãos dele (foi para o REDMINES, para outro operador etc.)</Item>
+          <Item emoji="🔁"><strong>Pode haver mais de um período</strong> — se o chamado voltou para o atendente depois de um tempo com outra pessoa, conta um novo período</Item>
+          <Item emoji="⏹️"><strong>Fim do último período</strong> — quando o chamado foi fechado (Data de Resolução)</Item>
         </div>
-        <p style={p}>A diferença entre essas duas datas em horas é calculada para cada chamado. No final, o sistema faz a <strong>média de todos</strong> para chegar ao TMR do atendente.</p>
-        <Formula>{`Horas de cada chamado = Data Resolução − Data Abertura\nTMR Horas = soma das horas de todos ÷ quantidade de chamados\nTMR Dias  = TMR Horas ÷ 24`}</Formula>
-        <Exemplo label="Exemplo — Anderson resolveu 3 chamados na semana">
+        <Formula>{`TMR Horas = soma de todos os períodos em que o chamado estava com o atendente\nTMR Dias  = TMR Horas ÷ 24\nTMR exibido = média de todos os chamados resolvidos`}</Formula>
+        <Exemplo label="Exemplo — Amanda e o chamado #2021425">
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5 }}>
-            <thead><tr>{["Chamado","Abertura","Resolução","Tempo"].map(h => <th key={h} style={{ background: "#f1f5f9", padding: "9px 14px", textAlign: "left", fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: "#64748b", borderBottom: "1px solid #e2e8f0" }}>{h}</th>)}</tr></thead>
+            <thead><tr>{["Quem tinha o chamado","De","Até","Conta no TMR?"].map(h => <th key={h} style={{ background: "#f1f5f9", padding: "9px 14px", textAlign: "left", fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: "#64748b", borderBottom: "1px solid #e2e8f0" }}>{h}</th>)}</tr></thead>
             <tbody>
-              {[["#1","01/09 às 08h","03/09 às 08h","48 horas"],["#2","05/09 às 10h","06/09 às 10h","24 horas"],["#3","10/09 às 14h","10/09 às 18h","4 horas"]].map(r => (
-                <tr key={r[0]}>{r.map((c,i) => <td key={i} style={{ padding: "10px 14px", borderBottom: "1px solid #e2e8f0", color: "#334155" }}>{c}</td>)}</tr>
+              {[
+                ["Amanda","07/04 08h","12/04 14h","Sim — 126h"],
+                ["REDMINES","12/04 14h","28/04 10h","Não (fora do controle dela)"],
+                ["Amanda","28/04 10h","Fechamento","Sim — contado até fechar"],
+              ].map((r, i, arr) => (
+                <tr key={i}>{r.map((c, j) => (
+                  <td key={j} style={{ padding: "10px 14px", borderBottom: i < arr.length - 1 ? "1px solid #e2e8f0" : "none", color: c === "Não (fora do controle dela)" ? "#94a3b8" : "#334155", fontStyle: c.startsWith("Não") ? "italic" : "normal" }}>{c}</td>
+                ))}</tr>
               ))}
-              <tr><td colSpan={3} style={{ padding: "10px 14px", fontWeight: 700, color: "#0f172a", background: "#f1f5f9" }}>Média (TMR Horas)</td><td style={{ padding: "10px 14px", fontWeight: 700, color: "#16a34a", background: "#f1f5f9" }}>(48 + 24 + 4) ÷ 3 = ~25 horas</td></tr>
             </tbody>
           </table>
-          <p style={{ marginTop: 8, fontSize: 13.5, color: "#334155" }}>TMR em dias: 25 ÷ 24 ≈ <strong>1 dia</strong></p>
+          <p style={{ marginTop: 10, fontSize: 13.5, color: "#334155" }}>O tempo no REDMINES (16 dias) <strong>não entra na conta</strong>. O TMR reflete só o que estava sob responsabilidade da Amanda.</p>
         </Exemplo>
-        <Aviso>Só entram no cálculo os chamados que têm <em>ambas</em> as datas preenchidas. Se a data de abertura ou resolução estiver em branco na planilha, aquele chamado é ignorado no TMR — mas ainda é contado em Recebidos e Resolvidos.</Aviso>
+        <Aviso>Chamados sem Data de Resolução preenchida na planilha não entram no cálculo do TMR — mas ainda são contados em Recebidos e Resolvidos.</Aviso>
         <Divider />
         <p style={{ ...p, fontWeight: 600 }}>Como interpretar o resultado:</p>
         <div style={{ display: "flex", flexDirection: "column", gap: 8, margin: "12px 0" }}>
-          <Item emoji="⚡"><strong>TMR baixo</strong> — o atendente resolve rápido, chamados não ficam parados por muito tempo</Item>
-          <Item emoji="🐢"><strong>TMR alto</strong> — os chamados demoram muito para ser fechados, pode indicar complexidade ou acúmulo</Item>
+          <Item emoji="⚡"><strong>TMR baixo</strong> — quando o chamado está com o atendente, ele resolve rápido</Item>
+          <Item emoji="🐢"><strong>TMR alto</strong> — o chamado fica muito tempo parado nas mãos do atendente antes de fechar</Item>
         </div>
+        <Destaque><strong>Por que esse cálculo é mais justo?</strong> Se um chamado ficou 30 dias no REDMINES e 2 dias com Amanda, o TMR dela é de 2 dias — não 32. Cada pessoa responde pelo tempo que o chamado ficou com ela.</Destaque>
       </Section>
 
       {/* Filtros */}
       <Section label="Filtros" title="Como funcionam os filtros de data">
-        <p style={p}>A tela de Produtividade tem dois filtros de data diferentes. Cada um responde a uma pergunta diferente:</p>
+        <p style={p}>A tela de Produtividade tem dois filtros de data independentes. Cada um responde a uma pergunta diferente:</p>
         <Divider />
 
         <div style={{ marginBottom: 8 }}>
@@ -86,12 +94,12 @@ export default function ComoFuncionaPage() {
             <span style={{ width: 34, height: 34, borderRadius: 8, background: "#dbeafe", color: "#1d4ed8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>📥</span>
             Data de Recebimento
           </div>
-          <Pergunta>Dos chamados que chegaram nessa semana, como foi o desempenho?</Pergunta>
-          <p style={p}>Esse filtro olha para a <strong>data em que o chamado foi aberto</strong> — quando ele entrou na fila. Ao selecionar um período aqui, o sistema mostra apenas os chamados recebidos naquele intervalo.</p>
+          <Pergunta>Dos chamados que chegaram para mim nesse período, como foi o desempenho?</Pergunta>
+          <p style={p}>Filtra pelo momento em que o chamado foi <strong>atribuído ao atendente pela primeira vez</strong> — não a data de abertura do chamado no sistema.</p>
           <Exemplo label="Exemplo prático">
             <p style={{ fontSize: 13.5, marginBottom: 6, color: "#334155" }}>Você seleciona <strong>14/09 → 18/09</strong> em Data Recebimento.</p>
-            <p style={{ fontSize: 13.5, color: "#334155" }}>O sistema mostra só os chamados que <em>chegaram</em> nessa semana — e quanto deles foi resolvido, está em aberto ou pausado.</p>
-            <p style={{ marginTop: 8, color: "#64748b", fontStyle: "italic", fontSize: 13 }}>Útil para saber: "de tudo que entrou essa semana, o que foi dado conta?"</p>
+            <p style={{ fontSize: 13.5, color: "#334155" }}>O sistema mostra só os chamados que chegaram nas mãos do atendente nessa semana — e quanto deles foi resolvido, está em aberto ou pausado.</p>
+            <p style={{ marginTop: 8, color: "#64748b", fontStyle: "italic", fontSize: 13 }}>Útil para: "de tudo que entrou para mim essa semana, o que foi dado conta?"</p>
           </Exemplo>
         </div>
 
@@ -102,12 +110,28 @@ export default function ComoFuncionaPage() {
             <span style={{ width: 34, height: 34, borderRadius: 8, background: "#dcfce7", color: "#15803d", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>✅</span>
             Data de Resolução
           </div>
-          <Pergunta>O que foi resolvido e fechado nessa semana?</Pergunta>
-          <p style={p}>Esse filtro olha para a <strong>data em que o chamado foi fechado</strong> — independente de quando foi aberto. Um chamado que chegou há 3 semanas mas foi resolvido essa semana aparece aqui.</p>
+          <Pergunta>O que foi fechado nesse período — independente de quando chegou?</Pergunta>
+          <p style={p}>Filtra pela <strong>data em que o chamado foi fechado</strong>. Um chamado que chegou há 3 semanas mas foi resolvido essa semana aparece aqui.</p>
           <Exemplo label="Exemplo prático">
             <p style={{ fontSize: 13.5, marginBottom: 6, color: "#334155" }}>Você seleciona <strong>14/09 → 18/09</strong> em Data Resolução.</p>
-            <p style={{ fontSize: 13.5, color: "#334155" }}>O sistema mostra todos os chamados que foram <em>fechados</em> nessa semana — mesmo que alguns tenham chegado semanas antes.</p>
-            <p style={{ marginTop: 8, color: "#64748b", fontStyle: "italic", fontSize: 13 }}>Útil para saber: "quanta coisa o atendente realmente fechou nessa semana?"</p>
+            <p style={{ fontSize: 13.5, color: "#334155" }}>O sistema mostra todos os chamados fechados nessa semana — mesmo que alguns tenham chegado meses antes.</p>
+            <p style={{ marginTop: 8, color: "#64748b", fontStyle: "italic", fontSize: 13 }}>Útil para: "quanta coisa o atendente realmente fechou nessa semana?"</p>
+          </Exemplo>
+        </div>
+
+        <Divider />
+
+        <div style={{ marginBottom: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 16, fontWeight: 800, color: "#0f172a", marginBottom: 12 }}>
+            <span style={{ width: 34, height: 34, borderRadius: 8, background: "#fef3c7", color: "#b45309", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>🔀</span>
+            Usando os dois filtros juntos
+          </div>
+          <Pergunta>Dos chamados que recebi em agosto, quantos foram fechados em setembro?</Pergunta>
+          <p style={p}>Quando os dois filtros estão ativos ao mesmo tempo, eles se combinam: o sistema busca chamados que foram <strong>recebidos</strong> no período de recebimento <strong>e fechados</strong> no período de resolução.</p>
+          <Exemplo label="Exemplo prático">
+            <p style={{ fontSize: 13.5, marginBottom: 6, color: "#334155" }}>Data Recebimento: <strong>01/08 → 16/08</strong> &nbsp;+&nbsp; Data Resolução: <strong>01/09 → 30/09</strong></p>
+            <p style={{ fontSize: 13.5, color: "#334155" }}>Mostra só os chamados que chegaram para o atendente na primeira quinzena de agosto <em>e</em> foram fechados ao longo de setembro.</p>
+            <p style={{ marginTop: 8, color: "#64748b", fontStyle: "italic", fontSize: 13 }}>Útil para: "o que ficou pendente do mês passado e foi resolvido este mês?"</p>
           </Exemplo>
         </div>
 
@@ -119,31 +143,11 @@ export default function ComoFuncionaPage() {
             {["Filtro","Melhor usar quando..."].map(h => <th key={h} style={{ background: "#f1f5f9", padding: "10px 14px", textAlign: "left", fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: "#64748b", borderBottom: "1px solid #e2e8f0" }}>{h}</th>)}
           </tr></thead>
           <tbody>
-            <tr><td style={td}><strong>Data Recebimento</strong></td><td style={td}>Quero ver o volume que chegou e se a fila foi zerada no período</td></tr>
-            <tr><td style={{ ...td, borderBottom: "none" }}><strong>Data Resolução</strong></td><td style={{ ...td, borderBottom: "none" }}>Quero ver a produção da semana — o que foi efetivamente fechado</td></tr>
+            <tr><td style={td}><strong>Data Recebimento</strong></td><td style={td}>Quero ver o volume que chegou e se a fila daquele período foi zerada</td></tr>
+            <tr><td style={td}><strong>Data Resolução</strong></td><td style={td}>Quero ver a produção de fechamentos — o que foi efetivamente finalizado</td></tr>
+            <tr><td style={{ ...td, borderBottom: "none" }}><strong>Ambos juntos</strong></td><td style={{ ...td, borderBottom: "none" }}>Quero cruzar: do que recebi em X, o que foi fechado em Y</td></tr>
           </tbody>
         </table>
-
-        <Aviso><strong>Quando os dois filtros estão ativos ao mesmo tempo:</strong> o filtro de Data Resolução prevalece para calcular o Em Aberto.</Aviso>
-
-        <Divider />
-
-        <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 16, fontWeight: 800, color: "#0f172a", marginBottom: 12 }}>
-          <span style={{ width: 34, height: 34, borderRadius: 8, background: "#fef3c7", color: "#b45309", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>⚠</span>
-          Por que o Em Aberto muda quando filtro por data?
-        </div>
-        <p style={p}>Quando você aplica um filtro de data, o sistema ajusta automaticamente o <strong>Em Aberto</strong> para mostrar apenas os chamados em aberto <em>daquele mesmo período</em>. Isso é necessário para que a Taxa de Resolução seja justa.</p>
-        <Exemplo label="Exemplo — sem filtro vs. com filtro">
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5 }}>
-            <thead><tr>{["Situação","Resolvidos","Em Aberto","Taxa"].map(h => <th key={h} style={{ background: "#f1f5f9", padding: "9px 14px", textAlign: "left", fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: "#64748b", borderBottom: "1px solid #e2e8f0" }}>{h}</th>)}</tr></thead>
-            <tbody>
-              <tr><td style={td}><strong>Sem filtro</strong> (período total)</td><td style={td}>330</td><td style={td}>54</td><td style={{ ...td, fontWeight: 700, color: "#16a34a" }}>85.9%</td></tr>
-              <tr><td style={{ ...td, borderBottom: "none" }}><strong>Com filtro</strong> (semana 14/09 → 18/09)</td><td style={{ ...td, borderBottom: "none" }}>20</td><td style={{ ...td, borderBottom: "none" }}>27</td><td style={{ ...td, borderBottom: "none", fontWeight: 700, color: "#dc2626" }}>42.6%</td></tr>
-            </tbody>
-          </table>
-          <p style={{ marginTop: 10, fontSize: 13.5, color: "#64748b" }}>O Em Aberto mudou de 54 para 27 porque o sistema passou a contar só os chamados em aberto que chegaram <em>naquela semana específica</em> — não todos os chamados do histórico inteiro.</p>
-        </Exemplo>
-        <Destaque><strong>Por que isso é importante?</strong> Sem esse ajuste, uma taxa de uma semana pequena (ex: 20 resolvidos) seria comparada com todo o acúmulo histórico de abertos (ex: 500), resultando numa taxa injustamente baixa. Com o ajuste, os dois lados da conta pertencem ao mesmo período.</Destaque>
       </Section>
 
       {/* Resumo */}
@@ -151,8 +155,8 @@ export default function ComoFuncionaPage() {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 8 }}>
           {[
             ["Taxa de Resolução", "Você está limpando sua fila ou deixando chamados acumularem?"],
-            ["TMR (Tempo Médio)", "Você resolve rápido ou os chamados ficam parados por muito tempo?"],
-            ["Data Recebimento", "O que chegou nesse período e como foi tratado?"],
+            ["TMR (Tempo com o atendente)", "Quando o chamado está com você, você resolve rápido ou deixa parado?"],
+            ["Data Recebimento", "O que chegou para mim nesse período e como foi tratado?"],
             ["Data Resolução", "O que foi efetivamente fechado nesse período?"],
           ].map(([t, d]) => (
             <div key={t} style={{ border: "1px solid #e2e8f0", borderRadius: 12, padding: 20 }}>

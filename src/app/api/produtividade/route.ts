@@ -178,7 +178,6 @@ export async function GET(request: NextRequest) {
 
     const chamadosAberto  = new Map<string, number>();
     const chamadosPausado = new Map<string, number>();
-    const chamadosTotal   = new Map<string, number>();
     for (const c of chamadosPbi) {
       const nome = c.usuarioAtribuido;
       if (!nome) continue;
@@ -186,7 +185,6 @@ export async function GET(request: NextRequest) {
       const isResolvido = sit.includes("resolvid") || sit.includes("fechad") || sit.includes("cancela");
       const isPausado   = sit === "pausado";
       const key = normName(nome);
-      chamadosTotal.set(key, (chamadosTotal.get(key) ?? 0) + 1);
       if (isPausado) {
         chamadosPausado.set(key, (chamadosPausado.get(key) ?? 0) + 1);
       } else if (!isResolvido) {
@@ -201,7 +199,7 @@ export async function GET(request: NextRequest) {
         const emAberto  = chamadosAberto.get(normUsuario)  ?? 0;
         const pausados  = chamadosPausado.get(normUsuario) ?? 0;
         const resolvidos = g.resolvidos;
-        const recebidos = chamadosTotal.get(normUsuario) ?? (resolvidos + emAberto + pausados);
+        const recebidos = emAberto + pausados + resolvidos;
         return {
           usuario,
           equipe: resolveEquipe(usuario),
@@ -222,7 +220,7 @@ export async function GET(request: NextRequest) {
     );
     const tmrGeralH = stats.reduce((s, r) => s + r.tmrHoras * (r.resolvidos || 1), 0) / Math.max(1, stats.reduce((s, r) => s + (r.resolvidos || 1), 0));
 
-    const totalDenominador = totais.recebidos || (totais.resolvidos + totais.emAberto + totais.pausados);
+    const totalDenominador = totais.recebidos;
     return NextResponse.json({
       stats,
       totais: { ...totais, taxaResolucao: totalDenominador > 0 ? (totais.resolvidos / totalDenominador) * 100 : 0, tmrHoras: Math.round(tmrGeralH), tmrDias: Math.round(tmrGeralH / 24) },

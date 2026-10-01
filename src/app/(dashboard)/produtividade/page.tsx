@@ -591,7 +591,7 @@ export default function ProdutividadePage() {
         s.resolvidos.toLocaleString("pt-BR"),
         `${s.taxaResolucao.toFixed(1)}%`,
         String(s.tmrDias        || "—"),
-        String((s as UserStat).tmrMedianaDias ?? s.tmrDias || "—"),
+        String((s as UserStat).tmrMedianaDias ?? (s.tmrDias || "—")),
       ];
       x = PAD + 8;
       for (let i = 0; i < cells.length; i++) {

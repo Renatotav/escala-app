@@ -156,10 +156,8 @@ export async function GET(request: NextRequest) {
       NOT: { numero: { contains: " " } },
     };
 
-    if (temFiltroRes) {
-      // Filtro por resolução: Em Aberto não se aplica → busca vazia
-      chamadoDateWhere.id = { lt: 0 }; // retorna 0 registros
-    } else if (temFiltroRec) {
+    if (temFiltroRec) {
+      // Data Recebimento controla o Em Aberto (com ou sem filtro de resolução)
       const abRangeCh: Record<string, Date> = {};
       if (anoRecebimento) {
         abRangeCh.gte = new Date(`${anoRecebimento}-01-01T00:00:00Z`);
@@ -168,6 +166,9 @@ export async function GET(request: NextRequest) {
       if (dataRecDe)  abRangeCh.gte = new Date(`${dataRecDe}T00:00:00Z`);
       if (dataRecAte) abRangeCh.lte = new Date(`${dataRecAte}T23:59:59Z`);
       if (Object.keys(abRangeCh).length) chamadoDateWhere.dataAbertura = abRangeCh;
+    } else if (temFiltroRes) {
+      // Só filtro de resolução sem recebimento: abertos não têm data resolução → retorna 0
+      chamadoDateWhere.id = { lt: 0 };
     }
 
     const chamadosPbi = await prisma.chamadoPowerbi.findMany({

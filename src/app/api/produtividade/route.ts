@@ -99,7 +99,7 @@ export async function GET(request: NextRequest) {
     }
     if (dataRecDe)  abRange.gte = new Date(`${dataRecDe}T00:00:00Z`);
     if (dataRecAte) abRange.lte = new Date(`${dataRecAte}T23:59:59Z`);
-    if (Object.keys(abRange).length) conds.push({ dataAbertura: abRange });
+    if (Object.keys(abRange).length) conds.push({ dataMovimentacao: abRange });
 
     const resRange: Record<string, Date> = {};
     if (anoResolucao) {
@@ -165,7 +165,7 @@ export async function GET(request: NextRequest) {
       }
       if (dataRecDe)  abRangeCh.gte = new Date(`${dataRecDe}T00:00:00Z`);
       if (dataRecAte) abRangeCh.lte = new Date(`${dataRecAte}T23:59:59Z`);
-      if (Object.keys(abRangeCh).length) chamadoDateWhere.dataAbertura = abRangeCh;
+      if (Object.keys(abRangeCh).length) chamadoDateWhere.dataMovimentacao = abRangeCh;
     } else if (temFiltroRes) {
       // Só filtro de resolução sem recebimento: abertos não têm data resolução → retorna 0
       chamadoDateWhere.id = { lt: 0 };

@@ -19,6 +19,10 @@ const HEADER_MAP: Record<string, string> = {
   "data/hora da abertura":      "dataAbertura",
   "data hora da abertura":      "dataAbertura",
   "data abertura":              "dataAbertura",
+  "ultima movimentacao":        "dataMovimentacao",
+  "data/hora da ultima movimentacao": "dataMovimentacao",
+  "data hora da ultima movimentacao": "dataMovimentacao",
+  "data movimentacao":          "dataMovimentacao",
   "equipe atribuida":           "equipeAtribuida",
   "equipe":                     "equipeAtribuida",
   "usuario atribuido":          "usuarioAtribuido",
@@ -84,6 +88,7 @@ export async function POST(request: NextRequest) {
     const rows: {
       numeroChamado: string;
       dataAbertura: string | null;
+      dataMovimentacao: string | null;
       equipeAtribuida: string | null;
       usuarioAtribuido: string | null;
       usuarioFechamento: string | null;
@@ -105,6 +110,7 @@ export async function POST(request: NextRequest) {
       rows.push({
         numeroChamado,
         dataAbertura: toIso(obj.dataAbertura),
+        dataMovimentacao: toIso(obj.dataMovimentacao),
         equipeAtribuida: obj.equipeAtribuida ? String(obj.equipeAtribuida).trim() : null,
         usuarioAtribuido: obj.usuarioAtribuido ? String(obj.usuarioAtribuido).trim() : null,
         usuarioFechamento: obj.usuarioFechamento ? String(obj.usuarioFechamento).trim() : null,
@@ -144,6 +150,7 @@ export async function POST(request: NextRequest) {
       data: insertRows.map(r => ({
         numeroChamado: r.numeroChamado,
         dataAbertura: r.dataAbertura ? new Date(r.dataAbertura) : null,
+        dataMovimentacao: r.dataMovimentacao ? new Date(r.dataMovimentacao) : null,
         equipeAtribuida: r.equipeAtribuida || null,
         usuarioAtribuido: r.usuarioAtribuido || null,
         usuarioFechamento: r.usuarioFechamento || null,

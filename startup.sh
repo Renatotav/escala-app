@@ -154,6 +154,7 @@ async function migrate() {
   try { await client.query(\`ALTER TABLE \"Produtividade\" ADD COLUMN IF NOT EXISTS \"equipeAtribuida\" TEXT\`); } catch(e) {}
   try { await client.query(\`ALTER TABLE \"Produtividade\" ADD COLUMN IF NOT EXISTS \"usuarioAtribuido\" TEXT\`); } catch(e) {}
   try { await client.query(\`ALTER TABLE \"Produtividade\" ADD COLUMN IF NOT EXISTS \"pausa\" TEXT\`); } catch(e) {}
+  try { await client.query(\`ALTER TABLE \"Produtividade\" ADD COLUMN IF NOT EXISTS \"dataMovimentacao\" TIMESTAMP(3)\`); } catch(e) {}
 
   // DnpjeMigracao table
   await client.query(\`CREATE TABLE IF NOT EXISTS \"DnpjeMigracao\" (

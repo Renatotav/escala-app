@@ -278,17 +278,18 @@ model RedmineAtribuido {
 }
 
 model Produtividade {
-  id                Int       @id @default(autoincrement())
-  numeroChamado     String
-  dataAbertura      DateTime?
-  dataMovimentacao  DateTime?
-  equipeAtribuida   String?
-  usuarioAtribuido  String?
-  usuarioFechamento String?
-  dataResolucao     DateTime?
-  pausa             String?
-  situacaoRegra     String?
-  createdAt         DateTime  @default(now())
+  id                  Int       @id @default(autoincrement())
+  numeroChamado       String
+  dataAbertura        DateTime?
+  dataMovimentacao    DateTime?
+  equipeAtribuida     String?
+  usuarioAtribuido    String?
+  usuarioFechamento   String?
+  dataResolucao       DateTime?
+  pausa               String?
+  situacaoRegra       String?
+  tmrExclusivoHoras   Float?
+  createdAt           DateTime  @default(now())
 }
 
 model EscalaWhatsapp {

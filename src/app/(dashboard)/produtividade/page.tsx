@@ -455,7 +455,7 @@ export default function ProdutividadePage() {
       return taxa >= 85 ? [34, 197, 94] : taxa >= 80 ? [161, 98, 7] : [185, 28, 28];
     }
 
-    const COL_HEAD = ["Nº", "Atendente", "Recebidos", "Em Aberto", "Pausados", "Resolvidos", "Taxa Resolução", "Desde Receb. Média (d)", "Desde Receb. Med. (d)"];
+    const COL_HEAD = ["Nº", "Atendente", "Recebidos", "Em Aberto", "Pausados", "Resolvidos", "Taxa Resolução", "TMR Média (d)", "TMR Mediana (d)"];
 
     for (const [eq, usuarios] of equipesSorted) {
       const eqResolvidos = usuarios.reduce((s, u) => s + u.resolvidos, 0);
@@ -551,7 +551,7 @@ export default function ProdutividadePage() {
     const ROW_H = 28;
     const HEADER_H = 80;
     const COLS = [300, 140, 80, 80, 80, 80, 100, 80, 80];
-    const HEADS = ["Usuário Fechamento", "Equipe", "Recebidos", "Em Aberto", "Pausados", "Resolvidos", "Taxa Resolução", "Desde Receb. Média (d)", "Desde Receb. Med. (d)"];
+    const HEADS = ["Usuário Fechamento", "Equipe", "Recebidos", "Em Aberto", "Pausados", "Resolvidos", "Taxa Resolução", "TMR Média (d)", "TMR Mediana (d)"];
     const totalH = HEADER_H + (ROW_H * 1.5) + (statsData.stats.length + 1) * ROW_H + PAD;
 
     const canvas = document.createElement("canvas");
@@ -963,8 +963,8 @@ export default function ProdutividadePage() {
                   <th className="text-center px-3 py-3">Pausados</th>
                   <th className="text-center px-3 py-3">Resolvidos</th>
                   <th className="text-center px-3 py-3">Taxa Res.</th>
-                  <th className="text-center px-3 py-3" title="Tempo desde o recebimento até a resolução (1ª atribuição → fechamento)">Desde Receb. Média (d)</th>
-                  <th className="text-center px-3 py-3 text-purple-400" title="Mediana do tempo desde o recebimento até a resolução">Desde Receb. Med. (d)</th>
+                  <th className="text-center px-3 py-3" title="Tempo médio que o chamado ficou com o atendente (excluindo REDMINES e outros)">TMR Média (d)</th>
+                  <th className="text-center px-3 py-3 text-purple-400" title="Mediana do tempo com o atendente">TMR Mediana (d)</th>
                 </tr>
               </thead>
               <tbody>

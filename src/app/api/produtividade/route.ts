@@ -139,7 +139,7 @@ export async function GET(request: NextRequest) {
     const whereStats = statsConditions.length === 0 ? {} : statsConditions.length === 1 ? statsConditions[0] : { AND: statsConditions };
 
     const todos = await prisma.produtividade.findMany({
-      select: { usuarioFechamento: true, dataMovimentacao: true, dataResolucao: true },
+      select: { usuarioFechamento: true, tmrExclusivoHoras: true },
       where: whereStats,
     });
 
@@ -153,10 +153,8 @@ export async function GET(request: NextRequest) {
       if (!grupos.has(usuario)) grupos.set(usuario, { resolvidos: 0, tmrHorasSum: 0, tmrCount: 0, tmrValores: [] });
       const g = grupos.get(usuario)!;
       g.resolvidos++;
-      if (r.dataMovimentacao && r.dataResolucao) {
-        const diffH = (new Date(r.dataResolucao).getTime() - new Date(r.dataMovimentacao).getTime()) / 3_600_000;
-        if (diffH >= 0) { g.tmrHorasSum += diffH; g.tmrCount++; g.tmrValores.push(diffH); tmrTodosValores.push(diffH); }
-      }
+      const h = r.tmrExclusivoHoras;
+      if (h !== null && h > 0) { g.tmrHorasSum += h; g.tmrCount++; g.tmrValores.push(h); tmrTodosValores.push(h); }
     }
 
     // ChamadoPowerbi: sempre filtrado pelo mesmo mvRange (dataMovimentacao)

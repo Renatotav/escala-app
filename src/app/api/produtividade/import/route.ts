@@ -59,6 +59,7 @@ type RawRow = {
   dataResolucao: string | null;
   pausa: string | null;
   situacaoRegra: string | null;
+  tmrExclusivoHoras: number | null;
 };
 
 function buildFinalRows(rawRows: RawRow[]) {
@@ -93,6 +94,30 @@ function buildFinalRows(rawRows: RawRow[]) {
     // (chamado foi ao REDMINES ou aberto diretamente pela triagem — ela pegou para fechar)
     if (!dataMovimentacao) dataMovimentacao = lastMov.dataResolucao ?? lastMov.dataMovimentacao ?? movs[0].dataMovimentacao;
 
+    // Calcula o tempo exclusivo com o resolver (soma dos períodos em que estava com ele)
+    let tmrExclusivoHoras: number | null = null;
+    const dataResolucaoFinal = movs.find(m => m.dataResolucao)?.dataResolucao ?? null;
+    if (resolver && dataResolucaoFinal) {
+      let totalH = 0;
+      let periodStart: Date | null = null;
+      for (const m of movs) {
+        const isHis = m.usuarioAtribuido?.trim().toUpperCase() === resolver;
+        const movDate = m.dataMovimentacao ? new Date(m.dataMovimentacao) : null;
+        if (isHis && !periodStart && movDate) {
+          periodStart = movDate;
+        } else if (!isHis && periodStart && movDate) {
+          totalH += (movDate.getTime() - periodStart.getTime()) / 3_600_000;
+          periodStart = null;
+        }
+      }
+      // Último período: fecha na data de resolução
+      if (periodStart) {
+        const diff = (new Date(dataResolucaoFinal).getTime() - periodStart.getTime()) / 3_600_000;
+        if (diff > 0) totalH += diff;
+      }
+      if (totalH > 0) tmrExclusivoHoras = totalH;
+    }
+
     result.push({
       numeroChamado,
       dataAbertura: movs[0].dataAbertura,
@@ -103,6 +128,7 @@ function buildFinalRows(rawRows: RawRow[]) {
       dataResolucao: movs.find(m => m.dataResolucao)?.dataResolucao ?? null,
       pausa: lastMov.pausa,
       situacaoRegra: lastMov.situacaoRegra,
+      tmrExclusivoHoras,
     });
   }
   return result;
@@ -159,6 +185,7 @@ export async function POST(request: NextRequest) {
         dataResolucao: toIso(obj.dataResolucao),
         pausa: obj.pausa ? String(obj.pausa).trim() : null,
         situacaoRegra: obj.situacaoRegra ? String(obj.situacaoRegra).trim() : null,
+        tmrExclusivoHoras: null,
       });
     }
 
@@ -203,6 +230,7 @@ export async function POST(request: NextRequest) {
         dataResolucao: r.dataResolucao ? new Date(r.dataResolucao) : null,
         pausa: r.pausa || null,
         situacaoRegra: r.situacaoRegra || null,
+        tmrExclusivoHoras: r.tmrExclusivoHoras ?? null,
       })),
     });
 

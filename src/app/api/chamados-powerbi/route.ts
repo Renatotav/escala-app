@@ -4,20 +4,31 @@ import { prisma } from "@/lib/prisma";
 const PAGE_SIZE = 100;
 const VALIDO = { NOT: { numero: { contains: " " } } };
 
+const SLA_RULES = [
+  { keyword: "Cadastro",      days: 2  },
+  { keyword: "Migração",      days: 15 },
+  { keyword: "Orientação",    days: 5  },
+  { keyword: "Erro ou Falha", days: 5  },
+];
+
+function slaWhere() {
+  return SLA_RULES.map(({ keyword, days }) => ({
+    equipeAtribuida: { contains: keyword, mode: "insensitive" as const },
+    dataAbertura:    { lt: new Date(Date.now() - days * 86400000) },
+  }));
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const page = Math.max(1, Number(searchParams.get("page") ?? "1"));
-  const busca = searchParams.get("busca")?.trim() || null;
-  const filtro = searchParams.get("filtro") || null; // "atraso" | "atencao"
+  const page      = Math.max(1, Number(searchParams.get("page") ?? "1"));
+  const busca     = searchParams.get("busca")?.trim() || null;
+  const filtro    = searchParams.get("filtro") || null;
+  const categoria = searchParams.get("categoria")?.trim() || null;
   const exportAll = searchParams.get("export") === "1";
 
-  const d50 = new Date(Date.now() - 50 * 86400000);
-  const d30 = new Date(Date.now() - 30 * 86400000);
-
-  const [totalValidos, totalAtraso, totalAtencao, range, porCategoria] = await Promise.all([
+  const [totalValidos, totalAtraso, range, porCategoria] = await Promise.all([
     prisma.chamadoPowerbi.count({ where: VALIDO }),
-    prisma.chamadoPowerbi.count({ where: { ...VALIDO, dataAbertura: { lt: d50 } } }),
-    prisma.chamadoPowerbi.count({ where: { ...VALIDO, dataAbertura: { gte: d50, lt: d30 } } }),
+    prisma.chamadoPowerbi.count({ where: { AND: [VALIDO, { OR: slaWhere() }] } }),
     prisma.chamadoPowerbi.aggregate({ where: VALIDO, _min: { dataAbertura: true }, _max: { dataAbertura: true } }),
     prisma.chamadoPowerbi.groupBy({
       by: ["equipeAtribuida"],
@@ -28,15 +39,14 @@ export async function GET(request: NextRequest) {
   ]);
 
   const conditions: Record<string, unknown>[] = [VALIDO];
-  if (filtro === "atraso") conditions.push({ dataAbertura: { lt: d50 } });
-  else if (filtro === "atencao") conditions.push({ dataAbertura: { gte: d50, lt: d30 } });
+  if (filtro === "atraso") conditions.push({ OR: slaWhere() });
+  if (categoria) conditions.push({ equipeAtribuida: { contains: categoria, mode: "insensitive" } });
   if (busca) conditions.push({ numero: { contains: busca, mode: "insensitive" } });
   const where = conditions.length === 1 ? conditions[0] : { AND: conditions };
 
   const stats = {
     totalValidos,
     totalAtraso,
-    totalAtencao,
     periodoMin: range._min.dataAbertura?.toISOString() ?? null,
     periodoMax: range._max.dataAbertura?.toISOString() ?? null,
     porCategoria: porCategoria.map(g => ({

@@ -21,33 +21,40 @@ type Dados = {
   totalPages: number;
   totalValidos: number;
   totalAtraso: number;
-  totalAtencao: number;
   periodoMin: string | null;
   periodoMax: string | null;
   porCategoria: CategoriaStats[];
 };
+
+const SLA_RULES = [
+  { keyword: "Cadastro",      days: 2  },
+  { keyword: "Migração",      days: 15 },
+  { keyword: "Orientação",    days: 5  },
+  { keyword: "Erro ou Falha", days: 5  },
+];
+
+function getSLA(equipeAtribuida: string | null): number | null {
+  if (!equipeAtribuida) return null;
+  const lower = equipeAtribuida.toLowerCase();
+  for (const { keyword, days } of SLA_RULES) {
+    if (lower.includes(keyword.toLowerCase())) return days;
+  }
+  return null;
+}
 
 function diasDesde(dataAbertura: string | null): number {
   if (!dataAbertura) return 0;
   return Math.floor((Date.now() - new Date(dataAbertura).getTime()) / 86400000);
 }
 
-function DiasBadge({ dias }: { dias: number }) {
-  if (dias >= 50) {
-    return (
-      <span title="Chamado atrasado" className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-600 text-white text-xs font-bold animate-pulse cursor-help">
-        ⚠ {dias}d
-      </span>
-    );
-  }
-  if (dias >= 30) {
-    return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-yellow-500 text-black text-xs font-bold">
-        {dias}d
-      </span>
-    );
-  }
-  return null;
+function DiasBadge({ dias, equipeAtribuida }: { dias: number; equipeAtribuida: string | null }) {
+  const sla = getSLA(equipeAtribuida);
+  if (sla === null || dias < sla) return null;
+  return (
+    <span title={`SLA: ${sla}d`} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-600 text-white text-xs font-bold animate-pulse cursor-help">
+      ⚠ {dias}d
+    </span>
+  );
 }
 
 function fmtDateTime(iso: string | null) {
@@ -66,16 +73,18 @@ export default function ChamadosPowerbiPage() {
   const [importModal, setImportModal] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [importResult, setImportResult] = useState<{ count?: number; skipped?: number; error?: string } | null>(null);
-  const [filtro, setFiltro] = useState<"atraso" | "atencao" | null>(null);
+  const [filtroAtraso, setFiltroAtraso] = useState(false);
+  const [filtroCategoria, setFiltroCategoria] = useState<string | null>(null);
   const [busca, setBusca] = useState("");
   const [substituir, setSubstituir] = useState(true);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  function load(pg = 1, buscaQ = "", filtroQ: string | null = null) {
+  function load(pg = 1, buscaQ = "", atraso = false, cat: string | null = null) {
     setLoading(true);
     const params = new URLSearchParams({ page: String(pg) });
     if (buscaQ) params.set("busca", buscaQ);
-    if (filtroQ) params.set("filtro", filtroQ);
+    if (atraso) params.set("filtro", "atraso");
+    if (cat) params.set("categoria", cat);
     fetch(`/api/chamados-powerbi?${params}`)
       .then(r => r.json())
       .then((d: Dados) => { setDados(d); setLoading(false); });
@@ -84,15 +93,29 @@ export default function ChamadosPowerbiPage() {
   useEffect(() => { load(); }, []);
 
   useEffect(() => {
-    const t = setTimeout(() => load(1, busca, filtro), 300);
+    const t = setTimeout(() => load(1, busca, filtroAtraso, filtroCategoria), 300);
     return () => clearTimeout(t);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [busca]);
 
-  function handleFiltro(f: "atraso" | "atencao") {
-    const novo = filtro === f ? null : f;
-    setFiltro(novo);
-    load(1, busca, novo);
+  function toggleAtraso() {
+    const novo = !filtroAtraso;
+    setFiltroAtraso(novo);
+    setFiltroCategoria(null);
+    load(1, busca, novo, null);
+  }
+
+  function toggleCategoria(cat: string) {
+    const novo = filtroCategoria === cat ? null : cat;
+    setFiltroCategoria(novo);
+    setFiltroAtraso(false);
+    load(1, busca, false, novo);
+  }
+
+  function clearFiltros() {
+    setFiltroAtraso(false);
+    setFiltroCategoria(null);
+    load(1, busca, false, null);
   }
 
   async function handleImport() {
@@ -118,13 +141,15 @@ export default function ChamadosPowerbiPage() {
     setImportResult({ count: totalCount, skipped: totalSkipped });
     setImportModal(false);
     setSelectedFiles([]);
-    load(1, busca, filtro);
+    load(1, busca, filtroAtraso, filtroCategoria);
     setImporting(false);
   }
 
   async function handleLimpar() {
     if (!confirm("Limpar todos os chamados importados?")) return;
     await fetch("/api/chamados-powerbi", { method: "DELETE" });
+    setFiltroAtraso(false);
+    setFiltroCategoria(null);
     load();
   }
 
@@ -132,7 +157,8 @@ export default function ChamadosPowerbiPage() {
     setXlsExporting(true);
     try {
       const params = new URLSearchParams({ export: "1" });
-      if (filtro) params.set("filtro", filtro);
+      if (filtroAtraso) params.set("filtro", "atraso");
+      if (filtroCategoria) params.set("categoria", filtroCategoria);
       if (busca) params.set("busca", busca);
       const res = await fetch(`/api/chamados-powerbi?${params}`);
       const data = await res.json();
@@ -155,12 +181,12 @@ export default function ChamadosPowerbiPage() {
 
   const totalValidos = dados?.totalValidos ?? 0;
   const totalAtraso = dados?.totalAtraso ?? 0;
-  const totalAtencao = dados?.totalAtencao ?? 0;
   const chamados = dados?.chamados ?? [];
   const page = dados?.page ?? 1;
   const totalPages = dados?.totalPages ?? 1;
   const total = dados?.total ?? 0;
   const porCategoria = dados?.porCategoria ?? [];
+  const temFiltro = filtroAtraso || filtroCategoria !== null;
 
   return (
     <div>
@@ -193,41 +219,25 @@ export default function ChamadosPowerbiPage() {
       {/* Stats principais */}
       {dados && (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
             <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
               <p className="text-xs text-gray-400 mb-1">Total de chamados</p>
               <p className="text-3xl font-bold text-white">{totalValidos.toLocaleString("pt-BR")}</p>
             </div>
 
             <button
-              onClick={() => handleFiltro("atraso")}
+              onClick={toggleAtraso}
               className={`rounded-xl p-4 border text-left transition ${
-                filtro === "atraso"
-                  ? "bg-red-800 border-red-500 ring-2 ring-red-400 animate-pulse"
+                filtroAtraso
+                  ? "bg-red-800 border-red-500 ring-2 ring-red-400"
                   : totalAtraso > 0
                     ? "bg-red-950 border-red-700 hover:bg-red-900"
                     : "bg-gray-900 border-gray-800 hover:bg-gray-800"
               }`}>
-              <p className="text-xs text-gray-400 mb-1">Em atraso (≥50 dias)</p>
+              <p className="text-xs text-gray-400 mb-1">Em atraso (SLA excedido)</p>
               <p className={`text-3xl font-bold ${totalAtraso > 0 ? "text-red-400" : "text-white"}`}>{totalAtraso}</p>
               <p className="text-xs text-red-400 mt-1">
-                {filtro === "atraso" ? "✓ Filtro ativo — clique para remover" : "⚠ Clique para filtrar"}
-              </p>
-            </button>
-
-            <button
-              onClick={() => handleFiltro("atencao")}
-              className={`rounded-xl p-4 border text-left transition ${
-                filtro === "atencao"
-                  ? "bg-yellow-700 border-yellow-400 ring-2 ring-yellow-300 animate-pulse"
-                  : totalAtencao > 0
-                    ? "bg-yellow-950/40 border-yellow-700 hover:bg-yellow-900/30"
-                    : "bg-gray-900 border-gray-800 hover:bg-gray-800"
-              }`}>
-              <p className="text-xs text-gray-400 mb-1">Em atenção (≥30 dias)</p>
-              <p className={`text-3xl font-bold ${totalAtencao > 0 ? "text-yellow-400" : "text-white"}`}>{totalAtencao}</p>
-              <p className="text-xs text-yellow-500 mt-1">
-                {filtro === "atencao" ? "✓ Filtro ativo — clique para remover" : "Clique para filtrar"}
+                {filtroAtraso ? "✓ Filtro ativo — clique para remover" : "⚠ Clique para filtrar"}
               </p>
             </button>
 
@@ -239,17 +249,39 @@ export default function ChamadosPowerbiPage() {
             </div>
           </div>
 
-          {/* Cards por categoria */}
+          {/* Cards por categoria (clicáveis) */}
           {porCategoria.length > 0 && (
-            <div className="flex flex-wrap gap-3 mb-6">
-              {porCategoria.map(cat => (
-                <div key={cat.categoria} className="bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 flex items-center gap-3 min-w-[180px]">
-                  <div>
+            <div className="flex flex-wrap gap-3 mb-4">
+              {porCategoria.map(cat => {
+                const ativo = filtroCategoria === cat.categoria;
+                return (
+                  <button
+                    key={cat.categoria}
+                    onClick={() => toggleCategoria(cat.categoria)}
+                    className={`rounded-xl px-4 py-3 border text-left transition min-w-[160px] ${
+                      ativo
+                        ? "bg-blue-800 border-blue-400 ring-2 ring-blue-300"
+                        : "bg-gray-900 border-gray-700 hover:bg-gray-800 hover:border-gray-500"
+                    }`}>
                     <p className="text-xs text-gray-500 mb-0.5 truncate max-w-[200px]" title={cat.categoria}>{cat.categoria}</p>
                     <p className="text-2xl font-bold text-white tabular-nums">{cat.total.toLocaleString("pt-BR")}</p>
-                  </div>
-                </div>
-              ))}
+                    {ativo && <p className="text-xs text-blue-400 mt-1">✓ Filtro ativo</p>}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Indicador de filtro ativo */}
+          {temFiltro && (
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-xs text-yellow-400">
+                {filtroAtraso ? "Filtrando: Em atraso (SLA excedido)" : `Filtrando: ${filtroCategoria}`}
+                {" "}— {total.toLocaleString("pt-BR")} resultado(s)
+              </span>
+              <button onClick={clearFiltros} className="text-xs text-gray-500 hover:text-white underline">
+                Limpar filtro
+              </button>
             </div>
           )}
         </>
@@ -298,7 +330,8 @@ export default function ChamadosPowerbiPage() {
             )}
             {chamados.map(c => {
               const dias = diasDesde(c.dataAbertura);
-              const atrasado = dias >= 50;
+              const sla = getSLA(c.equipeAtribuida);
+              const atrasado = sla !== null && dias >= sla;
               return (
                 <tr key={c.id}
                   className={`border-b border-gray-800 last:border-0 transition ${atrasado ? "bg-red-950/30 hover:bg-red-950/50 border-l-2 border-l-red-600" : "hover:bg-gray-800/50"}`}>
@@ -311,7 +344,7 @@ export default function ChamadosPowerbiPage() {
                         className="text-blue-400 hover:text-blue-300 font-mono font-medium hover:underline transition">
                         {c.numero}
                       </a>
-                      <DiasBadge dias={dias} />
+                      <DiasBadge dias={dias} equipeAtribuida={c.equipeAtribuida} />
                     </div>
                   </td>
                   <td className="px-4 py-3 text-gray-300 text-xs font-mono whitespace-nowrap">{fmtDateTime(c.dataAbertura)}</td>
@@ -349,12 +382,12 @@ export default function ChamadosPowerbiPage() {
             Exibindo <span className="text-gray-300">{(page - 1) * 100 + 1}–{Math.min(page * 100, total)}</span> de <span className="text-gray-300">{total.toLocaleString("pt-BR")}</span> registros
           </p>
           <div className="flex items-center gap-2">
-            <button onClick={() => load(page - 1, busca, filtro)} disabled={page === 1}
+            <button onClick={() => load(page - 1, busca, filtroAtraso, filtroCategoria)} disabled={page === 1}
               className="px-3 py-1.5 text-xs rounded-lg bg-gray-800 hover:bg-gray-700 disabled:opacity-40 text-gray-300 transition">
               ← Anterior
             </button>
             <span className="text-xs text-gray-400">Página {page} de {totalPages}</span>
-            <button onClick={() => load(page + 1, busca, filtro)} disabled={page === totalPages}
+            <button onClick={() => load(page + 1, busca, filtroAtraso, filtroCategoria)} disabled={page === totalPages}
               className="px-3 py-1.5 text-xs rounded-lg bg-gray-800 hover:bg-gray-700 disabled:opacity-40 text-gray-300 transition">
               Próxima →
             </button>

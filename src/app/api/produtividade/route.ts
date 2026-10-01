@@ -224,6 +224,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       stats,
       totais: { ...totais, taxaResolucao: totalDenominador > 0 ? (totais.resolvidos / totalDenominador) * 100 : 0, tmrHoras: Math.round(tmrGeralH), tmrDias: Math.round(tmrGeralH / 24) },
+      soFiltroResolucao: temFiltroRes && !temFiltroRec,
       equipes, atendentes, atendentesCount, periodoInicio, periodoFim, periodoResInicio, periodoResFim, totalRegistros,
     });
   }

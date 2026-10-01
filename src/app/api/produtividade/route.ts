@@ -157,7 +157,7 @@ export async function GET(request: NextRequest) {
     };
 
     if (temFiltroRec) {
-      // Data Recebimento controla o Em Aberto (com ou sem filtro de resolução)
+      // Data Recebimento controla o Em Aberto
       const abRangeCh: Record<string, Date> = {};
       if (anoRecebimento) {
         abRangeCh.gte = new Date(`${anoRecebimento}-01-01T00:00:00Z`);
@@ -167,8 +167,15 @@ export async function GET(request: NextRequest) {
       if (dataRecAte) abRangeCh.lte = new Date(`${dataRecAte}T23:59:59Z`);
       if (Object.keys(abRangeCh).length) chamadoDateWhere.dataMovimentacao = abRangeCh;
     } else if (temFiltroRes) {
-      // Só filtro de resolução sem recebimento: abertos não têm data resolução → retorna 0
-      chamadoDateWhere.id = { lt: 0 };
+      // Só filtro de resolução: usa o mesmo período para filtrar Em Aberto por dataMovimentacao
+      const resRangeCh: Record<string, Date> = {};
+      if (anoResolucao) {
+        resRangeCh.gte = new Date(`${anoResolucao}-01-01T00:00:00Z`);
+        resRangeCh.lt  = new Date(`${Number(anoResolucao) + 1}-01-01T00:00:00Z`);
+      }
+      if (dataResDe)  resRangeCh.gte = new Date(`${dataResDe}T00:00:00Z`);
+      if (dataResAte) resRangeCh.lte = new Date(`${dataResAte}T23:59:59Z`);
+      if (Object.keys(resRangeCh).length) chamadoDateWhere.dataMovimentacao = resRangeCh;
     }
 
     const chamadosPbi = await prisma.chamadoPowerbi.findMany({
@@ -224,7 +231,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       stats,
       totais: { ...totais, taxaResolucao: totalDenominador > 0 ? (totais.resolvidos / totalDenominador) * 100 : 0, tmrHoras: Math.round(tmrGeralH), tmrDias: Math.round(tmrGeralH / 24) },
-      soFiltroResolucao: temFiltroRes && !temFiltroRec,
       equipes, atendentes, atendentesCount, periodoInicio, periodoFim, periodoResInicio, periodoResFim, totalRegistros,
     });
   }

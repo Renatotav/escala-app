@@ -47,7 +47,6 @@ type Totais = UserStat & { usuario: never };
 type DadosStats = {
   stats: UserStat[];
   totais: Omit<UserStat, "usuario">;
-  soFiltroResolucao?: boolean;
   equipes: string[];
   totalRegistros: number;
   periodoInicio: string | null;
@@ -970,9 +969,7 @@ export default function ProdutividadePage() {
                   <tr key={s.usuario} className={`border-b border-gray-800/60 last:border-0 hover:bg-gray-800/40 transition ${i % 2 === 1 ? "bg-gray-800/20" : ""}`}>
                     <td className="px-4 py-2.5 text-sm text-gray-200 font-medium">{s.usuario}</td>
                     <td className="px-3 py-2.5 text-xs text-gray-400">{s.equipe ?? "—"}</td>
-                    <td className="px-3 py-2.5 text-center font-mono text-sm text-white tabular-nums">
-                      {statsData.soFiltroResolucao ? <span className="text-gray-600">—</span> : s.recebidos.toLocaleString("pt-BR")}
-                    </td>
+                    <td className="px-3 py-2.5 text-center font-mono text-sm text-white tabular-nums">{s.recebidos.toLocaleString("pt-BR")}</td>
                     <td className="px-3 py-2.5 text-center font-mono text-sm tabular-nums">
                       {s.emAberto > 0 ? <span className="text-yellow-400 font-bold">{s.emAberto.toLocaleString("pt-BR")}</span> : <span className="text-gray-600">—</span>}
                     </td>
@@ -980,9 +977,7 @@ export default function ProdutividadePage() {
                       {s.pausados > 0 ? <span className="text-orange-400 font-bold">{s.pausados.toLocaleString("pt-BR")}</span> : <span className="text-gray-600">—</span>}
                     </td>
                     <td className="px-3 py-2.5 text-center font-mono text-sm text-white tabular-nums">{s.resolvidos.toLocaleString("pt-BR")}</td>
-                    <td className="px-3 py-2.5 text-center">
-                      {statsData.soFiltroResolucao ? <span className="text-gray-600">—</span> : <TaxaBadge taxa={s.taxaResolucao} />}
-                    </td>
+                    <td className="px-3 py-2.5 text-center"><TaxaBadge taxa={s.taxaResolucao} /></td>
                     <td className="px-3 py-2.5 text-center font-mono text-sm text-gray-300 tabular-nums">{s.tmrDias || "—"}</td>
                     <td className="px-3 py-2.5 text-center font-mono text-sm text-gray-300 tabular-nums">{s.tmrHoras || "—"}</td>
                   </tr>
@@ -993,9 +988,7 @@ export default function ProdutividadePage() {
                 <tr className="border-t-2 border-gray-600 bg-gray-800/80">
                   <td className="px-4 py-3 text-sm font-bold text-white">TOTAL</td>
                   <td className="px-3 py-3"></td>
-                  <td className="px-3 py-3 text-center font-mono font-bold text-white tabular-nums">
-                    {statsData.soFiltroResolucao ? <span className="text-gray-500">—</span> : statsData.totais.recebidos.toLocaleString("pt-BR")}
-                  </td>
+                  <td className="px-3 py-3 text-center font-mono font-bold text-white tabular-nums">{statsData.totais.recebidos.toLocaleString("pt-BR")}</td>
                   <td className="px-3 py-3 text-center font-mono font-bold tabular-nums">
                     {statsData.totais.emAberto > 0 ? <span className="text-yellow-400">{statsData.totais.emAberto.toLocaleString("pt-BR")}</span> : <span className="text-gray-600">—</span>}
                   </td>
@@ -1003,9 +996,7 @@ export default function ProdutividadePage() {
                     {statsData.totais.pausados > 0 ? <span className="text-orange-400">{statsData.totais.pausados.toLocaleString("pt-BR")}</span> : <span className="text-gray-600">—</span>}
                   </td>
                   <td className="px-3 py-3 text-center font-mono font-bold text-white tabular-nums">{statsData.totais.resolvidos.toLocaleString("pt-BR")}</td>
-                  <td className="px-3 py-3 text-center">
-                    {statsData.soFiltroResolucao ? <span className="text-gray-500">—</span> : <TaxaBadge taxa={statsData.totais.taxaResolucao} />}
-                  </td>
+                  <td className="px-3 py-3 text-center"><TaxaBadge taxa={statsData.totais.taxaResolucao} /></td>
                   <td className="px-3 py-3 text-center font-mono font-bold text-gray-200 tabular-nums">{statsData.totais.tmrDias || "—"}</td>
                   <td className="px-3 py-3 text-center font-mono font-bold text-gray-200 tabular-nums">{statsData.totais.tmrHoras || "—"}</td>
                 </tr>

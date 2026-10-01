@@ -126,15 +126,15 @@ async function migrate() {
   )\`);
 
   // ChamadoPowerbi table
-  await client.query(\`CREATE TABLE IF NOT EXISTS "ChamadoPowerbi" (
-    "id" SERIAL PRIMARY KEY,
-    "numero" TEXT NOT NULL,
-    "dataAbertura" TIMESTAMP(3),
-    "equipeAtribuida" TEXT,
-    "usuarioAtribuido" TEXT,
-    "dataMovimentacao" TIMESTAMP(3),
-    "situacaoRegra" TEXT,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+  await client.query(\`CREATE TABLE IF NOT EXISTS \"ChamadoPowerbi\" (
+    \"id\" SERIAL PRIMARY KEY,
+    \"numero\" TEXT NOT NULL,
+    \"dataAbertura\" TIMESTAMP(3),
+    \"equipeAtribuida\" TEXT,
+    \"usuarioAtribuido\" TEXT,
+    \"dataMovimentacao\" TIMESTAMP(3),
+    \"situacaoRegra\" TEXT,
+    \"createdAt\" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
   )\`);
 
   // Produtividade table

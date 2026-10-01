@@ -146,14 +146,14 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Chamados (Assyst): Em Aberto e Pausados por nomeUsuarioAtribuido
-    // Filtra por dataRegistro usando o mesmo período ativo (recebimento tem prioridade, senão usa resolução)
-    const chamadoDateWhere: Record<string, unknown> = {};
+    // ChamadoPowerbi: Em Aberto e Pausados por usuarioAtribuido
+    const chamadoDateWhere: Record<string, unknown> = {
+      NOT: { numero: { contains: " " } }, // filtra linhas inválidas
+    };
     const abRangeCh: Record<string, Date> = {};
     const temFiltroRec = !!(anoRecebimento || dataRecDe || dataRecAte);
     const temFiltroRes = !!(anoResolucao || dataResDe || dataResAte);
 
-    // Data Resolução prevalece sempre; recebimento só entra se resolução não estiver ativo
     if (temFiltroRes) {
       if (anoResolucao) {
         abRangeCh.gte = new Date(`${anoResolucao}-01-01T00:00:00Z`);
@@ -169,22 +169,21 @@ export async function GET(request: NextRequest) {
       if (dataRecDe)  abRangeCh.gte = new Date(`${dataRecDe}T00:00:00Z`);
       if (dataRecAte) abRangeCh.lte = new Date(`${dataRecAte}T23:59:59Z`);
     }
-    if (Object.keys(abRangeCh).length) chamadoDateWhere.dataRegistro = abRangeCh;
+    if (Object.keys(abRangeCh).length) chamadoDateWhere.dataAbertura = abRangeCh;
 
-    const chamados = await prisma.chamado.findMany({
-      select: { nomeUsuarioAtribuido: true, estado: true, ultimaAcao: true },
+    const chamadosPbi = await prisma.chamadoPowerbi.findMany({
+      select: { usuarioAtribuido: true, situacaoRegra: true },
       where: chamadoDateWhere,
     });
 
     const chamadosAberto  = new Map<string, number>();
     const chamadosPausado = new Map<string, number>();
-    for (const c of chamados) {
-      const nome = c.nomeUsuarioAtribuido;
+    for (const c of chamadosPbi) {
+      const nome = c.usuarioAtribuido;
       if (!nome) continue;
-      const est     = (c.estado     || "").toLowerCase();
-      const ultAcao = (c.ultimaAcao || "").toLowerCase();
-      const isResolvido = est.includes("resolvid") || est.includes("fechad") || est.includes("cancela");
-      const isPausado   = ultAcao.includes("parar") || ultAcao.includes("aguardando info");
+      const sit = (c.situacaoRegra || "").toLowerCase();
+      const isResolvido = sit.includes("resolvid") || sit.includes("fechad") || sit.includes("cancela");
+      const isPausado   = sit.includes("pausa") || sit.includes("aguardando");
       const key = normName(nome);
       if (isPausado) {
         chamadosPausado.set(key, (chamadosPausado.get(key) ?? 0) + 1);

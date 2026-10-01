@@ -114,31 +114,66 @@ export async function GET(request: NextRequest) {
 
   // ── STATS (Quantitativo) ──────────────────────────────────────────────────
   if (statsOnly) {
+    const temFiltroRec = !!(anoRecebimento || dataRecDe || dataRecAte);
+    const temFiltroRes = !!(anoResolucao || dataResDe || dataResAte);
+
+    // "mvRange": período para Recebidos/Em Aberto — sempre por dataMovimentacao.
+    // Prioridade: Data Recebimento. Se só Data Resolução ativa, usa o mesmo período.
+    const mvRange: Record<string, Date> = {};
+    if (anoRecebimento) { mvRange.gte = new Date(`${anoRecebimento}-01-01T00:00:00Z`); mvRange.lt = new Date(`${Number(anoRecebimento)+1}-01-01T00:00:00Z`); }
+    if (dataRecDe)  mvRange.gte = new Date(`${dataRecDe}T00:00:00Z`);
+    if (dataRecAte) mvRange.lte = new Date(`${dataRecAte}T23:59:59Z`);
+    if (!Object.keys(mvRange).length && temFiltroRes) {
+      if (anoResolucao) { mvRange.gte = new Date(`${anoResolucao}-01-01T00:00:00Z`); mvRange.lt = new Date(`${Number(anoResolucao)+1}-01-01T00:00:00Z`); }
+      if (dataResDe)  mvRange.gte = new Date(`${dataResDe}T00:00:00Z`);
+      if (dataResAte) mvRange.lte = new Date(`${dataResAte}T23:59:59Z`);
+    }
+
+    // Condições da query principal (Produtividade por dataMovimentacao)
     const statsConditions: Record<string, unknown>[] = [];
-    statsConditions.push(...dateConditions());
+    if (Object.keys(mvRange).length) statsConditions.push({ dataMovimentacao: mvRange });
     if (equipe) {
       const nomes = nomesDeEquipe(equipe);
-      if (nomes.length > 0) {
-        statsConditions.push({ OR: nomes.map(n => ({ usuarioFechamento: { contains: n, mode: "insensitive" as const } })) });
-      }
+      if (nomes.length > 0) statsConditions.push({ OR: nomes.map(n => ({ usuarioFechamento: { contains: n, mode: "insensitive" as const } })) });
     }
     if (atendente) statsConditions.push({ usuarioFechamento: atendente });
     const whereStats = statsConditions.length === 0 ? {} : statsConditions.length === 1 ? statsConditions[0] : { AND: statsConditions };
 
-    // Produtividade: recebidos + resolvidos + TMR
-    const todos = await prisma.produtividade.findMany({
-      select: { usuarioFechamento: true, dataAbertura: true, dataResolucao: true },
-      where: whereStats,
-    });
+    // Condições de Produção (Produtividade por dataResolucao) — só quando filtro resolução ativo
+    const prodConds: Record<string, unknown>[] = [];
+    if (temFiltroRes) {
+      const rvRange: Record<string, Date> = {};
+      if (anoResolucao) { rvRange.gte = new Date(`${anoResolucao}-01-01T00:00:00Z`); rvRange.lt = new Date(`${Number(anoResolucao)+1}-01-01T00:00:00Z`); }
+      if (dataResDe)  rvRange.gte = new Date(`${dataResDe}T00:00:00Z`);
+      if (dataResAte) rvRange.lte = new Date(`${dataResAte}T23:59:59Z`);
+      if (Object.keys(rvRange).length) prodConds.push({ dataResolucao: rvRange });
+      if (equipe) {
+        const nomes = nomesDeEquipe(equipe);
+        if (nomes.length > 0) prodConds.push({ OR: nomes.map(n => ({ usuarioFechamento: { contains: n, mode: "insensitive" as const } })) });
+      }
+      if (atendente) prodConds.push({ usuarioFechamento: atendente });
+    }
+    const whereProducao = prodConds.length === 0 ? {} : prodConds.length === 1 ? prodConds[0] : { AND: prodConds };
 
-    type Acc = { recebidos: number; resolvidos: number; tmrHorasSum: number; tmrCount: number };
+    // Queries paralelas
+    const [todos, producaoList] = await Promise.all([
+      prisma.produtividade.findMany({
+        select: { usuarioFechamento: true, dataAbertura: true, dataResolucao: true },
+        where: whereStats,
+      }),
+      temFiltroRes
+        ? prisma.produtividade.findMany({ select: { usuarioFechamento: true }, where: whereProducao })
+        : Promise.resolve([] as { usuarioFechamento: string | null }[]),
+    ]);
+
+    // Agrupa Produtividade: chamados recebidos no período que já foram resolvidos
+    type Acc = { resolvidos: number; tmrHorasSum: number; tmrCount: number };
     const grupos = new Map<string, Acc>();
 
     for (const r of todos) {
       const usuario = r.usuarioFechamento || "(Sem usuário)";
-      if (!grupos.has(usuario)) grupos.set(usuario, { recebidos: 0, resolvidos: 0, tmrHorasSum: 0, tmrCount: 0 });
+      if (!grupos.has(usuario)) grupos.set(usuario, { resolvidos: 0, tmrHorasSum: 0, tmrCount: 0 });
       const g = grupos.get(usuario)!;
-      g.recebidos++;
       g.resolvidos++;
       if (r.dataAbertura && r.dataResolucao) {
         const diffH = (new Date(r.dataResolucao).getTime() - new Date(r.dataAbertura).getTime()) / 3_600_000;
@@ -146,37 +181,17 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // ChamadoPowerbi: Em Aberto e Pausados por usuarioAtribuido
-    // Quando filtro é por Data Resolução → não busca ChamadoPowerbi (abertos não têm data resolução)
-    // Quando filtro é por Data Recebimento → filtra ChamadoPowerbi por dataAbertura
-    const temFiltroRec = !!(anoRecebimento || dataRecDe || dataRecAte);
-    const temFiltroRes = !!(anoResolucao || dataResDe || dataResAte);
-
-    const chamadoDateWhere: Record<string, unknown> = {
-      NOT: { numero: { contains: " " } },
-    };
-
-    if (temFiltroRec) {
-      // Data Recebimento controla o Em Aberto
-      const abRangeCh: Record<string, Date> = {};
-      if (anoRecebimento) {
-        abRangeCh.gte = new Date(`${anoRecebimento}-01-01T00:00:00Z`);
-        abRangeCh.lt  = new Date(`${Number(anoRecebimento) + 1}-01-01T00:00:00Z`);
-      }
-      if (dataRecDe)  abRangeCh.gte = new Date(`${dataRecDe}T00:00:00Z`);
-      if (dataRecAte) abRangeCh.lte = new Date(`${dataRecAte}T23:59:59Z`);
-      if (Object.keys(abRangeCh).length) chamadoDateWhere.dataMovimentacao = abRangeCh;
-    } else if (temFiltroRes) {
-      // Só filtro de resolução: usa o mesmo período para filtrar Em Aberto por dataMovimentacao
-      const resRangeCh: Record<string, Date> = {};
-      if (anoResolucao) {
-        resRangeCh.gte = new Date(`${anoResolucao}-01-01T00:00:00Z`);
-        resRangeCh.lt  = new Date(`${Number(anoResolucao) + 1}-01-01T00:00:00Z`);
-      }
-      if (dataResDe)  resRangeCh.gte = new Date(`${dataResDe}T00:00:00Z`);
-      if (dataResAte) resRangeCh.lte = new Date(`${dataResAte}T23:59:59Z`);
-      if (Object.keys(resRangeCh).length) chamadoDateWhere.dataMovimentacao = resRangeCh;
+    // Produção por usuário (chamados fechados no período de resolução)
+    const chamadosProducao = new Map<string, number>();
+    for (const p of producaoList) {
+      if (!p.usuarioFechamento) continue;
+      const key = normName(p.usuarioFechamento);
+      chamadosProducao.set(key, (chamadosProducao.get(key) ?? 0) + 1);
     }
+
+    // ChamadoPowerbi: sempre filtrado pelo mesmo mvRange (dataMovimentacao)
+    const chamadoDateWhere: Record<string, unknown> = { NOT: { numero: { contains: " " } } };
+    if (Object.keys(mvRange).length) chamadoDateWhere.dataMovimentacao = mvRange;
 
     const chamadosPbi = await prisma.chamadoPowerbi.findMany({
       select: { usuarioAtribuido: true, situacaoRegra: true },
@@ -207,6 +222,7 @@ export async function GET(request: NextRequest) {
         const pausados  = chamadosPausado.get(normUsuario) ?? 0;
         const resolvidos = g.resolvidos;
         const recebidos = emAberto + pausados + resolvidos;
+        const producao = temFiltroRes ? (chamadosProducao.get(normUsuario) ?? 0) : null;
         return {
           usuario,
           equipe: resolveEquipe(usuario),
@@ -215,6 +231,8 @@ export async function GET(request: NextRequest) {
           pausados,
           resolvidos,
           taxaResolucao: recebidos > 0 ? (resolvidos / recebidos) * 100 : 0,
+          producao,
+          vazao: (producao !== null && recebidos > 0) ? (producao / recebidos) * 100 : null,
           tmrHoras: Math.round(tmrH),
           tmrDias: Math.round(tmrH / 24),
         };
@@ -222,15 +240,26 @@ export async function GET(request: NextRequest) {
       .sort((a, b) => a.usuario.localeCompare(b.usuario, "pt-BR"));
 
     const totais = stats.reduce(
-      (acc, s) => { acc.recebidos += s.recebidos; acc.emAberto += s.emAberto; acc.pausados += s.pausados; acc.resolvidos += s.resolvidos; return acc; },
-      { recebidos: 0, emAberto: 0, pausados: 0, resolvidos: 0 }
+      (acc, s) => {
+        acc.recebidos += s.recebidos; acc.emAberto += s.emAberto; acc.pausados += s.pausados; acc.resolvidos += s.resolvidos;
+        if (s.producao !== null) acc.producao = (acc.producao ?? 0) + s.producao;
+        return acc;
+      },
+      { recebidos: 0, emAberto: 0, pausados: 0, resolvidos: 0, producao: null as number | null }
     );
     const tmrGeralH = stats.reduce((s, r) => s + r.tmrHoras * (r.resolvidos || 1), 0) / Math.max(1, stats.reduce((s, r) => s + (r.resolvidos || 1), 0));
 
     const totalDenominador = totais.recebidos;
     return NextResponse.json({
       stats,
-      totais: { ...totais, taxaResolucao: totalDenominador > 0 ? (totais.resolvidos / totalDenominador) * 100 : 0, tmrHoras: Math.round(tmrGeralH), tmrDias: Math.round(tmrGeralH / 24) },
+      totais: {
+        ...totais,
+        taxaResolucao: totalDenominador > 0 ? (totais.resolvidos / totalDenominador) * 100 : 0,
+        vazao: (totais.producao !== null && totalDenominador > 0) ? (totais.producao / totalDenominador) * 100 : null,
+        tmrHoras: Math.round(tmrGeralH),
+        tmrDias: Math.round(tmrGeralH / 24),
+      },
+      temFiltroRes,
       equipes, atendentes, atendentesCount, periodoInicio, periodoFim, periodoResInicio, periodoResFim, totalRegistros,
     });
   }

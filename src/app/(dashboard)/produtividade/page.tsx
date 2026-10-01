@@ -38,6 +38,8 @@ type UserStat = {
   pausados: number;
   resolvidos: number;
   taxaResolucao: number;
+  producao: number | null;
+  vazao: number | null;
   tmrHoras: number;
   tmrDias: number;
 };
@@ -47,6 +49,7 @@ type Totais = UserStat & { usuario: never };
 type DadosStats = {
   stats: UserStat[];
   totais: Omit<UserStat, "usuario">;
+  temFiltroRes: boolean;
   equipes: string[];
   totalRegistros: number;
   periodoInicio: string | null;
@@ -189,6 +192,15 @@ function TaxaBadge({ taxa }: { taxa: number }) {
   return (
     <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold text-white ${bg} min-w-[52px] text-center`}>
       {t.toFixed(1)}%
+    </span>
+  );
+}
+
+function VazaoBadge({ vazao }: { vazao: number }) {
+  const bg = vazao >= 100 ? "bg-green-600" : vazao >= 80 ? "bg-yellow-600" : "bg-red-700";
+  return (
+    <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold text-white ${bg} min-w-[52px] text-center`}>
+      {vazao.toFixed(1)}%
     </span>
   );
 }
@@ -959,7 +971,9 @@ export default function ProdutividadePage() {
                   <th className="text-center px-3 py-3">Em Aberto</th>
                   <th className="text-center px-3 py-3">Pausados</th>
                   <th className="text-center px-3 py-3">Resolvidos</th>
-                  <th className="text-center px-3 py-3">Taxa Resolução</th>
+                  <th className="text-center px-3 py-3">Taxa Res.</th>
+                  {statsData.temFiltroRes && <th className="text-center px-3 py-3 text-blue-400">Produção</th>}
+                  {statsData.temFiltroRes && <th className="text-center px-3 py-3 text-blue-400">Vazão</th>}
                   <th className="text-center px-3 py-3">TMR Dias</th>
                   <th className="text-center px-3 py-3">TMR Horas</th>
                 </tr>
@@ -978,6 +992,16 @@ export default function ProdutividadePage() {
                     </td>
                     <td className="px-3 py-2.5 text-center font-mono text-sm text-white tabular-nums">{s.resolvidos.toLocaleString("pt-BR")}</td>
                     <td className="px-3 py-2.5 text-center"><TaxaBadge taxa={s.taxaResolucao} /></td>
+                    {statsData.temFiltroRes && (
+                      <td className="px-3 py-2.5 text-center font-mono text-sm text-blue-300 tabular-nums font-bold">
+                        {s.producao !== null ? s.producao.toLocaleString("pt-BR") : "—"}
+                      </td>
+                    )}
+                    {statsData.temFiltroRes && (
+                      <td className="px-3 py-2.5 text-center">
+                        {s.vazao !== null ? <VazaoBadge vazao={s.vazao} /> : <span className="text-gray-600">—</span>}
+                      </td>
+                    )}
                     <td className="px-3 py-2.5 text-center font-mono text-sm text-gray-300 tabular-nums">{s.tmrDias || "—"}</td>
                     <td className="px-3 py-2.5 text-center font-mono text-sm text-gray-300 tabular-nums">{s.tmrHoras || "—"}</td>
                   </tr>
@@ -997,6 +1021,16 @@ export default function ProdutividadePage() {
                   </td>
                   <td className="px-3 py-3 text-center font-mono font-bold text-white tabular-nums">{statsData.totais.resolvidos.toLocaleString("pt-BR")}</td>
                   <td className="px-3 py-3 text-center"><TaxaBadge taxa={statsData.totais.taxaResolucao} /></td>
+                  {statsData.temFiltroRes && (
+                    <td className="px-3 py-3 text-center font-mono font-bold text-blue-300 tabular-nums">
+                      {statsData.totais.producao !== null ? statsData.totais.producao.toLocaleString("pt-BR") : "—"}
+                    </td>
+                  )}
+                  {statsData.temFiltroRes && (
+                    <td className="px-3 py-3 text-center">
+                      {statsData.totais.vazao !== null ? <VazaoBadge vazao={statsData.totais.vazao} /> : <span className="text-gray-500">—</span>}
+                    </td>
+                  )}
                   <td className="px-3 py-3 text-center font-mono font-bold text-gray-200 tabular-nums">{statsData.totais.tmrDias || "—"}</td>
                   <td className="px-3 py-3 text-center font-mono font-bold text-gray-200 tabular-nums">{statsData.totais.tmrHoras || "—"}</td>
                 </tr>

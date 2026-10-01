@@ -183,7 +183,7 @@ export async function GET(request: NextRequest) {
       if (!nome) continue;
       const sit = (c.situacaoRegra || "").toLowerCase();
       const isResolvido = sit.includes("resolvid") || sit.includes("fechad") || sit.includes("cancela");
-      const isPausado   = sit.includes("pausa") || sit.includes("aguardando");
+      const isPausado   = sit === "pausado";
       const key = normName(nome);
       if (isPausado) {
         chamadosPausado.set(key, (chamadosPausado.get(key) ?? 0) + 1);

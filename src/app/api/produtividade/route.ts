@@ -147,29 +147,28 @@ export async function GET(request: NextRequest) {
     }
 
     // ChamadoPowerbi: Em Aberto e Pausados por usuarioAtribuido
-    const chamadoDateWhere: Record<string, unknown> = {
-      NOT: { numero: { contains: " " } }, // filtra linhas inválidas
-    };
-    const abRangeCh: Record<string, Date> = {};
+    // Quando filtro é por Data Resolução → não busca ChamadoPowerbi (abertos não têm data resolução)
+    // Quando filtro é por Data Recebimento → filtra ChamadoPowerbi por dataAbertura
     const temFiltroRec = !!(anoRecebimento || dataRecDe || dataRecAte);
     const temFiltroRes = !!(anoResolucao || dataResDe || dataResAte);
 
+    const chamadoDateWhere: Record<string, unknown> = {
+      NOT: { numero: { contains: " " } },
+    };
+
     if (temFiltroRes) {
-      if (anoResolucao) {
-        abRangeCh.gte = new Date(`${anoResolucao}-01-01T00:00:00Z`);
-        abRangeCh.lt  = new Date(`${Number(anoResolucao) + 1}-01-01T00:00:00Z`);
-      }
-      if (dataResDe)  abRangeCh.gte = new Date(`${dataResDe}T00:00:00Z`);
-      if (dataResAte) abRangeCh.lte = new Date(`${dataResAte}T23:59:59Z`);
+      // Filtro por resolução: Em Aberto não se aplica → busca vazia
+      chamadoDateWhere.id = { lt: 0 }; // retorna 0 registros
     } else if (temFiltroRec) {
+      const abRangeCh: Record<string, Date> = {};
       if (anoRecebimento) {
         abRangeCh.gte = new Date(`${anoRecebimento}-01-01T00:00:00Z`);
         abRangeCh.lt  = new Date(`${Number(anoRecebimento) + 1}-01-01T00:00:00Z`);
       }
       if (dataRecDe)  abRangeCh.gte = new Date(`${dataRecDe}T00:00:00Z`);
       if (dataRecAte) abRangeCh.lte = new Date(`${dataRecAte}T23:59:59Z`);
+      if (Object.keys(abRangeCh).length) chamadoDateWhere.dataAbertura = abRangeCh;
     }
-    if (Object.keys(abRangeCh).length) chamadoDateWhere.dataMovimentacao = abRangeCh;
 
     const chamadosPbi = await prisma.chamadoPowerbi.findMany({
       select: { usuarioAtribuido: true, situacaoRegra: true },

@@ -131,6 +131,16 @@ export async function GET(request: NextRequest) {
     // Condições da query principal (Produtividade por dataMovimentacao)
     const statsConditions: Record<string, unknown>[] = [];
     if (Object.keys(mvRange).length) statsConditions.push({ dataMovimentacao: mvRange });
+    // Quando Data Recebimento E Data Resolução estão ativos juntos, aplica dataResolucao como filtro adicional
+    // (quando só Data Resolução está ativo, o mvRange já usa as mesmas datas como fallback)
+    const hasRecFilter = !!(anoRecebimento || dataRecDe || dataRecAte);
+    if (hasRecFilter && temFiltroRes) {
+      const resRange: Record<string, Date> = {};
+      if (anoResolucao) { resRange.gte = new Date(`${anoResolucao}-01-01T00:00:00Z`); resRange.lt = new Date(`${Number(anoResolucao)+1}-01-01T00:00:00Z`); }
+      if (dataResDe)  resRange.gte = new Date(`${dataResDe}T00:00:00Z`);
+      if (dataResAte) resRange.lte = new Date(`${dataResAte}T23:59:59Z`);
+      if (Object.keys(resRange).length) statsConditions.push({ dataResolucao: resRange });
+    }
     if (equipe) {
       const nomes = nomesDeEquipe(equipe);
       if (nomes.length > 0) statsConditions.push({ OR: nomes.map(n => ({ usuarioFechamento: { contains: n, mode: "insensitive" as const } })) });

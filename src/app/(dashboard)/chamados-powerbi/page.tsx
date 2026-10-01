@@ -234,7 +234,10 @@ export default function ChamadosPowerbiPage() {
                     }`}>
                     <p className="text-xs text-gray-500 mb-0.5 truncate max-w-[200px]" title={cat.categoria}>{cat.categoria}</p>
                     <p className="text-2xl font-bold text-white tabular-nums">{cat.total.toLocaleString("pt-BR")}</p>
-{ativo && <p className="text-xs text-blue-400 mt-1">✓ Filtro ativo</p>}
+                    {getSLA(cat.categoria) !== null && (
+                      <p className="text-xs text-gray-500 mt-1">≥{getSLA(cat.categoria)} dias</p>
+                    )}
+                    {ativo && <p className="text-xs text-blue-400 mt-1">✓ Filtro ativo</p>}
                   </button>
                 );
               })}

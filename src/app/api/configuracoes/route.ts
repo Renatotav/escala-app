@@ -9,6 +9,7 @@ export async function GET(request: NextRequest) {
   });
   const result: Record<string, unknown> = {};
   for (const r of registros) {
+    if (r.chave === "senha_admin") continue;
     try { result[r.chave] = JSON.parse(r.valor); } catch { result[r.chave] = r.valor; }
   }
   return NextResponse.json(result);
@@ -16,6 +17,9 @@ export async function GET(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   const { chave, valor } = await request.json();
+  if (!chave || chave === "senha_admin") {
+    return NextResponse.json({ error: "Chave inválida" }, { status: 400 });
+  }
   const valorStr = typeof valor === "string" ? valor : JSON.stringify(valor);
   await prisma.configuracaoSistema.upsert({
     where: { chave },

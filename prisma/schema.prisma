@@ -300,6 +300,12 @@ model EscalaWhatsapp {
   createdAt     DateTime    @default(now())
 }
 
+model ConfiguracaoSistema {
+  chave     String   @id
+  valor     String
+  updatedAt DateTime @default(now())
+}
+
 model Chamado {
   id                   Int       @id @default(autoincrement())
   referencia           String

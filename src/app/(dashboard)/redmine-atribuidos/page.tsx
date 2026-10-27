@@ -1,6 +1,115 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+
+// ─── Chart helpers ────────────────────────────────────────────────────────────
+
+const CORES_CHART = ["#4f8ef7","#34d399","#fb923c","#a78bfa","#f472b6","#38bdf8","#facc15","#4ade80","#e879f9","#2dd4bf","#fbbf24","#818cf8","#f87171"];
+const CORES_PRAZO = ["#ef4444","#eab308","#22c55e"];
+
+function hexToRgb(hex: string): [number, number, number] {
+  return [parseInt(hex.slice(1,3),16), parseInt(hex.slice(3,5),16), parseInt(hex.slice(5,7),16)];
+}
+
+function desenharDonutPDF(doc: jsPDF, dados: { label: string; value: number; cor?: string }[], total: number, ox: number, oy: number, sz: number, cores?: string[]) {
+  const cx = ox + sz/2, cy = oy + sz/2;
+  const R = sz/2*0.90, ri = sz/2*0.44;
+  const STEPS = 64;
+  let ang = -Math.PI/2;
+  dados.forEach((d, i) => {
+    const frac = d.value / total;
+    const sa = ang, ea = ang + frac * 2 * Math.PI; ang = ea;
+    const steps = Math.max(4, Math.ceil(STEPS * frac));
+    const pts: [number,number][] = [];
+    for (let j = 0; j <= steps; j++) { const a = sa+(ea-sa)*j/steps; pts.push([cx+R*Math.cos(a), cy+R*Math.sin(a)]); }
+    for (let j = steps; j >= 0; j--) { const a = sa+(ea-sa)*j/steps; pts.push([cx+ri*Math.cos(a), cy+ri*Math.sin(a)]); }
+    const palette = cores ?? CORES_CHART;
+    const cor = d.cor ?? palette[i % palette.length];
+    const [r,g,b] = hexToRgb(cor);
+    doc.setFillColor(r,g,b); doc.setDrawColor(255,255,255); doc.setLineWidth(0.35);
+    const lines: [number,number][] = pts.slice(1).map((p,k) => [p[0]-pts[k][0], p[1]-pts[k][1]]);
+    doc.lines(lines, pts[0][0], pts[0][1], [1,1], "FD", true);
+    if (frac >= 0.03) {
+      const ma = sa+(ea-sa)/2, lr = (R+ri)/2;
+      doc.setFontSize(6.5); doc.setTextColor(255,255,255); doc.setFont("helvetica","bold");
+      doc.text(`${(frac*100).toFixed(1)}%`, cx+lr*Math.cos(ma), cy+lr*Math.sin(ma), {align:"center",baseline:"middle"});
+    }
+  });
+  doc.setFillColor(255,255,255); doc.setDrawColor(255,255,255); doc.circle(cx,cy,ri,"F");
+  doc.setFontSize(9); doc.setTextColor(30,41,59); doc.setFont("helvetica","bold");
+  doc.text(total.toLocaleString("pt-BR"), cx, cy-1.5, {align:"center",baseline:"middle"});
+  doc.setFontSize(5); doc.setTextColor(148,163,184); doc.setFont("helvetica","normal");
+  doc.text("ATRIBUIDOS", cx, cy+3.5, {align:"center",baseline:"middle"});
+}
+
+function DonutChart({ itens, cores }: { itens: { label: string; value: number; cor?: string }[]; cores?: string[] }) {
+  const [hover, setHover] = useState<number | null>(null);
+  const total = itens.reduce((s,d) => s+d.value, 0);
+  if (total === 0) return null;
+  const cx=90,cy=90,or_=70,ir=38;
+  const palette = cores ?? CORES_CHART;
+  let ang = -Math.PI/2;
+  const fatias = itens.map((d,i) => {
+    const frac = d.value/total;
+    const sa=ang, ea=ang+frac*2*Math.PI; ang=ea;
+    const ox1=cx+or_*Math.cos(sa),oy1=cy+or_*Math.sin(sa);
+    const ox2=cx+or_*Math.cos(ea),oy2=cy+or_*Math.sin(ea);
+    const ix1=cx+ir*Math.cos(sa),iy1=cy+ir*Math.sin(sa);
+    const ix2=cx+ir*Math.cos(ea),iy2=cy+ir*Math.sin(ea);
+    const large=(ea-sa)>Math.PI?1:0;
+    const path=`M${ox1.toFixed(1)},${oy1.toFixed(1)} A${or_},${or_} 0 ${large} 1 ${ox2.toFixed(1)},${oy2.toFixed(1)} L${ix2.toFixed(1)},${iy2.toFixed(1)} A${ir},${ir} 0 ${large} 0 ${ix1.toFixed(1)},${iy1.toFixed(1)} Z`;
+    const cor = d.cor ?? palette[i%palette.length];
+    return { ...d, path, cor, frac, pct:(frac*100).toFixed(1) };
+  });
+  return (
+    <div className="flex flex-col sm:flex-row items-center gap-6">
+      <svg viewBox="0 0 180 180" className="w-[180px] h-[180px] shrink-0">
+        {fatias.map((f,i) => (
+          <path key={i} d={f.path} fill={f.cor} stroke="#0f172a" strokeWidth="1"
+            opacity={hover===null||hover===i?1:0.45}
+            className="cursor-pointer transition-opacity"
+            onMouseEnter={()=>setHover(i)} onMouseLeave={()=>setHover(null)} />
+        ))}
+        <text x={cx} y={cy-8} textAnchor="middle" fontSize="20" fontWeight="800" fill="white">{total.toLocaleString("pt-BR")}</text>
+        <text x={cx} y={cy+12} textAnchor="middle" fontSize="9" fill="#64748b" letterSpacing="1">ATRIBUIDOS</text>
+      </svg>
+      <div className="flex flex-col gap-2 min-w-0">
+        {fatias.map((f,i) => (
+          <div key={i} className="flex items-center gap-2 cursor-pointer"
+            onMouseEnter={()=>setHover(i)} onMouseLeave={()=>setHover(null)}
+            style={{opacity:hover===null||hover===i?1:0.5}}>
+            <span className="w-3 h-3 rounded-full shrink-0" style={{background:f.cor}} />
+            <span className="text-xs text-gray-300 truncate">{f.label}</span>
+            <span className="text-xs font-bold text-white ml-auto pl-3 shrink-0">{f.value}</span>
+            <span className="text-xs text-gray-500 shrink-0">({f.pct}%)</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function BarrasHorizontais({ itens, total }: { itens: { label: string; value: number; emAtraso?: number }[]; total: number }) {
+  if (itens.length === 0) return null;
+  return (
+    <div className="flex flex-col gap-2">
+      {itens.map((item, i) => (
+        <div key={i} className="flex items-center gap-3">
+          <span className="text-xs text-gray-400 w-28 truncate shrink-0 text-right" title={item.label}>{item.label}</span>
+          <div className="flex-1 bg-gray-800 rounded-full h-4 overflow-hidden">
+            <div className="h-4 rounded-full bg-blue-500 transition-all" style={{width: total > 0 ? `${(item.value/total)*100}%` : "0%"}} />
+          </div>
+          <span className="text-xs font-bold text-white w-6 shrink-0">{item.value}</span>
+          {item.emAtraso !== undefined && item.emAtraso > 0 && (
+            <span className="text-xs text-red-400 shrink-0 w-14">⚠ {item.emAtraso}d</span>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 type Atribuido = {
   id: number;
@@ -123,6 +232,10 @@ export default function RedmineAtribuidosPage() {
   const [filtroDevolverTI, setFiltroDevolverTI] = useState(false);
   const [modalDevolverTI, setModalDevolverTI] = useState(false);
   const [colaboradores, setColaboradores] = useState<{ id: number; nome: string }[]>([]);
+  const [abaVis, setAbaVis] = useState<"lista" | "quantitativo">("lista");
+  const [pdfExporting, setPdfExporting] = useState(false);
+  const [jpegExporting, setJpegExporting] = useState(false);
+  const quantRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetch("/api/colaboradores?all=true")
@@ -298,6 +411,102 @@ export default function RedmineAtribuidosPage() {
     return idsDevolver.has(r.id);
   }
 
+  // ─── Dados quantitativos ─────────────────────────────────────────────────
+  const noPrazo = Math.max(0, totalGeral - emAtrasoTotal - emAtencaoTotal);
+  const donutPrazo = [
+    { label: "Em atraso (>=5d)",  value: emAtrasoTotal, cor: "#ef4444" },
+    { label: "Em atencao (3-5d)", value: emAtencaoTotal, cor: "#eab308" },
+    { label: "No prazo",          value: noPrazo,        cor: "#22c55e" },
+  ].filter(d => d.value > 0);
+
+  const barPessoas = contagemPorPessoa.map(p => ({ label: p.nome, value: p.total, emAtraso: p.emAtraso }));
+
+  // ─── PDF ─────────────────────────────────────────────────────────────────
+  const gerarPDF = useCallback(() => {
+    if (!dados) return;
+    setPdfExporting(true);
+    try {
+      const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+
+      doc.setFont("helvetica", "bold"); doc.setFontSize(16); doc.setTextColor(30,41,59);
+      doc.text("Redmine Atribuidos - Quantitativo", 14, 18);
+      doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(100,116,139);
+      doc.text(`Total: ${totalGeral} atribuidos`, 14, 24);
+      doc.text(`Gerado em: ${new Date().toLocaleString("pt-BR")}`, 14, 29);
+
+      // Cards
+      const cards = [
+        { label: "Total",          value: String(totalGeral),     cor: [30,41,59]  as [number,number,number] },
+        { label: "Em atraso",      value: String(emAtrasoTotal),  cor: [185,28,28] as [number,number,number] },
+        { label: "Em atencao",     value: String(emAtencaoTotal), cor: [161,98,7]  as [number,number,number] },
+        { label: "Para devolver",  value: String(paraDevolver),   cor: [161,98,7]  as [number,number,number] },
+        { label: "Em acomp.",      value: String(emAcompanhamento), cor: [194,65,12] as [number,number,number] },
+      ];
+      const CW=36; const CH=16; let cxC=14;
+      for (const c of cards) {
+        doc.setFillColor(241,245,249); doc.roundedRect(cxC,34,CW,CH,2,2,"F");
+        doc.setFontSize(6); doc.setTextColor(100,116,139); doc.setFont("helvetica","normal");
+        doc.text(c.label, cxC+2, 39);
+        doc.setFontSize(12); doc.setTextColor(...c.cor); doc.setFont("helvetica","bold");
+        doc.text(c.value, cxC+2, 46);
+        cxC += CW+2;
+      }
+
+      // Donut por prazo
+      const SZ=52; const DX=14; const DY=58;
+      doc.setFontSize(10); doc.setTextColor(30,41,59); doc.setFont("helvetica","bold");
+      doc.text("Por prazo", DX, 56);
+      desenharDonutPDF(doc, donutPrazo, totalGeral, DX, DY, SZ, CORES_PRAZO);
+
+      // Legenda prazo
+      let ly = DY+4; const LX=DX+SZ+5;
+      donutPrazo.forEach(item => {
+        const [r2,g2,b2] = hexToRgb(item.cor!);
+        doc.setFillColor(r2,g2,b2); doc.circle(LX,ly,1.8,"F");
+        doc.setFontSize(8); doc.setTextColor(30,41,59); doc.setFont("helvetica","normal");
+        const p = totalGeral>0?`${((item.value/totalGeral)*100).toFixed(1)}%`:"0%";
+        doc.text(`${item.label}: ${item.value} (${p})`, LX+4, ly+1);
+        ly+=8;
+      });
+
+      // Tabela por pessoa
+      const tableY = DY+SZ+8;
+      doc.setFontSize(10); doc.setFont("helvetica","bold"); doc.setTextColor(30,41,59);
+      doc.text("Por responsavel", 14, tableY);
+
+      autoTable(doc, {
+        startY: tableY+3,
+        head: [["#","Responsavel","Chamados","%","Em atraso"]],
+        body: barPessoas.map((p,i) => [
+          String(i+1), p.label, String(p.value),
+          totalGeral>0?`${((p.value/totalGeral)*100).toFixed(1)}%`:"0%",
+          p.emAtraso && p.emAtraso>0 ? `${p.emAtraso}` : "-",
+        ]),
+        styles: { fontSize: 9, textColor: [30,41,59] as [number,number,number] },
+        headStyles: { fillColor: [30,41,59] as [number,number,number], textColor: [255,255,255] as [number,number,number], fontSize: 8 },
+        alternateRowStyles: { fillColor: [241,245,249] as [number,number,number] },
+        columnStyles: { 0:{cellWidth:8}, 2:{halign:"center"}, 3:{halign:"center"}, 4:{halign:"center",textColor:[185,28,28] as [number,number,number]} },
+        margin: { left:14, right:14 },
+        theme: "striped",
+      });
+
+      doc.save("redmine-atribuidos-quantitativo.pdf");
+    } finally { setPdfExporting(false); }
+  }, [dados, donutPrazo, barPessoas, totalGeral, emAtrasoTotal, emAtencaoTotal, paraDevolver, emAcompanhamento]);
+
+  const exportarJPEG = useCallback(async () => {
+    if (!quantRef.current) return;
+    setJpegExporting(true);
+    try {
+      const { default: html2canvas } = await import("html2canvas");
+      const c2 = await html2canvas(quantRef.current, { backgroundColor: "#0f172a", scale: 2, useCORS: true });
+      const a = document.createElement("a");
+      a.href = c2.toDataURL("image/jpeg", 0.92);
+      a.download = "redmine-atribuidos-quantitativo.jpg";
+      a.click();
+    } finally { setJpegExporting(false); }
+  }, []);
+
   return (
     <div>
       <div ref={topScrollRef} className="flex flex-wrap items-start justify-between gap-3 mb-6">
@@ -306,7 +515,19 @@ export default function RedmineAtribuidosPage() {
           <p className="text-sm text-gray-400 mt-0.5">Redmines atribuídos à Coordenadoria de Atendimento</p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          {totalGeral > 0 && (
+          {abaVis === "quantitativo" && dados && (
+            <>
+              <button onClick={gerarPDF} disabled={pdfExporting}
+                className="bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-gray-200 text-sm font-medium px-4 py-2 rounded-lg transition">
+                {pdfExporting ? "Gerando..." : "↓ PDF"}
+              </button>
+              <button onClick={exportarJPEG} disabled={jpegExporting}
+                className="bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-gray-200 text-sm font-medium px-4 py-2 rounded-lg transition">
+                {jpegExporting ? "Exportando..." : "↓ JPEG"}
+              </button>
+            </>
+          )}
+          {abaVis === "lista" && totalGeral > 0 && (
             <>
               <button onClick={exportXLS} disabled={xlsExporting}
                 className="bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-gray-200 text-sm font-medium px-4 py-2 rounded-lg transition">
@@ -325,6 +546,17 @@ export default function RedmineAtribuidosPage() {
         </div>
       </div>
 
+      {/* Tabs Lista / Quantitativo */}
+      <div className="flex gap-1 mb-6">
+        {(["lista","quantitativo"] as const).map(t => (
+          <button key={t} onClick={() => setAbaVis(t)}
+            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition ${abaVis===t?"bg-blue-600 text-white":"bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white"}`}>
+            {t==="lista"?"Lista":"Quantitativo"}
+          </button>
+        ))}
+      </div>
+
+      {abaVis === "lista" && (<>
       <div className="flex items-center gap-3 mb-6 flex-wrap">
         <a href="/redmine-atribuidos/como-funciona" target="_blank" rel="noopener noreferrer"
           className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-blue-900/30 border border-blue-700/40 text-blue-400 hover:bg-blue-800/40 hover:text-blue-300 transition font-medium">
@@ -607,6 +839,65 @@ export default function RedmineAtribuidosPage() {
               Próxima →
             </button>
           </div>
+        </div>
+      )}
+
+      </>)} {/* fim abaVis === "lista" */}
+
+      {/* ─── QUANTITATIVO ─── */}
+      {abaVis === "quantitativo" && (
+        <div ref={quantRef}>
+          {loading ? (
+            <p className="py-12 text-center text-gray-500 text-sm">Carregando...</p>
+          ) : totalGeral === 0 ? (
+            <p className="py-12 text-center text-gray-500 text-sm">Nenhum Redmine atribuído importado ainda.</p>
+          ) : (
+            <>
+              {/* Cards */}
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+                <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+                  <p className="text-xs text-gray-400 mb-1">Total</p>
+                  <p className="text-3xl font-bold text-blue-400">{totalGeral}</p>
+                </div>
+                <div className={`bg-gray-900 rounded-xl p-4 border ${emAtrasoTotal>0?"border-red-700/60":"border-gray-800"}`}>
+                  <p className="text-xs text-gray-400 mb-1">Em atraso (≥5d)</p>
+                  <p className={`text-3xl font-bold ${emAtrasoTotal>0?"text-red-400":"text-white"}`}>{emAtrasoTotal}</p>
+                  {totalGeral>0 && <p className="text-xs text-gray-500 mt-1">{((emAtrasoTotal/totalGeral)*100).toFixed(1)}%</p>}
+                </div>
+                <div className={`bg-gray-900 rounded-xl p-4 border ${emAtencaoTotal>0?"border-yellow-700/60":"border-gray-800"}`}>
+                  <p className="text-xs text-gray-400 mb-1">Em atenção (3-5d)</p>
+                  <p className={`text-3xl font-bold ${emAtencaoTotal>0?"text-yellow-400":"text-white"}`}>{emAtencaoTotal}</p>
+                  {totalGeral>0 && <p className="text-xs text-gray-500 mt-1">{((emAtencaoTotal/totalGeral)*100).toFixed(1)}%</p>}
+                </div>
+                <div className={`bg-gray-900 rounded-xl p-4 border ${paraDevolver>0?"border-yellow-700/60":"border-gray-800"}`}>
+                  <p className="text-xs text-gray-400 mb-1">Para devolver</p>
+                  <p className={`text-3xl font-bold ${paraDevolver>0?"text-yellow-400":"text-white"}`}>{paraDevolver}</p>
+                </div>
+                <div className={`bg-gray-900 rounded-xl p-4 border ${emAcompanhamento>0?"border-orange-700/60":"border-gray-800"}`}>
+                  <p className="text-xs text-gray-400 mb-1">Em acompanhamento</p>
+                  <p className={`text-3xl font-bold ${emAcompanhamento>0?"text-orange-400":"text-white"}`}>{emAcompanhamento}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                {/* Donut por prazo */}
+                {donutPrazo.length > 0 && (
+                  <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+                    <p className="text-sm font-semibold text-white mb-4">Por prazo</p>
+                    <DonutChart itens={donutPrazo} cores={CORES_PRAZO} />
+                  </div>
+                )}
+
+                {/* Barra por responsável */}
+                {barPessoas.length > 0 && (
+                  <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+                    <p className="text-sm font-semibold text-white mb-4">Por responsável</p>
+                    <BarrasHorizontais itens={barPessoas} total={totalGeral} />
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </div>
       )}
 

@@ -361,7 +361,7 @@ export default function ChamadosRedminePage() {
     // Layout: dois donuts lado a lado, cada um com legenda abaixo
     // A4 usável: 182mm. Cada bloco ocupa ~91mm
     const SZ = 68;   // tamanho do donut
-    const CY = 58;   // topo do donut (após os cards)
+    const CY = 70;   // topo do donut (após os cards)
     const LEG_ROW = 6.5;
 
     // ── Donut esquerdo (por equipe) ──

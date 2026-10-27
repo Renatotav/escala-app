@@ -355,16 +355,6 @@ export default function DnpjeMigracaoPage() {
       doc.setFontSize(7.5);doc.setTextColor(60,60,60);doc.setFont("helvetica","bold");
       doc.text("Por equipe",LX+SZ/2,CY-2,{align:"center"});
       desenharDonutPDF(doc,donutItens,donutTotal,LX,CY,SZ);
-      let legY=CY+SZ+5;
-      donutItens.forEach((d,i)=>{
-        const [r,g,b]=hexToRgb(CORES_CHART[i%CORES_CHART.length]);
-        doc.setFillColor(r,g,b);doc.rect(LX,legY-2.5,3,3,"F");
-        const pct=((d.value/donutTotal)*100).toFixed(1);
-        doc.setFontSize(6.5);doc.setTextColor(40,40,40);doc.setFont("helvetica","normal");
-        const lbl=d.label.length>28?d.label.slice(0,26)+"...":d.label;
-        doc.text(`${lbl}  ${d.value.toLocaleString("pt-BR")} (${pct}%)`,LX+4.5,legY);
-        legY+=LEG_ROW;
-      });
     }
 
     // Donut direito: por prazo
@@ -373,15 +363,6 @@ export default function DnpjeMigracaoPage() {
       doc.setFontSize(7.5);doc.setTextColor(60,60,60);doc.setFont("helvetica","bold");
       doc.text("Por prazo",RX+SZ/2,CY-2,{align:"center"});
       desenharDonutPDF(doc,prazoItens,prazoTotal,RX,CY,SZ,CORES_PRAZO);
-      let legY2=CY+SZ+5;
-      prazoItens.forEach((d,i)=>{
-        const [r,g,b]=hexToRgb(CORES_PRAZO[i%CORES_PRAZO.length]);
-        doc.setFillColor(r,g,b);doc.rect(RX,legY2-2.5,3,3,"F");
-        const pct=((d.value/prazoTotal)*100).toFixed(1);
-        doc.setFontSize(6.5);doc.setTextColor(40,40,40);doc.setFont("helvetica","normal");
-        doc.text(`${d.label}  ${d.value.toLocaleString("pt-BR")} (${pct}%)`,RX+4.5,legY2);
-        legY2+=LEG_ROW;
-      });
     }
 
     doc.save(`dnpje-migracao-quantitativo-${new Date().toISOString().slice(0,10)}.pdf`);

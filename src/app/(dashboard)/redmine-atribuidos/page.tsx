@@ -4,6 +4,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
+// Remove emoji e chars fora do Latin-1 (jsPDF Helvetica não suporta)
+function pdfSafe(s: string) {
+  return s.replace(/[^\x00-\xFF]/g, "").replace(/\s+/g, " ").trim();
+}
+
 // ─── Chart helpers ────────────────────────────────────────────────────────────
 
 const CORES_CHART = ["#4f8ef7","#34d399","#fb923c","#a78bfa","#f472b6","#38bdf8","#facc15","#4ade80","#e879f9","#2dd4bf","#fbbf24","#818cf8","#f87171"];
@@ -478,7 +483,7 @@ export default function RedmineAtribuidosPage() {
         startY: tableY+3,
         head: [["#","Responsavel","Chamados","%","Em atraso"]],
         body: barPessoas.map((p,i) => [
-          String(i+1), p.label, String(p.value),
+          String(i+1), pdfSafe(p.label), String(p.value),
           totalGeral>0?`${((p.value/totalGeral)*100).toFixed(1)}%`:"0%",
           p.emAtraso && p.emAtraso>0 ? `${p.emAtraso}` : "-",
         ]),

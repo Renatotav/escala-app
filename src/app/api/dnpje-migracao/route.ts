@@ -12,6 +12,7 @@ export async function GET(request: NextRequest) {
   const busca = searchParams.get("busca")?.trim() || null;
   const filtro = searchParams.get("filtro") || null; // "atraso" | "atencao"
   const exportAll = searchParams.get("export") === "1";
+  const statsOnly = searchParams.get("stats") === "1";
 
   const d50 = new Date(Date.now() - 50 * 86400000);
   const d30 = new Date(Date.now() - 30 * 86400000);
@@ -23,6 +24,24 @@ export async function GET(request: NextRequest) {
     prisma.dnpjeMigracao.count({ where: { ...VALIDO, dataAbertura: { gte: d50, lt: d30 } } }),
     prisma.dnpjeMigracao.aggregate({ where: VALIDO, _min: { dataAbertura: true }, _max: { dataAbertura: true } }),
   ]);
+
+  if (statsOnly) {
+    const porEquipeRaw = await prisma.dnpjeMigracao.groupBy({
+      by: ["equipeAtribuida"],
+      where: VALIDO,
+      _count: { _all: true },
+      orderBy: { _count: { equipeAtribuida: "desc" } },
+    });
+    const porEquipe = porEquipeRaw.map(r => ({
+      equipe: r.equipeAtribuida ?? "(Sem equipe)",
+      total: r._count._all,
+    }));
+    return NextResponse.json({
+      total: totalValidos, totalValidos, totalAtraso, totalAtencao, porEquipe,
+      periodoMin: range._min.dataAbertura?.toISOString() ?? null,
+      periodoMax: range._max.dataAbertura?.toISOString() ?? null,
+    });
+  }
 
   // Monta where para listagem
   const conditions: Record<string, unknown>[] = [VALIDO];

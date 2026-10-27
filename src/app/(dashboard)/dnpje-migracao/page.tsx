@@ -384,23 +384,6 @@ export default function DnpjeMigracaoPage() {
       });
     }
 
-    const y = CY + SZ + 20 + prazoItens.length * LEG_ROW;
-
-    autoTable(doc,{
-      startY:y,
-      head:[["#","Equipe","Chamados","%"]],
-      body:equipesExp.map((e,i)=>[
-        String(i+1),e.equipe,
-        e.total.toLocaleString("pt-BR"),
-        `${((e.total/(stats.total||1))*100).toFixed(1)}%`,
-      ]),
-      columnStyles:{0:{cellWidth:12,halign:"center"},2:{cellWidth:28,halign:"right"},3:{cellWidth:18,halign:"right"}},
-      headStyles:{fillColor:[30,41,59],textColor:[200,200,220],fontStyle:"bold",fontSize:9},
-      bodyStyles:{fontSize:8.5,textColor:[40,40,40]},
-      alternateRowStyles:{fillColor:[248,250,252]},
-      margin:{left:14,right:14},
-    });
-
     doc.save(`dnpje-migracao-quantitativo-${new Date().toISOString().slice(0,10)}.pdf`);
   }
 

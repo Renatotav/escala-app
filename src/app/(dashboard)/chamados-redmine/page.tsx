@@ -152,7 +152,14 @@ function DonutChart({ itens, onSelect, selecionado, cores }: {
   return (
     <div className="flex flex-col gap-4">
       <svg viewBox="0 0 300 300" className="w-full max-w-[260px] mx-auto">
-        {fatias.map((f,i) => (
+        {fatias.length === 1 ? (
+          <>
+            <circle cx={cx} cy={cy} r={or_} fill={fatias[0].cor} stroke="#0f172a" strokeWidth="1.5"
+              className={onSelect?"cursor-pointer hover:brightness-110 transition-all":""}
+              onClick={() => onSelect?.(fatias[0].label===selecionado?"":fatias[0].label)} />
+            <circle cx={cx} cy={cy} r={ir} fill="#0f172a" />
+          </>
+        ) : fatias.map((f,i) => (
           <path key={i} d={f.path} fill={f.cor} stroke="#0f172a" strokeWidth="1.5"
             style={f.sel?{filter:"brightness(1.25) drop-shadow(0 0 6px rgba(255,255,255,0.25))"}:{}}
             className={onSelect?"cursor-pointer hover:brightness-110 transition-all":""}
@@ -345,10 +352,27 @@ export default function ChamadosRedminePage() {
     ].filter(d => d.value > 0);
     const prazoTotal = stats.total;
 
+    // Cards métricas
+    const CARD_W=43, CARD_H=18, CARD_Y=35, CARD_GAP=2;
+    const metCards = [
+      { label: "Total",              value: stats.total,         cor: [59,130,246] as [number,number,number] },
+      { label: "Em atraso (>=50d)",  value: stats.totalAtraso,   cor: [239,68,68]  as [number,number,number] },
+      { label: "Em atencao (30-50d)",value: stats.totalAtencao,  cor: [234,179,8]  as [number,number,number] },
+      { label: "No prazo",           value: noPrazo,             cor: [34,197,94]  as [number,number,number] },
+    ];
+    metCards.forEach((c, i) => {
+      const cx = 14 + i*(CARD_W+CARD_GAP);
+      doc.setFillColor(241,245,249); doc.roundedRect(cx, CARD_Y, CARD_W, CARD_H, 2, 2, "F");
+      doc.setFontSize(6); doc.setTextColor(100,116,139); doc.setFont("helvetica","normal");
+      doc.text(c.label, cx+3, CARD_Y+5);
+      doc.setFontSize(13); doc.setFont("helvetica","bold"); doc.setTextColor(c.cor[0],c.cor[1],c.cor[2]);
+      doc.text(c.value.toLocaleString("pt-BR"), cx+3, CARD_Y+14);
+    });
+
     // Layout: dois donuts lado a lado, cada um com legenda abaixo
     // A4 usável: 182mm. Cada bloco ocupa ~91mm
     const SZ = 68;   // tamanho do donut
-    const CY = 38;   // topo do donut
+    const CY = 58;   // topo do donut (após os cards)
     const LEG_ROW = 6.5;
 
     // ── Donut esquerdo (por equipe) ──

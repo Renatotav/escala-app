@@ -145,7 +145,14 @@ function DonutChart({ itens, onSelect, selecionado }: {
   return (
     <div className="flex flex-col gap-4">
       <svg viewBox="0 0 300 300" className="w-full max-w-[260px] mx-auto">
-        {fatias.map((f,i)=>(
+        {fatias.length === 1 ? (
+          <>
+            <circle cx={cx} cy={cy} r={or_} fill={fatias[0].cor} stroke="#0f172a" strokeWidth="1.5"
+              className={onSelect?"cursor-pointer hover:brightness-110 transition-all":""}
+              onClick={()=>onSelect?.(fatias[0].label===selecionado?"":fatias[0].label)}/>
+            <circle cx={cx} cy={cy} r={ir} fill="#0f172a" />
+          </>
+        ) : fatias.map((f,i)=>(
           <path key={i} d={f.path} fill={f.cor} stroke="#0f172a" strokeWidth="1.5"
             style={f.sel?{filter:"brightness(1.25) drop-shadow(0 0 6px rgba(255,255,255,0.25))"}:{}}
             className={onSelect?"cursor-pointer hover:brightness-110 transition-all":""}

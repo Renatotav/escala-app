@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
   const d50 = new Date(Date.now() - 50 * 86400000);
   const d30 = new Date(Date.now() - 30 * 86400000);
 
-  const [totalValidos, range, porCategoria, totalAtraso, totalAtencao] = await Promise.all([
+  const [totalValidos, range, porCategoria, totalAtraso, totalAtencao, importAgg] = await Promise.all([
     prisma.chamadoPowerbi.count({ where: VALIDO }),
     prisma.chamadoPowerbi.aggregate({ where: VALIDO, _min: { dataAbertura: true }, _max: { dataAbertura: true } }),
     prisma.chamadoPowerbi.groupBy({
@@ -25,6 +25,7 @@ export async function GET(request: NextRequest) {
     }),
     prisma.chamadoPowerbi.count({ where: { ...VALIDO, dataAbertura: { lt: d50 } } }),
     prisma.chamadoPowerbi.count({ where: { ...VALIDO, dataAbertura: { gte: d50, lt: d30 } } }),
+    prisma.chamadoPowerbi.aggregate({ _max: { createdAt: true } }),
   ]);
 
   const conditions: Record<string, unknown>[] = [VALIDO];
@@ -38,6 +39,7 @@ export async function GET(request: NextRequest) {
     totalAtencao,
     periodoMin: range._min.dataAbertura?.toISOString() ?? null,
     periodoMax: range._max.dataAbertura?.toISOString() ?? null,
+    ultimaImportacao: importAgg._max.createdAt?.toISOString() ?? null,
     porCategoria: porCategoria.map(g => ({
       categoria: g.equipeAtribuida ?? "—",
       total: g._count.id,

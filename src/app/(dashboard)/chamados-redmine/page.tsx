@@ -25,6 +25,7 @@ type Dados = {
   totalAtencao: number;
   periodoMin: string | null;
   periodoMax: string | null;
+  ultimaImportacao: string | null;
 };
 
 type EquipeStats = { equipe: string; total: number };
@@ -36,6 +37,7 @@ type DadosStats = {
   totalAtencao: number;
   periodoMin: string | null;
   periodoMax: string | null;
+  ultimaImportacao: string | null;
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -564,6 +566,14 @@ export default function ChamadosRedminePage() {
                   {dados.periodoMin ? fmtDateTime(dados.periodoMin).slice(0,10) : "—"} → {dados.periodoMax ? fmtDateTime(dados.periodoMax).slice(0,10) : "—"}
                 </p>
               </div>
+              {dados.ultimaImportacao && (
+                <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+                  <p className="text-xs text-gray-400 mb-1">Atualizado em</p>
+                  <p className="text-xs font-medium text-gray-300 mt-2">
+                    {new Date(dados.ultimaImportacao).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}
+                  </p>
+                </div>
+              )}
             </div>
           )}
 

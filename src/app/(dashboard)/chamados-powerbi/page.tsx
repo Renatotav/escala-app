@@ -28,16 +28,17 @@ type Dados = {
   totalAtencao: number;
   periodoMin: string | null;
   periodoMax: string | null;
+  ultimaImportacao: string | null;
   porCategoria: CategoriaStats[];
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const SLA_RULES = [
-  { keyword: "Cadastro",      days: 2  },
-  { keyword: "Migração",      days: 15 },
-  { keyword: "Orientação",    days: 5  },
-  { keyword: "Erro e Falha", days: 5  },
+  { keyword: "Cadastro",   display: "Cadastro",    days: 2  },
+  { keyword: "Migra",      display: "Migração",    days: 15 },
+  { keyword: "Orienta",    display: "Orientação",  days: 5  },
+  { keyword: "Erro",       display: "Erro e Falha",days: 5  },
 ];
 
 function getSLA(equipeAtribuida: string | null): number | null {
@@ -519,7 +520,7 @@ export default function ChamadosPowerbiPage() {
                   const ativo = filtroCategoria === cat.categoria;
                   const sla = getSLA(cat.categoria);
                   const tipoMatch = SLA_RULES.find(r => cat.categoria.toLowerCase().includes(r.keyword.toLowerCase()));
-                  const label = tipoMatch ? tipoMatch.keyword : cat.categoria;
+                  const label = tipoMatch ? tipoMatch.display : cat.categoria;
                   const colorMap: Record<string, string> = {
                     "Erro e Falha": "border-t-red-500",
                     Cadastro:        "border-t-sky-500",
@@ -532,7 +533,7 @@ export default function ChamadosPowerbiPage() {
                     Orientação:      "text-green-400",
                     Migração:        "text-orange-400",
                   };
-                  const accent = Object.keys(colorMap).find(k => cat.categoria.includes(k)) ?? "";
+                  const accent = tipoMatch?.display ?? "";
                   return (
                     <button key={cat.categoria} onClick={() => toggleCategoria(cat.categoria)} title={cat.categoria}
                       className={`rounded-xl px-4 py-4 border text-left transition min-w-[150px] border-t-2 ${
@@ -555,6 +556,14 @@ export default function ChamadosPowerbiPage() {
                   </p>
                   <p className="text-xs text-gray-500">→ {dados.periodoMax ? fmtDateTime(dados.periodoMax).slice(0,10) : "—"}</p>
                 </div>
+                {dados.ultimaImportacao && (
+                  <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 min-w-[150px] border-t-2 border-t-blue-600">
+                    <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">Atualizado em</p>
+                    <p className="text-xs font-medium text-gray-300">
+                      {new Date(dados.ultimaImportacao).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}
+                    </p>
+                  </div>
+                )}
               </div>
 
               {temFiltro && (
@@ -681,6 +690,14 @@ export default function ChamadosPowerbiPage() {
                     {dados.periodoMin ? fmtDateTime(dados.periodoMin).slice(0,10) : "—"} → {dados.periodoMax ? fmtDateTime(dados.periodoMax).slice(0,10) : "—"}
                   </p>
                 </div>
+                {dados.ultimaImportacao && (
+                  <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+                    <p className="text-xs text-gray-400 mb-1">Atualizado em</p>
+                    <p className="text-sm font-medium text-blue-400 mt-1">
+                      {new Date(dados.ultimaImportacao).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

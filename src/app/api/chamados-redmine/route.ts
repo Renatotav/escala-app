@@ -18,11 +18,12 @@ export async function GET(request: NextRequest) {
   const d30 = new Date(Date.now() - 30 * 86400000);
 
   // Stats sempre com base nos válidos (sem filtro de data ou busca)
-  const [totalValidos, totalAtraso, totalAtencao, range] = await Promise.all([
+  const [totalValidos, totalAtraso, totalAtencao, range, importAgg] = await Promise.all([
     prisma.chamadoRedmine.count({ where: VALIDO }),
     prisma.chamadoRedmine.count({ where: { ...VALIDO, dataAbertura: { lt: d50 } } }),
     prisma.chamadoRedmine.count({ where: { ...VALIDO, dataAbertura: { gte: d50, lt: d30 } } }),
     prisma.chamadoRedmine.aggregate({ where: VALIDO, _min: { dataAbertura: true }, _max: { dataAbertura: true } }),
+    prisma.chamadoRedmine.aggregate({ _max: { createdAt: true } }),
   ]);
 
   if (statsOnly) {
@@ -40,6 +41,7 @@ export async function GET(request: NextRequest) {
       total: totalValidos, totalValidos, totalAtraso, totalAtencao, porEquipe,
       periodoMin: range._min.dataAbertura?.toISOString() ?? null,
       periodoMax: range._max.dataAbertura?.toISOString() ?? null,
+      ultimaImportacao: importAgg._max.createdAt?.toISOString() ?? null,
     });
   }
 
@@ -56,6 +58,7 @@ export async function GET(request: NextRequest) {
     totalAtencao,
     periodoMin: range._min.dataAbertura?.toISOString() ?? null,
     periodoMax: range._max.dataAbertura?.toISOString() ?? null,
+    ultimaImportacao: importAgg._max.createdAt?.toISOString() ?? null,
   };
 
   if (exportAll) {

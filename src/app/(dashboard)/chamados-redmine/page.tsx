@@ -337,54 +337,58 @@ export default function ChamadosRedminePage() {
     const donutItens = equipesExp.map(e => ({ label: e.equipe, value: e.total }));
     const donutTotal = donutItens.reduce((s,d)=>s+d.value, 0);
 
-    // Donut de prazo
     const noPrazo = Math.max(0, stats.total - stats.totalAtraso - stats.totalAtencao);
     const prazoItens = [
-      { label: "Em atraso (≥50d)",   value: stats.totalAtraso },
+      { label: "Em atraso (≥50d)",    value: stats.totalAtraso },
       { label: "Em atenção (30-50d)", value: stats.totalAtencao },
-      { label: "No prazo",            value: noPrazo },
+      { label: "No prazo",             value: noPrazo },
     ].filter(d => d.value > 0);
     const prazoTotal = stats.total;
 
-    let y = 37;
-    const chartSz = 72;
-    const chartY = 36;
+    // Layout: dois donuts lado a lado, cada um com legenda abaixo
+    // A4 usável: 182mm. Cada bloco ocupa ~91mm
+    const SZ = 68;   // tamanho do donut
+    const CY = 38;   // topo do donut
+    const LEG_ROW = 6.5;
 
-    // Donut esquerdo: por equipe
+    // ── Donut esquerdo (por equipe) ──
+    const LX = 14;
     if (donutTotal > 0) {
-      const chartX = 14;
-      doc.setFontSize(7); doc.setTextColor(80,80,80); doc.setFont("helvetica","bold");
-      doc.text("Por equipe", chartX + chartSz/2, chartY - 2, {align:"center"});
-      desenharDonutPDF(doc, donutItens, donutTotal, chartX, chartY, chartSz);
-      const legX = chartX + chartSz + 3; let legY = chartY + 5;
+      doc.setFontSize(7.5); doc.setTextColor(60,60,60); doc.setFont("helvetica","bold");
+      doc.text("Por equipe", LX + SZ/2, CY - 2, {align:"center"});
+      desenharDonutPDF(doc, donutItens, donutTotal, LX, CY, SZ);
+      let legY = CY + SZ + 5;
       donutItens.forEach((d,i) => {
         const [r,g,b] = hexToRgb(CORES_CHART[i%CORES_CHART.length]);
-        doc.setFillColor(r,g,b); doc.rect(legX, legY-2.8, 3.5, 3.5, "F");
+        doc.setFillColor(r,g,b); doc.rect(LX, legY-2.5, 3, 3, "F");
         const pct = ((d.value/donutTotal)*100).toFixed(1);
         doc.setFontSize(6.5); doc.setTextColor(40,40,40); doc.setFont("helvetica","normal");
-        doc.text(`${d.label}  ${d.value.toLocaleString("pt-BR")} (${pct}%)`, legX+4.8, legY);
-        legY += 6;
+        // truncate long names
+        const lbl = d.label.length > 28 ? d.label.slice(0,26)+"…" : d.label;
+        doc.text(`${lbl}  ${d.value.toLocaleString("pt-BR")} (${pct}%)`, LX+4.5, legY);
+        legY += LEG_ROW;
       });
     }
 
-    // Donut direito: por prazo
+    // ── Donut direito (por prazo) ──
+    const RX = 112;
     if (prazoTotal > 0) {
-      const chartX2 = 113;
-      doc.setFontSize(7); doc.setTextColor(80,80,80); doc.setFont("helvetica","bold");
-      doc.text("Por prazo", chartX2 + chartSz/2, chartY - 2, {align:"center"});
-      desenharDonutPDF(doc, prazoItens, prazoTotal, chartX2, chartY, chartSz, CORES_PRAZO);
-      const legX2 = chartX2 + chartSz + 3; let legY2 = chartY + 5;
+      doc.setFontSize(7.5); doc.setTextColor(60,60,60); doc.setFont("helvetica","bold");
+      doc.text("Por prazo", RX + SZ/2, CY - 2, {align:"center"});
+      desenharDonutPDF(doc, prazoItens, prazoTotal, RX, CY, SZ, CORES_PRAZO);
+      let legY2 = CY + SZ + 5;
       prazoItens.forEach((d,i) => {
         const [r,g,b] = hexToRgb(CORES_PRAZO[i%CORES_PRAZO.length]);
-        doc.setFillColor(r,g,b); doc.rect(legX2, legY2-2.8, 3.5, 3.5, "F");
+        doc.setFillColor(r,g,b); doc.rect(RX, legY2-2.5, 3, 3, "F");
         const pct = ((d.value/prazoTotal)*100).toFixed(1);
         doc.setFontSize(6.5); doc.setTextColor(40,40,40); doc.setFont("helvetica","normal");
-        doc.text(`${d.label}  ${d.value.toLocaleString("pt-BR")} (${pct}%)`, legX2+4.8, legY2);
-        legY2 += 6;
+        doc.text(`${d.label}  ${d.value.toLocaleString("pt-BR")} (${pct}%)`, RX+4.5, legY2);
+        legY2 += LEG_ROW;
       });
     }
 
-    y = chartY + chartSz + 10;
+    // y após os dois blocos (donut 68mm + ~20mm legenda prazo = ~90)
+    let y = CY + SZ + 20 + prazoItens.length * LEG_ROW;
 
     autoTable(doc, {
       startY: y,

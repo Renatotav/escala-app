@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 type Resolvido = {
   id: number;
@@ -146,75 +148,48 @@ function DonutChart({ itens, cores }: { itens: DonutItem[]; cores?: string[] }) 
   );
 }
 
-// ─── Desenha donut no canvas do jsPDF ──────────────────────────────────────
+// ─── Helpers PDF ───────────────────────────────────────────────────────────
+function hexToRgb(hex: string): [number, number, number] {
+  return [parseInt(hex.slice(1,3),16), parseInt(hex.slice(3,5),16), parseInt(hex.slice(5,7),16)];
+}
+
 function desenharDonutPDF(
-  doc: { setFillColor: (r: number, g: number, b: number) => void; circle: (x: number, y: number, r: number, style: string) => void },
+  doc: jsPDF,
   itens: DonutItem[],
-  cx: number, cy: number, R: number, IR: number,
+  ox: number, oy: number, sz: number,
   cores?: string[],
 ) {
   const total = itens.reduce((s, d) => s + d.value, 0);
   if (total === 0) return;
-
-  function hexToRgb(hex: string) {
-    const h = hex.replace("#", "");
-    return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)] as [number,number,number];
-  }
-
-  function arc(ctx: CanvasRenderingContext2D, cx2: number, cy2: number, r: number, start: number, end: number, ccw = false) {
-    ctx.arc(cx2, cy2, r, start, end, ccw);
-  }
-
-  // jsPDF não suporta arco SVG nativo — usamos canvas via jsPDF interno
-  // Estratégia: usar doc.internal.write para SVG path não funciona direto
-  // Usamos círculos coloridos com "setor" via trapézios aproximados com muitos segmentos
+  const cx = ox + sz / 2, cy = oy + sz / 2;
+  const R = sz / 2 * 0.90, ri = sz / 2 * 0.44;
+  const STEPS = 64;
   let ang = -Math.PI / 2;
-  const STEPS = 60;
   itens.forEach((d, i) => {
     const frac = d.value / total;
-    const startAng = ang;
-    ang += frac * 2 * Math.PI;
-    const endAng = ang;
-    const cor = d.cor ?? (cores?.[i] ?? CORES_DEFAULT[i % CORES_DEFAULT.length]);
-    const [r2, g2, b2] = hexToRgb(cor);
-    doc.setFillColor(r2, g2, b2);
-
-    // Desenha como polígono de muitos pontos
+    const sa = ang, ea = ang + frac * 2 * Math.PI;
+    ang = ea;
+    const steps = Math.max(4, Math.ceil(STEPS * frac));
     const pts: [number, number][] = [];
-    const steps = Math.max(3, Math.round(STEPS * frac));
-    for (let s = 0; s <= steps; s++) {
-      const a = startAng + (endAng - startAng) * (s / steps);
-      pts.push([cx + R * Math.cos(a), cy + R * Math.sin(a)]);
-    }
-    for (let s = steps; s >= 0; s--) {
-      const a = startAng + (endAng - startAng) * (s / steps);
-      pts.push([cx + IR * Math.cos(a), cy + IR * Math.sin(a)]);
-    }
-
-    // usa lines para desenhar polígono
-    const jspdfDoc = doc as unknown as {
-      lines: (lines: [number, number, number, number, number, number][] | [number, number][], x: number, y: number, scale: [number, number], style: string, closed: boolean) => void;
-      triangle: (x1: number, y1: number, x2: number, y2: number, x3: number, y3: number, style: string) => void;
-      setDrawColor: (r: number, g: number, b: number) => void;
-    };
-    jspdfDoc.setDrawColor(r2, g2, b2);
-
-    // Desenha triângulos (fan) do centro IR → outer arc
-    for (let s = 0; s < steps; s++) {
-      const a1 = startAng + (endAng - startAng) * (s / steps);
-      const a2 = startAng + (endAng - startAng) * ((s + 1) / steps);
-      const ox1 = cx + R * Math.cos(a1); const oy1 = cy + R * Math.sin(a1);
-      const ox2 = cx + R * Math.cos(a2); const oy2 = cy + R * Math.sin(a2);
-      const ix1 = cx + IR * Math.cos(a1); const iy1 = cy + IR * Math.sin(a1);
-      const ix2 = cx + IR * Math.cos(a2); const iy2 = cy + IR * Math.sin(a2);
-      jspdfDoc.triangle(ox1, oy1, ox2, oy2, ix1, iy1, "F");
-      jspdfDoc.triangle(ox2, oy2, ix2, iy2, ix1, iy1, "F");
+    for (let j = 0; j <= steps; j++) { const a = sa + (ea - sa) * j / steps; pts.push([cx + R * Math.cos(a), cy + R * Math.sin(a)]); }
+    for (let j = steps; j >= 0; j--) { const a = sa + (ea - sa) * j / steps; pts.push([cx + ri * Math.cos(a), cy + ri * Math.sin(a)]); }
+    const palette = cores ?? CORES_DEFAULT;
+    const cor = d.cor ?? palette[i % palette.length];
+    const [r2, g2, b2] = hexToRgb(cor);
+    doc.setFillColor(r2, g2, b2); doc.setDrawColor(255, 255, 255); doc.setLineWidth(0.35);
+    const lines: [number, number][] = pts.slice(1).map((p, k) => [p[0] - pts[k][0], p[1] - pts[k][1]]);
+    doc.lines(lines, pts[0][0], pts[0][1], [1, 1], "FD", true);
+    if (frac >= 0.03) {
+      const ma = sa + (ea - sa) / 2, lr = (R + ri) / 2;
+      doc.setFontSize(7); doc.setTextColor(255, 255, 255); doc.setFont("helvetica", "bold");
+      doc.text(`${(frac * 100).toFixed(1)}%`, cx + lr * Math.cos(ma), cy + lr * Math.sin(ma), { align: "center", baseline: "middle" });
     }
   });
-
-  // Buraco central branco
-  doc.setFillColor(30, 41, 59); // bg escuro
-  doc.circle(cx, cy, IR - 0.5, "F");
+  doc.setFillColor(255, 255, 255); doc.setDrawColor(255, 255, 255); doc.circle(cx, cy, ri, "F");
+  doc.setFontSize(10); doc.setTextColor(30, 41, 59); doc.setFont("helvetica", "bold");
+  doc.text(String(total), cx, cy - 1.5, { align: "center", baseline: "middle" });
+  doc.setFontSize(5.5); doc.setTextColor(148, 163, 184); doc.setFont("helvetica", "normal");
+  doc.text("TOTAL", cx, cy + 4, { align: "center", baseline: "middle" });
 }
 
 export default function RedmineResolvidosPage() {
@@ -308,12 +283,10 @@ export default function RedmineResolvidosPage() {
   ].filter(d => d.value > 0);
 
   // ─── PDF ─────────────────────────────────────────────────────────────────
-  const gerarPDF = useCallback(async () => {
+  const gerarPDF = useCallback(() => {
     if (!dados) return;
     setPdfExporting(true);
     try {
-      const { jsPDF } = await import("jspdf");
-      await import("jspdf-autotable");
       const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
 
       doc.setFillColor(15, 23, 42);
@@ -331,68 +304,60 @@ export default function RedmineResolvidosPage() {
 
       // Cards resumo
       const cards = [
-        { label: "Total Redmine",            value: String(totalRedmine),    cor: [255,255,255] as [number,number,number] },
-        { label: "Resolvidos",               value: String(qtdResolvidos),   cor: [34,197,94]  as [number,number,number] },
-        { label: "Aguardando encerramento",  value: String(qtdAguardando),   cor: [234,179,8]  as [number,number,number] },
-        { label: "Nao resolvidos",           value: String(qtdNaoResolvidos),cor: [239,68,68]  as [number,number,number] },
+        { label: "Total Redmine",           value: String(totalRedmine),     cor: [255,255,255] as [number,number,number] },
+        { label: "Resolvidos",              value: String(qtdResolvidos),    cor: [34,197,94]   as [number,number,number] },
+        { label: "Aguardando",              value: String(qtdAguardando),    cor: [234,179,8]   as [number,number,number] },
+        { label: "Nao resolvidos",          value: String(qtdNaoResolvidos), cor: [239,68,68]   as [number,number,number] },
       ];
-      const CW = 43; const CH = 18; let cx2 = 14;
+      const CW = 43; const CH = 18; let cxCard = 14;
       for (const c of cards) {
         doc.setFillColor(30, 41, 59);
-        doc.roundedRect(cx2, 30, CW, CH, 2, 2, "F");
-        doc.setFontSize(7); doc.setTextColor(156,163,175); doc.setFont("helvetica","normal");
-        doc.text(c.label, cx2 + 3, 36);
-        doc.setFontSize(14); doc.setTextColor(...c.cor); doc.setFont("helvetica","bold");
-        doc.text(c.value, cx2 + 3, 44);
-        cx2 += CW + 3;
+        doc.roundedRect(cxCard, 30, CW, CH, 2, 2, "F");
+        doc.setFontSize(7); doc.setTextColor(156, 163, 175); doc.setFont("helvetica", "normal");
+        doc.text(c.label, cxCard + 3, 36);
+        doc.setFontSize(14); doc.setTextColor(...c.cor); doc.setFont("helvetica", "bold");
+        doc.text(c.value, cxCard + 3, 44);
+        cxCard += CW + 3;
       }
 
       // Donut
-      const CX = 60; const CY = 90; const R = 28; const IR = 14;
-      doc.setFontSize(10); doc.setTextColor(255,255,255); doc.setFont("helvetica","bold");
-      doc.text("Distribuicao dos Redmines", 14, 58);
-      desenharDonutPDF(doc, donutItens, CX, CY, R, IR);
+      const SZ = 56; const DX = 14; const DY = 55;
+      doc.setFontSize(10); doc.setTextColor(255, 255, 255); doc.setFont("helvetica", "bold");
+      doc.text("Distribuicao dos Redmines", 14, 53);
+      desenharDonutPDF(doc, donutItens, DX, DY, SZ);
 
-      // Total no centro
-      doc.setFontSize(10); doc.setFont("helvetica","bold"); doc.setTextColor(255,255,255);
-      doc.text(String(totalRedmine), CX, CY - 2, { align: "center" });
-      doc.setFontSize(7); doc.setFont("helvetica","normal"); doc.setTextColor(156,163,175);
-      doc.text("total", CX, CY + 4, { align: "center" });
-
-      // Legenda do donut
-      const CORES_DONUT = ["#22c55e","#eab308","#ef4444"];
-      let ly = CY - R + 2;
-      const LX2 = CX + R + 8;
-      donutItens.forEach((item, i) => {
-        const hex = item.cor ?? CORES_DONUT[i];
-        const [r2,g2,b2] = [parseInt(hex.slice(1,3),16), parseInt(hex.slice(3,5),16), parseInt(hex.slice(5,7),16)];
-        doc.setFillColor(r2,g2,b2);
-        doc.circle(LX2, ly, 2, "F");
-        doc.setFontSize(8); doc.setTextColor(220,220,220); doc.setFont("helvetica","normal");
-        doc.text(`${item.label}: ${item.value} (${totalRedmine > 0 ? ((item.value/totalRedmine)*100).toFixed(1) : "0"}%)`, LX2 + 4, ly + 1);
+      // Legenda ao lado do donut
+      const LX = DX + SZ + 6;
+      let ly = DY + 6;
+      donutItens.forEach((item) => {
+        const [r2, g2, b2] = hexToRgb(item.cor ?? "#6366f1");
+        doc.setFillColor(r2, g2, b2);
+        doc.circle(LX, ly, 2, "F");
+        doc.setFontSize(8); doc.setTextColor(220, 220, 220); doc.setFont("helvetica", "normal");
+        const pct2 = totalRedmine > 0 ? `${((item.value / totalRedmine) * 100).toFixed(1)}%` : "0%";
+        doc.text(`${item.label}: ${item.value} (${pct2})`, LX + 4, ly + 1);
         ly += 9;
       });
 
       // Tabela resumo
-      const tableY = Math.max(CY + R + 12, ly + 6);
-      doc.setFontSize(10); doc.setFont("helvetica","bold"); doc.setTextColor(255,255,255);
+      const tableY = DY + SZ + 10;
+      doc.setFontSize(10); doc.setFont("helvetica", "bold"); doc.setTextColor(255, 255, 255);
       doc.text("Resumo", 14, tableY);
 
-      const pct = (v: number) => totalRedmine > 0 ? `${((v/totalRedmine)*100).toFixed(1)}%` : "0%";
+      const pct = (v: number) => totalRedmine > 0 ? `${((v / totalRedmine) * 100).toFixed(1)}%` : "0%";
 
-      (doc as unknown as { autoTable: (opts: unknown) => void }).autoTable({
+      autoTable(doc, {
         startY: tableY + 4,
         head: [["Categoria", "Quantidade", "Percentual"]],
         body: [
-          ["Total Redmine",           totalRedmine,    "100%"],
-          ["Resolvidos",              qtdResolvidos,   pct(qtdResolvidos)],
-          ["Aguardando encerramento", qtdAguardando,   pct(qtdAguardando)],
-          ["Nao resolvidos",          qtdNaoResolvidos,pct(qtdNaoResolvidos)],
+          ["Total Redmine",           String(totalRedmine),     "100%"],
+          ["Resolvidos",              String(qtdResolvidos),    pct(qtdResolvidos)],
+          ["Aguardando encerramento", String(qtdAguardando),    pct(qtdAguardando)],
+          ["Nao resolvidos",          String(qtdNaoResolvidos), pct(qtdNaoResolvidos)],
         ],
-        styles: { fontSize: 9, textColor: [220,220,220], fillColor: [30,41,59] },
-        headStyles: { fillColor: [15,23,42], textColor: [156,163,175], fontSize: 8 },
-        alternateRowStyles: { fillColor: [22,33,55] },
-        columnStyles: { 0: { cellWidth: 80 }, 1: { cellWidth: 40, halign: "center" }, 2: { cellWidth: 40, halign: "center" } },
+        styles: { fontSize: 9, textColor: [220, 220, 220] as [number,number,number], fillColor: [30, 41, 59] as [number,number,number] },
+        headStyles: { fillColor: [15, 23, 42] as [number,number,number], textColor: [156, 163, 175] as [number,number,number], fontSize: 8 },
+        alternateRowStyles: { fillColor: [22, 33, 55] as [number,number,number] },
         margin: { left: 14, right: 14 },
         theme: "plain",
       });
@@ -408,18 +373,8 @@ export default function RedmineResolvidosPage() {
     if (!quantRef.current) return;
     setJpegExporting(true);
     try {
-      const el = quantRef.current;
-      const canvas = document.createElement("canvas");
-      const scale = 2;
-      canvas.width = el.offsetWidth * scale;
-      canvas.height = el.offsetHeight * scale;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-      ctx.scale(scale, scale);
-      ctx.fillStyle = "#0f172a";
-      ctx.fillRect(0, 0, el.offsetWidth, el.offsetHeight);
       const { default: html2canvas } = await import("html2canvas");
-      const c2 = await html2canvas(el, { backgroundColor: "#0f172a", scale: 2, useCORS: true });
+      const c2 = await html2canvas(quantRef.current, { backgroundColor: "#0f172a", scale: 2, useCORS: true });
       const a = document.createElement("a");
       a.href = c2.toDataURL("image/jpeg", 0.92);
       a.download = "redmine-resolvidos-quantitativo.jpg";

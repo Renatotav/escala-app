@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -40,7 +40,8 @@ function desenharDonut(
   dados: {label:string;value:number}[],
   total: number,
   ox:number,oy:number,sz:number,
-  cores?: string[]
+  cores?: string[],
+  centroLabel?: string
 ) {
   const cx=ox+sz/2,cy=oy+sz/2,R=sz/2*0.90,ri=sz/2*0.44,STEPS=64;
   let ang=-Math.PI/2;
@@ -66,7 +67,7 @@ function desenharDonut(
   doc.setFontSize(9);doc.setTextColor(30,41,59);doc.setFont("helvetica","bold");
   doc.text(total.toLocaleString("pt-BR"),cx,cy-1.5,{align:"center",baseline:"middle"});
   doc.setFontSize(5);doc.setTextColor(148,163,184);doc.setFont("helvetica","normal");
-  doc.text("CHAMADOS",cx,cy+3.5,{align:"center",baseline:"middle"});
+  doc.text(centroLabel??"CHAMADOS",cx,cy+3.5,{align:"center",baseline:"middle"});
 }
 
 // ─── Cards helper ─────────────────────────────────────────────────────────────
@@ -113,12 +114,47 @@ type StatsChamados = {
 function secaoChamados(doc:jsPDF,s:StatsChamados,y:number): number {
   y=cabecalhoSecao(doc,"Chamados",`Total: ${s.total.toLocaleString("pt-BR")} chamados`,y);
   const donutItens=s.porEquipe.map(e=>({label:e.equipe,value:e.total}));
-  if(donutItens.length>0){
-    const SZ=62;
-    doc.setFontSize(7.5);doc.setTextColor(60,60,60);doc.setFont("helvetica","bold");
-    doc.text("Por equipe",14+SZ/2,y-2,{align:"center"});
-    desenharDonut(doc,donutItens,s.total,14,y,SZ);
-    y+=SZ+8;
+  const donutTotal=donutItens.reduce((a,d)=>a+d.value,0);
+  if(donutTotal>0){
+    const chartX=14,chartY=y,chartSz=78;
+    desenharDonut(doc,donutItens,donutTotal,chartX,chartY,chartSz);
+    const legX=chartX+chartSz+5;
+    let legY=chartY+5;
+    donutItens.forEach((d,i)=>{
+      const [r,g,b]=hexToRgb(CORES_CHART[i%CORES_CHART.length]);
+      doc.setFillColor(r,g,b);doc.rect(legX,legY-2.8,3.5,3.5,"F");
+      const pct=((d.value/donutTotal)*100).toFixed(1);
+      doc.setFontSize(7.5);doc.setTextColor(40,40,40);doc.setFont("helvetica","normal");
+      doc.text(`${d.label}  ${d.value.toLocaleString("pt-BR")} (${pct}%)`,legX+4.8,legY);
+      legY+=6.8;
+    });
+    y=chartY+chartSz+8;
+  }
+  for(const eq of s.porEquipe){
+    const pct=((eq.total/s.total)*100).toFixed(1);
+    const rows=eq.usuarios.map((u,i)=>{
+      const over=eq.equipe!=="Supervisao"&&u.nome!=="(Triagem)"&&u.total>50;
+      return{cells:[`${i+1}`,pdfSafe(u.nome),over?"ALTO":"",u.total.toLocaleString("pt-BR")],over};
+    });
+    autoTable(doc,{
+      startY:y,
+      head:[[{content:`${pdfSafe(eq.equipe)}  -  ${eq.total.toLocaleString("pt-BR")} chamados (${pct}%)`,colSpan:4}]],
+      body:rows.map(r=>r.cells),
+      columnStyles:{0:{cellWidth:10,halign:"center"},2:{cellWidth:20,halign:"center"},3:{cellWidth:22,halign:"right"}},
+      headStyles:{fillColor:[30,41,59],textColor:[200,200,220],fontStyle:"bold",fontSize:9},
+      bodyStyles:{fontSize:8.5,textColor:[40,40,40]},
+      alternateRowStyles:{fillColor:[248,250,252]},
+      margin:{left:14,right:14},
+      didParseCell:(data)=>{
+        if(data.section!=="body")return;
+        const row=rows[data.row.index];
+        if(!row?.over)return;
+        data.cell.styles.textColor=[180,30,30];
+        if(data.column.index===2){data.cell.styles.fontStyle="bold";data.cell.styles.fillColor=[255,235,235];}
+      },
+      didDrawPage:()=>{y=14;},
+    });
+    y=(doc as jsPDF&{lastAutoTable:{finalY:number}}).lastAutoTable.finalY+6;
   }
   return y;
 }
@@ -185,11 +221,21 @@ function secaoPowerbi(doc:jsPDF,s:StatsPowerbi,y:number): number {
   });
   const dt=donutItens.reduce((a,d)=>a+d.value,0);
   if(dt>0){
-    const SZ=62;
+    const chartX=14,chartSz=78;
     doc.setFontSize(7.5);doc.setTextColor(60,60,60);doc.setFont("helvetica","bold");
-    doc.text("Por categoria",14+SZ/2,y-2,{align:"center"});
-    desenharDonut(doc,donutItens,dt,14,y,SZ);
-    y+=SZ+8;
+    doc.text("Por categoria",chartX+chartSz/2,y-2,{align:"center"});
+    desenharDonut(doc,donutItens,dt,chartX,y,chartSz);
+    const legX=chartX+chartSz+5;
+    let legY=y+5;
+    donutItens.forEach((d,i)=>{
+      const [r,g,b]=hexToRgb(CORES_CHART[i%CORES_CHART.length]);
+      doc.setFillColor(r,g,b);doc.rect(legX,legY-2.8,3.5,3.5,"F");
+      const pct2=((d.value/dt)*100).toFixed(1);
+      doc.setFontSize(7.5);doc.setTextColor(40,40,40);doc.setFont("helvetica","normal");
+      doc.text(`${d.label}  ${d.value.toLocaleString("pt-BR")} (${pct2}%)`,legX+4.8,legY);
+      legY+=6.8;
+    });
+    y+=chartSz+8;
   }
   return y;
 }
@@ -241,19 +287,45 @@ function secaoResolvidos(doc:jsPDF,s:StatsResolvidos,y:number): number {
     {label:"Aguardando",     value:qtdAguardando,     cor:[161,98,7]},
     {label:"Nao resolvidos", value:qtdNaoResolvidos,  cor:[185,28,28]},
   ],y);
+  const CORES_RES=["#22c55e","#eab308","#ef4444"];
   const donutItens=[
     {label:"Resolvidos",value:qtdResolvidos},
     {label:"Aguardando",value:qtdAguardando},
     {label:"Nao resolvidos",value:qtdNaoResolvidos},
   ].filter(d=>d.value>0);
   if(donutItens.length>0){
-    const SZ=62;
+    const chartX=14,chartSz=56;
     doc.setFontSize(7.5);doc.setTextColor(60,60,60);doc.setFont("helvetica","bold");
-    doc.text("Distribuicao",14+SZ/2,y-2,{align:"center"});
-    desenharDonut(doc,donutItens,s.totalRedmine,14,y,SZ,["#22c55e","#eab308","#ef4444"]);
-    y+=SZ+8;
+    doc.text("Distribuicao",chartX+chartSz/2,y-2,{align:"center"});
+    desenharDonut(doc,donutItens,s.totalRedmine,chartX,y,chartSz,CORES_RES,"REDMINES");
+    const legX=chartX+chartSz+6;
+    let legY=y+6;
+    donutItens.forEach((item,i)=>{
+      const [r2,g2,b2]=hexToRgb(CORES_RES[i%CORES_RES.length]);
+      doc.setFillColor(r2,g2,b2);doc.circle(legX,legY,2,"F");
+      doc.setFontSize(8);doc.setTextColor(30,41,59);doc.setFont("helvetica","normal");
+      const pct2=s.totalRedmine>0?`${((item.value/s.totalRedmine)*100).toFixed(1)}%`:"0%";
+      doc.text(`${item.label}: ${item.value} (${pct2})`,legX+4,legY+1);
+      legY+=9;
+    });
+    y+=chartSz+10;
   }
-  return y;
+  const pct=(v:number)=>s.totalRedmine>0?`${((v/s.totalRedmine)*100).toFixed(1)}%`:"0%";
+  autoTable(doc,{
+    startY:y,
+    head:[["Categoria","Quantidade","Percentual"]],
+    body:[
+      ["Total Redmine",String(s.totalRedmine),"100%"],
+      ["Resolvidos",String(qtdResolvidos),pct(qtdResolvidos)],
+      ["Aguardando encerramento",String(qtdAguardando),pct(qtdAguardando)],
+      ["Nao resolvidos",String(qtdNaoResolvidos),pct(qtdNaoResolvidos)],
+    ],
+    styles:{fontSize:9,textColor:[30,41,59] as [number,number,number]},
+    headStyles:{fillColor:[30,41,59] as [number,number,number],textColor:[255,255,255] as [number,number,number],fontSize:8},
+    alternateRowStyles:{fillColor:[241,245,249] as [number,number,number]},
+    margin:{left:14,right:14},theme:"striped",
+  });
+  return (doc as jsPDF&{lastAutoTable:{finalY:number}}).lastAutoTable.finalY+6;
 }
 
 // 6. Redmine Atribuídos
@@ -269,6 +341,29 @@ function secaoAtribuidos(doc:jsPDF,s:StatsAtribuidos,y0:number): number {
     {label:"Para devolver",  value:s.paraDevolver,     cor:[161,98,7]},
     {label:"Em acomp.",      value:s.emAcompanhamento, cor:[194,65,12]},
   ],y);
+  // Donut por prazo (igual à aba individual)
+  const donutPrazo=[
+    {label:"Em atraso",    value:s.emAtrasoTotal,    cor:"#ef4444"},
+    {label:"Para devolver",value:s.paraDevolver,     cor:"#eab308"},
+    {label:"Em acomp.",    value:s.emAcompanhamento, cor:"#fb923c"},
+  ].filter(d=>d.value>0);
+  if(donutPrazo.length>0){
+    const chartX=14,chartSz=52;
+    doc.setFontSize(7.5);doc.setTextColor(60,60,60);doc.setFont("helvetica","bold");
+    doc.text("Por prazo",chartX+chartSz/2,y-2,{align:"center"});
+    desenharDonut(doc,donutPrazo.map(d=>({label:d.label,value:d.value})),s.totalGeral,chartX,y,chartSz,donutPrazo.map(d=>d.cor),"REDMINES");
+    const legX=chartX+chartSz+5;
+    let legY=y+4;
+    donutPrazo.forEach(item=>{
+      const [r2,g2,b2]=hexToRgb(item.cor);
+      doc.setFillColor(r2,g2,b2);doc.circle(legX,legY,1.8,"F");
+      doc.setFontSize(8);doc.setTextColor(30,41,59);doc.setFont("helvetica","normal");
+      const p=s.totalGeral>0?`${((item.value/s.totalGeral)*100).toFixed(1)}%`:"0%";
+      doc.text(`${item.label}: ${item.value} (${p})`,legX+4,legY+1);
+      legY+=8;
+    });
+    y+=chartSz+8;
+  }
   if(s.contagemPorPessoa.length>0){
     doc.setFontSize(9);doc.setFont("helvetica","bold");doc.setTextColor(30,41,59);
     doc.text("Por responsavel",14,y);y+=3;
@@ -318,7 +413,6 @@ const SECOES = [
   { key:"dnpje",      label:"Dnpje Migracao",      icon:"🟠", api:"/api/dnpje-migracao?stats=1" },
   { key:"resolvidos", label:"Redmine Resolvidos",  icon:"🟢", api:"/api/redmine-resolvidos" },
   { key:"atribuidos", label:"Redmine Atribuidos",  icon:"🔵", api:"/api/redmine-atribuidos" },
-  { key:"produtividade",label:"Produtividade",     icon:"📊", api:"/api/produtividade?stats=1" },
 ] as const;
 
 type SecaoKey = typeof SECOES[number]["key"];
@@ -327,24 +421,40 @@ type SecaoKey = typeof SECOES[number]["key"];
 
 export default function RelatorioChamadosPage() {
   const [selecionados,setSelecionados]=useState<Set<SecaoKey>>(new Set(SECOES.map(s=>s.key)));
+  const [ordemKeys,setOrdemKeys]=useState<SecaoKey[]>(SECOES.map(s=>s.key));
   const [gerando,setGerando]=useState(false);
   const [erro,setErro]=useState<string|null>(null);
+  const dragIdx=useRef<number|null>(null);
+
+  const secoesOrdenadas=ordemKeys.map(k=>SECOES.find(s=>s.key===k)!);
 
   function toggle(key:SecaoKey){
     setSelecionados(prev=>{const n=new Set(prev);n.has(key)?n.delete(key):n.add(key);return n;});
   }
 
+  function onDragStart(i:number){dragIdx.current=i;}
+  function onDragOver(e:React.DragEvent,i:number){
+    e.preventDefault();
+    if(dragIdx.current===null||dragIdx.current===i)return;
+    const novo=[...ordemKeys];
+    const[item]=novo.splice(dragIdx.current,1);
+    novo.splice(i,0,item);
+    dragIdx.current=i;
+    setOrdemKeys(novo);
+  }
+  function onDragEnd(){dragIdx.current=null;}
+
   async function gerarPDF(){
     if(selecionados.size===0) return;
     setGerando(true);setErro(null);
     try {
-      const results=await Promise.all(
-        SECOES.map(s=>selecionados.has(s.key)?fetch(s.api).then(r=>r.json()):Promise.resolve(null))
+      const secoesMap=Object.fromEntries(SECOES.map(s=>[s.key,s])) as Record<SecaoKey,typeof SECOES[number]>;
+      const dataMap:Partial<Record<SecaoKey,unknown>>={};
+      await Promise.all(
+        ordemKeys.filter(k=>selecionados.has(k)).map(async k=>{
+          dataMap[k]=await fetch(secoesMap[k].api).then(r=>r.json());
+        })
       );
-      const [chamados,redmine,powerbi,dnpje,resolvidos,atribuidos,produtividade]=results as [
-        StatsChamados|null,StatsRedmine|null,StatsPowerbi|null,StatsDnpje|null,
-        StatsResolvidos|null,StatsAtribuidos|null,StatsProd|null
-      ];
 
       const doc=new jsPDF({orientation:"portrait",unit:"mm",format:"a4"});
       const geradoEm=new Date().toLocaleString("pt-BR",{dateStyle:"short",timeStyle:"short"});
@@ -364,15 +474,17 @@ export default function RelatorioChamadosPage() {
         primeiro=false;
       }
 
-      if(chamados&&selecionados.has("chamados"))       { novaSecao(80); y=secaoChamados(doc,chamados,y); }
-      if(redmine&&selecionados.has("redmine"))         { novaSecao(100);y=secaoRedmine(doc,redmine,y); }
-      if(powerbi&&selecionados.has("powerbi"))         { novaSecao(120);y=secaoPowerbi(doc,powerbi,y); }
-      if(dnpje&&selecionados.has("dnpje"))             { novaSecao(100);y=secaoDnpje(doc,dnpje,y); }
-      if(resolvidos&&selecionados.has("resolvidos"))   { novaSecao(90); y=secaoResolvidos(doc,resolvidos,y); }
-      if(atribuidos&&selecionados.has("atribuidos"))   { novaSecao(100);y=secaoAtribuidos(doc,atribuidos,y); }
-      if(produtividade&&selecionados.has("produtividade")){novaSecao(60);secaoProdutividade(doc,produtividade,y);}
+      for(const key of ordemKeys){
+        if(!selecionados.has(key)||!dataMap[key])continue;
+        if(key==="chamados")      {novaSecao(80); y=secaoChamados(doc,dataMap[key] as StatsChamados,y);}
+        if(key==="redmine")       {novaSecao(100);y=secaoRedmine(doc,dataMap[key] as StatsRedmine,y);}
+        if(key==="powerbi")       {novaSecao(120);y=secaoPowerbi(doc,dataMap[key] as StatsPowerbi,y);}
+        if(key==="dnpje")         {novaSecao(100);y=secaoDnpje(doc,dataMap[key] as StatsDnpje,y);}
+        if(key==="resolvidos")    {novaSecao(90); y=secaoResolvidos(doc,dataMap[key] as StatsResolvidos,y);}
+        if(key==="atribuidos")    {novaSecao(100);y=secaoAtribuidos(doc,dataMap[key] as StatsAtribuidos,y);}
+        if(key==="produtividade") {novaSecao(60); secaoProdutividade(doc,dataMap[key] as StatsProd,y);}
+      }
 
-      const nomes=SECOES.filter(s=>selecionados.has(s.key)).map(s=>s.key).join("-");
       doc.save(`relatorio-chamados-${new Date().toISOString().slice(0,10)}.pdf`);
     } catch(e) {
       console.error(e);
@@ -384,26 +496,31 @@ export default function RelatorioChamadosPage() {
     <div>
       <div className="mb-6">
         <h2 className="text-xl font-semibold text-white">Relatório de Chamados</h2>
-        <p className="text-sm text-gray-400 mt-0.5">Selecione as seções para incluir no PDF</p>
+        <p className="text-sm text-gray-400 mt-0.5">Selecione e arraste para reordenar as seções no PDF</p>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-8">
-        {SECOES.map(s=>{
+        {secoesOrdenadas.map((s,i)=>{
           const ativo=selecionados.has(s.key);
           return (
-            <button key={s.key} onClick={()=>toggle(s.key)}
-              className={`flex items-center gap-3 p-3 rounded-xl border-2 transition text-left
+            <div key={s.key}
+              draggable
+              onDragStart={()=>onDragStart(i)}
+              onDragOver={e=>onDragOver(e,i)}
+              onDragEnd={onDragEnd}
+              className={`flex items-center gap-3 p-3 rounded-xl border-2 transition cursor-grab active:cursor-grabbing select-none
                 ${ativo?"bg-blue-900/30 border-blue-500 ring-2 ring-blue-500/20":"bg-gray-900 border-gray-700 hover:border-gray-500"}`}>
               <span className="text-xl">{s.icon}</span>
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0" onClick={()=>toggle(s.key)}>
                 <p className={`font-semibold text-xs leading-tight ${ativo?"text-white":"text-gray-400"}`}>{s.label}</p>
                 <p className="text-xs text-gray-500 mt-0.5">{ativo?"Incluído":"Excluído"}</p>
               </div>
-              <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0
-                ${ativo?"bg-blue-500 border-blue-500":"border-gray-600"}`}>
+              <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 cursor-pointer
+                ${ativo?"bg-blue-500 border-blue-500":"border-gray-600"}`}
+                onClick={()=>toggle(s.key)}>
                 {ativo&&<span className="text-white text-xs leading-none">✓</span>}
               </div>
-            </button>
+            </div>
           );
         })}
       </div>
@@ -413,6 +530,8 @@ export default function RelatorioChamadosPage() {
           className="text-xs text-gray-400 hover:text-white underline">Selecionar todos</button>
         <button onClick={()=>setSelecionados(new Set())}
           className="text-xs text-gray-400 hover:text-white underline">Limpar</button>
+        <button onClick={()=>setOrdemKeys(SECOES.map(s=>s.key))}
+          className="text-xs text-gray-400 hover:text-white underline">Restaurar ordem</button>
       </div>
 
       {erro&&(

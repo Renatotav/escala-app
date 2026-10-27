@@ -28,6 +28,7 @@ type Dados = {
   periodoFim: string | null;
   periodoResInicio: string | null;
   periodoResFim: string | null;
+  ultimaImportacao?: string | null;
 };
 
 type UserStat = {

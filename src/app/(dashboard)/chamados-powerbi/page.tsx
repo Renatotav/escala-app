@@ -382,6 +382,19 @@ export default function ChamadosPowerbiPage() {
     if (donutTotal>0) {
       const chartX=14, chartSz=78;
       desenharDonutPDF(doc,donutItens,donutTotal,chartX,donutTopY,chartSz);
+      const legX=chartX+chartSz+5;
+      let legY=donutTopY+5;
+      donutItens.forEach((d,i)=>{
+        const [r,g,b]=hexToRgb(CORES_CHART[i%CORES_CHART.length]);
+        doc.setFillColor(r,g,b);
+        doc.rect(legX,legY-2.8,3.5,3.5,"F");
+        const pct=((d.value/donutTotal)*100).toFixed(1);
+        doc.setFontSize(7.5);
+        doc.setTextColor(40,40,40);
+        doc.setFont("helvetica","normal");
+        doc.text(`${d.label}  ${d.value.toLocaleString("pt-BR")} (${pct}%)`,legX+4.8,legY);
+        legY+=6.8;
+      });
     }
 
     doc.save(`chamados-powerbi-quantitativo-${new Date().toISOString().slice(0,10)}.pdf`);

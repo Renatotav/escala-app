@@ -222,8 +222,6 @@ function secaoPowerbi(doc:jsPDF,s:StatsPowerbi,y:number): number {
   const dt=donutItens.reduce((a,d)=>a+d.value,0);
   if(dt>0){
     const chartX=14,chartSz=78;
-    doc.setFontSize(7.5);doc.setTextColor(60,60,60);doc.setFont("helvetica","bold");
-    doc.text("Por categoria",chartX+chartSz/2,y-2,{align:"center"});
     desenharDonut(doc,donutItens,dt,chartX,y,chartSz);
     const legX=chartX+chartSz+5;
     let legY=y+5;
@@ -232,10 +230,27 @@ function secaoPowerbi(doc:jsPDF,s:StatsPowerbi,y:number): number {
       doc.setFillColor(r,g,b);doc.rect(legX,legY-2.8,3.5,3.5,"F");
       const pct2=((d.value/dt)*100).toFixed(1);
       doc.setFontSize(7.5);doc.setTextColor(40,40,40);doc.setFont("helvetica","normal");
-      doc.text(`${d.label}  ${d.value.toLocaleString("pt-BR")} (${pct2}%)`,legX+4.8,legY);
+      doc.text(pdfSafe(`${d.label}  ${d.value.toLocaleString("pt-BR")} (${pct2}%)`),legX+4.8,legY);
       legY+=6.8;
     });
-    y+=chartSz+8;
+    y+=chartSz+6;
+    doc.setFontSize(8);doc.setFont("helvetica","bold");doc.setTextColor(40,40,40);
+    doc.text("Chamados por Categoria",chartX,y);
+    y+=3;
+    autoTable(doc,{
+      startY:y,
+      margin:{left:chartX,right:14},
+      head:[["Categoria","Total","% do Total"]],
+      body:s.porCategoria.map(c=>{
+        const pct=((c.total/(dt||1))*100).toFixed(1);
+        return [pdfSafe(c.categoria),c.total.toLocaleString("pt-BR"),`${pct}%`];
+      }),
+      styles:{fontSize:7.5,cellPadding:2,halign:"left"},
+      headStyles:{fillColor:[59,130,246],textColor:255,fontStyle:"bold"},
+      alternateRowStyles:{fillColor:[241,245,249]},
+      columnStyles:{0:{halign:"left"},1:{halign:"right"},2:{halign:"right"}},
+    });
+    y=(doc as unknown as {lastAutoTable:{finalY:number}}).lastAutoTable.finalY+6;
   }
   return y;
 }

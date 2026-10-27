@@ -33,6 +33,7 @@ type DadosChamados = {
   equipes: string[];
   usuarioEquipeMap: Record<string, string>;
   totalUrgentes: number;
+  ultimaImportacao?: string | null;
 };
 
 type UsuarioStats = {
@@ -977,6 +978,14 @@ export default function ChamadosPage() {
               <p className="text-xs text-gray-500 mb-1">Período dos dados</p>
               <p className="text-sm font-medium text-gray-300">
                 {fmtDateShort(dados.dataMin)} → {fmtDateShort(dados.dataMax)}
+              </p>
+            </div>
+          )}
+          {dados.ultimaImportacao && (
+            <div className="bg-gray-900 rounded-xl border border-gray-800 border-t-2 border-t-blue-600 p-4">
+              <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">Atualizado em</p>
+              <p className="text-xs font-medium text-blue-400">
+                {new Date(dados.ultimaImportacao).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}
               </p>
             </div>
           )}

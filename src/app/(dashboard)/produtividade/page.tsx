@@ -53,6 +53,7 @@ type DadosStats = {
   periodoFim: string | null;
   periodoResInicio: string | null;
   periodoResFim: string | null;
+  ultimaImportacao?: string | null;
 };
 
 function fmtDate(iso: string | null) {
@@ -733,6 +734,14 @@ export default function ProdutividadePage() {
                 : "—"}
             </p>
           </div>
+          {dados.ultimaImportacao && (
+            <div className="bg-gray-900 border border-gray-800 border-t-2 border-t-blue-600 rounded-xl p-4">
+              <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">Atualizado em</p>
+              <p className="text-xs font-medium text-blue-400">
+                {new Date(dados.ultimaImportacao).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}
+              </p>
+            </div>
+          )}
         </div>
       )}
 

@@ -46,11 +46,13 @@ export async function GET(request: NextRequest) {
   const exportAll = searchParams.get("export") === "1";
 
   // Stats leve — só os campos necessários para cruzamento (sem texto grande)
-  const [resolvidosLeve, redmine, chamadosAtivos] = await Promise.all([
+  const [resolvidosLeve, redmine, chamadosAtivos, importAgg] = await Promise.all([
     prisma.redmineResolvido.findMany({ select: { numeroRedmine: true, numerosAssyst: true } }),
     prisma.chamadoRedmine.findMany({ select: { numero: true, dataAbertura: true } }),
     prisma.chamado.findMany({ select: { referencia: true } }),
+    prisma.redmineResolvido.aggregate({ _max: { createdAt: true } }),
   ]);
+  const ultimaImportacao = importAgg._max.createdAt?.toISOString() ?? null;
 
   // Monta sets para cruzamento
   const resolvidosAssystSet = new Set<string>();
@@ -80,7 +82,7 @@ export async function GET(request: NextRequest) {
     const todos = resolvidosRedmineNums.length > 0
       ? await prisma.redmineResolvido.findMany({ where: { numeroRedmine: { in: resolvidosRedmineNums } }, orderBy: { id: "asc" } })
       : [];
-    return NextResponse.json({ resolvidos: todos, esquecidos, encontrados, aguardandoEmChamados, totalRedmine: redmine.length, chamadosMap, resolvidosRedmineNums });
+    return NextResponse.json({ resolvidos: todos, esquecidos, encontrados, aguardandoEmChamados, totalRedmine: redmine.length, chamadosMap, resolvidosRedmineNums, ultimaImportacao });
   }
 
   // Registros paginados — filtrados pelos encontrados + busca opcional
@@ -100,7 +102,7 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json({
     resolvidos, esquecidos, encontrados, aguardandoEmChamados,
-    totalRedmine: redmine.length, chamadosMap, resolvidosRedmineNums,
+    totalRedmine: redmine.length, chamadosMap, resolvidosRedmineNums, ultimaImportacao,
     totalResolvidos, page, totalPages: Math.max(1, Math.ceil(totalResolvidos / PAGE_SIZE_GET)),
   });
 }

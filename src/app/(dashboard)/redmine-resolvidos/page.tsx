@@ -23,6 +23,7 @@ type Dados = {
   totalResolvidos: number;
   page: number;
   totalPages: number;
+  ultimaImportacao?: string | null;
 };
 
 function diasAberto(dataAbertura: string | null | undefined): number | null {
@@ -557,6 +558,11 @@ export default function RedmineResolvidosPage() {
               <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
                 <p className="text-xs text-gray-400 mb-1">Total Redmine</p>
                 <p className="text-3xl font-bold text-white">{dados.totalRedmine}</p>
+                {dados.ultimaImportacao && (
+                  <p className="text-xs text-blue-400 mt-2">
+                    Atualizado: {new Date(dados.ultimaImportacao).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}
+                  </p>
+                )}
               </div>
               <a href="/chamados?filtro=redmine-resolvido"
                 className={`rounded-xl p-4 border text-left transition block ${aguardandoEmChamados.length > 0 ? "bg-orange-950/30 border-orange-600 hover:bg-orange-950/50 animate-pulse" : "bg-gray-900 border-gray-800"}`}>

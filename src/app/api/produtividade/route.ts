@@ -69,11 +69,12 @@ export async function GET(request: NextRequest) {
 
   const equipes = [...new Set([...nomeParaEquipe.values()])].sort();
 
-  const [totalRegistros, todosAtendentes, periodo, periodoRes] = await Promise.all([
+  const [totalRegistros, todosAtendentes, periodo, periodoRes, importAgg] = await Promise.all([
     prisma.produtividade.count(),
     prisma.produtividade.findMany({ select: { usuarioFechamento: true }, distinct: ["usuarioFechamento"] }),
     prisma.produtividade.aggregate({ _min: { dataAbertura: true }, _max: { dataAbertura: true } }),
     prisma.produtividade.aggregate({ _min: { dataResolucao: true }, _max: { dataResolucao: true } }),
+    prisma.produtividade.aggregate({ _max: { createdAt: true } }),
   ]);
 
   // Atendentes filtrados pela equipe selecionada (se houver)
@@ -232,6 +233,7 @@ export async function GET(request: NextRequest) {
         tmrDias: Math.round(tmrGeralH / 24),
       },
       equipes, atendentes, atendentesCount, periodoInicio, periodoFim, periodoResInicio, periodoResFim, totalRegistros,
+      ultimaImportacao: importAgg._max.createdAt?.toISOString() ?? null,
     });
   }
 

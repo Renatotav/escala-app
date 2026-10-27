@@ -149,6 +149,7 @@ type DadosAtribuidos = {
   contagemPorPessoa: { nome: string; total: number; emAtraso: number }[];
   idsDevolver: number[];
   devolverInfo: { assyst: string; redmine: string }[];
+  ultimaImportacao?: string | null;
 };
 
 function splitAssyst(raw: string): string[] {
@@ -863,6 +864,11 @@ export default function RedmineAtribuidosPage() {
                 <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
                   <p className="text-xs text-gray-400 mb-1">Total</p>
                   <p className="text-3xl font-bold text-blue-400">{totalGeral}</p>
+                  {dados?.ultimaImportacao && (
+                    <p className="text-xs text-blue-400 mt-2">
+                      Atualizado: {new Date(dados.ultimaImportacao).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}
+                    </p>
+                  )}
                 </div>
                 <div className={`bg-gray-900 rounded-xl p-4 border ${emAtrasoTotal>0?"border-red-700/60":"border-gray-800"}`}>
                   <p className="text-xs text-gray-400 mb-1">Em atraso (≥5d)</p>

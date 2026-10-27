@@ -51,7 +51,7 @@ function findEquipe(
 }
 
 async function handleStats() {
-  const [total, rows, range, colaboradores, equipeRecordsStats] = await Promise.all([
+  const [total, rows, range, colaboradores, equipeRecordsStats, importAgg] = await Promise.all([
     prisma.chamado.count(),
     prisma.chamado.groupBy({
       by: ["nomeUsuarioAtribuido"],
@@ -65,6 +65,7 @@ async function handleStats() {
       select: { nome: true, equipe: { select: { nome: true } } },
     }),
     prisma.equipe.findMany({ select: { nome: true } }),
+    prisma.chamado.aggregate({ _max: { createdAt: true } }),
   ]);
 
   // pré-computa chaves normalizadas
@@ -95,6 +96,7 @@ async function handleStats() {
     porEquipe,
     dataMin: range._min.dataRegistro?.toISOString() ?? null,
     dataMax: range._max.dataRegistro?.toISOString() ?? null,
+    ultimaImportacao: importAgg._max.createdAt?.toISOString() ?? null,
   });
 }
 
@@ -181,7 +183,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ chamados });
   }
 
-  const [total, chamados, range, usuariosRaw, acoesRaw] = await Promise.all([
+  const [total, chamados, range, usuariosRaw, acoesRaw, listImportAgg] = await Promise.all([
     prisma.chamado.count({ where }),
     prisma.chamado.findMany({
       where,
@@ -214,6 +216,7 @@ export async function GET(request: NextRequest) {
       distinct: ["ultimaAcao"],
       orderBy: { ultimaAcao: "asc" },
     }),
+    prisma.chamado.aggregate({ _max: { createdAt: true } }),
   ]);
 
   const chamadosComEquipe = chamados.map((c) => ({
@@ -257,6 +260,7 @@ export async function GET(request: NextRequest) {
     equipes,
     usuarioEquipeMap,
     totalUrgentes,
+    ultimaImportacao: listImportAgg._max.createdAt?.toISOString() ?? null,
   });
 }
 

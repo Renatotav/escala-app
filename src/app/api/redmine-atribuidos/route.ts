@@ -63,13 +63,14 @@ export async function GET(request: NextRequest) {
   const exportAll = searchParams.get("export") === "1";
 
   // Dados auxiliares leves — sempre retornados em full
-  const [chamadosRedmine, chamadosEmFila, todosLeve] = await Promise.all([
+  const [chamadosRedmine, chamadosEmFila, todosLeve, importAgg] = await Promise.all([
     prisma.chamadoRedmine.findMany({ select: { numero: true } }),
     prisma.chamado.findMany({ select: { referencia: true } }),
     // Consulta leve: campos suficientes para calcular todos os stats sem carregar texto grande
     prisma.redmineAtribuido.findMany({
       select: { id: true, numerosAssyst: true, numeroRedmine: true, alteradoEm: true, atribuidoPara: true, solicitadoEm: true },
     }),
+    prisma.redmineAtribuido.aggregate({ _max: { createdAt: true } }),
   ]);
 
   const assystAtivos = new Set(chamadosRedmine.map(c => c.numero.trim().toUpperCase()));
@@ -122,6 +123,7 @@ export async function GET(request: NextRequest) {
     contagemPorPessoa,
     idsDevolver,
     devolverInfo,
+    ultimaImportacao: importAgg._max.createdAt?.toISOString() ?? null,
   };
 
   // Monta where para listagem paginada

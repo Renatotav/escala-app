@@ -691,7 +691,7 @@ export default function ChamadosPowerbiPage() {
                 )}
               </div>
 
-              <div className="flex flex-col gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
                   <h3 className="text-sm font-semibold text-gray-300 mb-4">Distribuição por equipe</h3>
                   <DonutChart

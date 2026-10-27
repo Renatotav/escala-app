@@ -24,6 +24,8 @@ type Dados = {
   page: number;
   totalPages: number;
   totalValidos: number;
+  totalAtraso: number;
+  totalAtencao: number;
   periodoMin: string | null;
   periodoMax: string | null;
   porCategoria: CategoriaStats[];
@@ -327,39 +329,61 @@ export default function ChamadosPowerbiPage() {
     const itensExp = equipeQuant
       ? dados.porCategoria.filter(c=>c.categoria===equipeQuant)
       : dados.porCategoria;
-    const donutItens = itensExp.map(c=>({label:c.categoria,value:c.total}));
-    const donutTotal = donutItens.reduce((s,d)=>s+d.value,0);
 
-    let y=37;
+    // Cor por categoria
+    function corCard(cat: string): [number,number,number] {
+      if (cat.includes("Erro") || cat.includes("Falha")) return [239,68,68];
+      if (cat.includes("Cadastro"))  return [56,189,248];
+      if (cat.includes("Migra"))     return [251,146,60];
+      if (cat.includes("Orienta"))   return [34,197,94];
+      return [59,130,246];
+    }
+
+    // Cards: Total + uma card por categoria
+    const allCards = [
+      { label:"Total", value:dados.totalValidos, cor:[59,130,246] as [number,number,number], sla:null as number|null },
+      ...itensExp.map(c => {
+        const rule = SLA_RULES.find(r => c.categoria.toLowerCase().includes(r.keyword.toLowerCase()));
+        const lbl  = rule?.keyword ?? (c.categoria.length>18 ? c.categoria.slice(0,17)+"…" : c.categoria);
+        return { label:lbl, value:c.total, cor:corCard(c.categoria), sla:rule?.days ?? null };
+      }),
+    ];
+
+    const CARD_W=43, CARD_H=20, CARD_Y0=35, CARD_GAP=2, CPR=4;
+    allCards.forEach((c, i) => {
+      const col=i%CPR, row=Math.floor(i/CPR);
+      const cx=14+col*(CARD_W+CARD_GAP), cy=CARD_Y0+row*(CARD_H+4);
+      doc.setFillColor(241,245,249); doc.roundedRect(cx,cy,CARD_W,CARD_H,2,2,"F");
+      doc.setFontSize(6); doc.setTextColor(100,116,139); doc.setFont("helvetica","normal");
+      doc.text(c.label, cx+3, cy+5);
+      if (c.sla !== null) {
+        doc.setFontSize(5.5); doc.setTextColor(150,150,150);
+        doc.text(`>=${c.sla}d`, cx+CARD_W-3, cy+5, {align:"right"});
+      }
+      doc.setFontSize(13); doc.setFont("helvetica","bold"); doc.setTextColor(c.cor[0],c.cor[1],c.cor[2]);
+      doc.text(c.value.toLocaleString("pt-BR"), cx+3, cy+15);
+    });
+
+    const totalRows=Math.ceil(allCards.length/CPR);
+    const donutTopY=CARD_Y0+totalRows*(CARD_H+4)+6;
+
+    // Donut por categoria
+    const donutItens=itensExp.map(c=>({label:c.categoria,value:c.total}));
+    const donutTotal=donutItens.reduce((s,d)=>s+d.value,0);
+
     if (donutTotal>0) {
-      const chartX=14,chartY=36,chartSz=78;
-      desenharDonutPDF(doc,donutItens,donutTotal,chartX,chartY,chartSz);
-      const legX=chartX+chartSz+5;let legY=chartY+5;
+      const chartX=14, chartSz=78;
+      desenharDonutPDF(doc,donutItens,donutTotal,chartX,donutTopY,chartSz);
+      const legX=chartX+chartSz+5; let legY=donutTopY+5;
       donutItens.forEach((d,i)=>{
         const [r,g,b]=hexToRgb(CORES_CHART[i%CORES_CHART.length]);
-        doc.setFillColor(r,g,b);doc.rect(legX,legY-2.8,3.5,3.5,"F");
+        doc.setFillColor(r,g,b); doc.rect(legX,legY-2.8,3.5,3.5,"F");
         const pct=((d.value/donutTotal)*100).toFixed(1);
         doc.setFontSize(7.5);doc.setTextColor(40,40,40);doc.setFont("helvetica","normal");
         doc.text(`${d.label}  ${d.value.toLocaleString("pt-BR")} (${pct}%)`,legX+4.8,legY);
         legY+=6.8;
       });
-      y=chartY+chartSz+8;
     }
-
-    autoTable(doc,{
-      startY:y,
-      head:[["#","Equipe","Chamados","%"]],
-      body:itensExp.map((c,i)=>[
-        String(i+1),c.categoria,
-        c.total.toLocaleString("pt-BR"),
-        `${((c.total/(dados.totalValidos||1))*100).toFixed(1)}%`,
-      ]),
-      columnStyles:{0:{cellWidth:12,halign:"center"},2:{cellWidth:28,halign:"right"},3:{cellWidth:18,halign:"right"}},
-      headStyles:{fillColor:[30,41,59],textColor:[200,200,220],fontStyle:"bold",fontSize:9},
-      bodyStyles:{fontSize:8.5,textColor:[40,40,40]},
-      alternateRowStyles:{fillColor:[248,250,252]},
-      margin:{left:14,right:14},
-    });
 
     doc.save(`chamados-powerbi-quantitativo-${new Date().toISOString().slice(0,10)}.pdf`);
   }

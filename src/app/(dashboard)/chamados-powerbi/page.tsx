@@ -41,6 +41,8 @@ const SLA_RULES = [
   { keyword: "Erro",       display: "Erro e Falha",days: 5  },
 ];
 
+function pdfSafe(s: string): string { return s.replace(/[^\x00-\xFF]/g,"?"); }
+
 function getSLA(equipeAtribuida: string | null): number | null {
   if (!equipeAtribuida) return null;
   const lower = equipeAtribuida.toLowerCase();
@@ -379,8 +381,8 @@ export default function ChamadosPowerbiPage() {
     });
     const donutTotal=donutItens.reduce((s,d)=>s+d.value,0);
 
+    const chartX=14, chartSz=78;
     if (donutTotal>0) {
-      const chartX=14, chartSz=78;
       desenharDonutPDF(doc,donutItens,donutTotal,chartX,donutTopY,chartSz);
       const legX=chartX+chartSz+5;
       let legY=donutTopY+5;
@@ -392,10 +394,28 @@ export default function ChamadosPowerbiPage() {
         doc.setFontSize(7.5);
         doc.setTextColor(40,40,40);
         doc.setFont("helvetica","normal");
-        doc.text(`${d.label}  ${d.value.toLocaleString("pt-BR")} (${pct}%)`,legX+4.8,legY);
+        doc.text(pdfSafe(`${d.label}  ${d.value.toLocaleString("pt-BR")} (${pct}%)`),legX+4.8,legY);
         legY+=6.8;
       });
     }
+
+    // Tabela por categoria após o donut
+    const tableY = donutTopY + chartSz + 6;
+    doc.setFontSize(8); doc.setFont("helvetica","bold"); doc.setTextColor(40,40,40);
+    doc.text("Chamados por Categoria", chartX, tableY);
+    autoTable(doc, {
+      startY: tableY + 3,
+      margin: { left: chartX, right: 14 },
+      head: [["Categoria","Total","% do Total"]],
+      body: itensExp.map(c=>{
+        const pct=((c.total/(donutTotal||1))*100).toFixed(1);
+        return [pdfSafe(c.categoria), c.total.toLocaleString("pt-BR"), `${pct}%`];
+      }),
+      styles:{ fontSize:7.5, cellPadding:2 },
+      headStyles:{ fillColor:[59,130,246], textColor:255, fontStyle:"bold" },
+      alternateRowStyles:{ fillColor:[241,245,249] },
+      columnStyles:{ 1:{ halign:"right" }, 2:{ halign:"right" } },
+    });
 
     doc.save(`chamados-powerbi-quantitativo-${new Date().toISOString().slice(0,10)}.pdf`);
   }

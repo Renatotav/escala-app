@@ -432,9 +432,14 @@ export default function RelatorioChamadosPage() {
     setSelecionados(prev=>{const n=new Set(prev);n.has(key)?n.delete(key):n.add(key);return n;});
   }
 
-  function onDragStart(i:number){dragIdx.current=i;}
+  function onDragStart(e:React.DragEvent,i:number){
+    e.dataTransfer.effectAllowed="move";
+    e.dataTransfer.setData("text/plain",String(i));
+    dragIdx.current=i;
+  }
   function onDragOver(e:React.DragEvent,i:number){
     e.preventDefault();
+    e.dataTransfer.dropEffect="move";
     if(dragIdx.current===null||dragIdx.current===i)return;
     const novo=[...ordemKeys];
     const[item]=novo.splice(dragIdx.current,1);
@@ -505,7 +510,7 @@ export default function RelatorioChamadosPage() {
           return (
             <div key={s.key}
               draggable
-              onDragStart={()=>onDragStart(i)}
+              onDragStart={e=>onDragStart(e,i)}
               onDragOver={e=>onDragOver(e,i)}
               onDragEnd={onDragEnd}
               className={`flex items-center gap-3 p-3 rounded-xl border-2 transition cursor-grab active:cursor-grabbing select-none

@@ -172,6 +172,19 @@ function DonutChart({ itens, onSelect, selecionado }: {
           </text>
         ))}
       </svg>
+      <div className="space-y-1 max-h-56 overflow-y-auto pr-1">
+        {fatias.map((f,i)=>(
+          <div key={i} onClick={()=>onSelect?.(f.label===selecionado?"":f.label)}
+            className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs transition
+              ${onSelect?"cursor-pointer hover:bg-white/5":""}
+              ${f.sel?"bg-white/10 ring-1 ring-white/20":""}`}>
+            <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{background:f.cor}}/>
+            <span className="flex-1 text-gray-300 font-medium truncate" title={f.label}>{f.label}</span>
+            <span className="font-mono font-bold text-white tabular-nums">{f.value.toLocaleString("pt-BR")}</span>
+            <span className="text-gray-500 w-11 text-right">{f.pct}%</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

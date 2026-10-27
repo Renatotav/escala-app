@@ -347,7 +347,7 @@ export default function DnpjeMigracaoPage() {
       doc.text(c.value.toLocaleString("pt-BR"),cx+3,CARD_Y+14);
     });
 
-    const SZ=68, CY=58, LEG_ROW=6.5;
+    const SZ=68, CY=70;
 
     // Donut esquerdo: por equipe
     const LX=14;

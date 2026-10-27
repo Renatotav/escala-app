@@ -339,9 +339,9 @@ export default function ChamadosRedminePage() {
 
     const noPrazo = Math.max(0, stats.total - stats.totalAtraso - stats.totalAtencao);
     const prazoItens = [
-      { label: "Em atraso (≥50d)",    value: stats.totalAtraso },
-      { label: "Em atenção (30-50d)", value: stats.totalAtencao },
-      { label: "No prazo",             value: noPrazo },
+      { label: "Em atraso (>=50d)",   value: stats.totalAtraso },
+      { label: "Em atencao (30-50d)", value: stats.totalAtencao },
+      { label: "No prazo",            value: noPrazo },
     ].filter(d => d.value > 0);
     const prazoTotal = stats.total;
 

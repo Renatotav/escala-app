@@ -686,9 +686,9 @@ export default function ChamadosRedminePage() {
                   <h3 className="text-sm font-semibold text-gray-300 mb-4">Distribuição por prazo</h3>
                   <DonutChart
                     itens={[
-                      { label: "Em atraso (≥50d)",    value: stats.totalAtraso },
-                      { label: "Em atenção (30-50d)",  value: stats.totalAtencao },
-                      { label: "No prazo",              value: Math.max(0, stats.total - stats.totalAtraso - stats.totalAtencao) },
+                      { label: "Em atraso (>=50d)",   value: stats.totalAtraso },
+                      { label: "Em atencao (30-50d)", value: stats.totalAtencao },
+                      { label: "No prazo",             value: Math.max(0, stats.total - stats.totalAtraso - stats.totalAtencao) },
                     ].filter(d => d.value > 0)}
                     cores={["#ef4444","#eab308","#22c55e"]}
                   />

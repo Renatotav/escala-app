@@ -349,26 +349,33 @@ export default function ChamadosPowerbiPage() {
       }),
     ];
 
-    const CARD_W=43, CARD_H=20, CARD_Y0=35, CARD_GAP=2, CPR=4;
+    const CARD_W=43, CARD_H=23, CARD_Y0=35, CARD_GAP=2, CPR=4;
     allCards.forEach((c, i) => {
       const col=i%CPR, row=Math.floor(i/CPR);
       const cx=14+col*(CARD_W+CARD_GAP), cy=CARD_Y0+row*(CARD_H+4);
       doc.setFillColor(241,245,249); doc.roundedRect(cx,cy,CARD_W,CARD_H,2,2,"F");
+      // label
       doc.setFontSize(6); doc.setTextColor(100,116,139); doc.setFont("helvetica","normal");
       doc.text(c.label, cx+3, cy+5);
-      if (c.sla !== null) {
-        doc.setFontSize(5.5); doc.setTextColor(150,150,150);
-        doc.text(`>=${c.sla}d`, cx+CARD_W-3, cy+5, {align:"right"});
-      }
+      // número grande em cor
       doc.setFontSize(13); doc.setFont("helvetica","bold"); doc.setTextColor(c.cor[0],c.cor[1],c.cor[2]);
-      doc.text(c.value.toLocaleString("pt-BR"), cx+3, cy+15);
+      doc.text(c.value.toLocaleString("pt-BR"), cx+3, cy+14);
+      // SLA abaixo do número
+      if (c.sla !== null) {
+        doc.setFontSize(6); doc.setFont("helvetica","normal"); doc.setTextColor(100,116,139);
+        doc.text(`≥${c.sla} dias`, cx+3, cy+20);
+      }
     });
 
     const totalRows=Math.ceil(allCards.length/CPR);
     const donutTopY=CARD_Y0+totalRows*(CARD_H+4)+6;
 
-    // Donut por categoria
-    const donutItens=itensExp.map(c=>({label:c.categoria,value:c.total}));
+    // Donut por categoria — usa nome curto (keyword) como label
+    const donutItens=itensExp.map(c=>{
+      const rule=SLA_RULES.find(r=>c.categoria.toLowerCase().includes(r.keyword.toLowerCase()));
+      const lbl=rule?.keyword ?? (c.categoria.length>20?c.categoria.slice(0,19)+"…":c.categoria);
+      return{label:lbl,value:c.total};
+    });
     const donutTotal=donutItens.reduce((s,d)=>s+d.value,0);
 
     if (donutTotal>0) {

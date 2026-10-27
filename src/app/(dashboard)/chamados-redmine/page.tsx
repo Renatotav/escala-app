@@ -88,7 +88,8 @@ function desenharDonutPDF(
   doc: jsPDF,
   dados: { label: string; value: number }[],
   total: number,
-  ox: number, oy: number, sz: number
+  ox: number, oy: number, sz: number,
+  cores?: string[]
 ) {
   const cx = ox + sz/2, cy = oy + sz/2;
   const R = sz/2*0.90, ri = sz/2*0.44;
@@ -102,7 +103,8 @@ function desenharDonutPDF(
     const pts: [number,number][] = [];
     for (let j = 0; j <= steps; j++) { const a = sa+(ea-sa)*j/steps; pts.push([cx+R*Math.cos(a), cy+R*Math.sin(a)]); }
     for (let j = steps; j >= 0; j--) { const a = sa+(ea-sa)*j/steps; pts.push([cx+ri*Math.cos(a), cy+ri*Math.sin(a)]); }
-    const [r,g,b] = hexToRgb(CORES_CHART[i % CORES_CHART.length]);
+    const palette = cores ?? CORES_CHART;
+    const [r,g,b] = hexToRgb(palette[i % palette.length]);
     doc.setFillColor(r,g,b); doc.setDrawColor(255,255,255); doc.setLineWidth(0.35);
     const lines: [number,number][] = pts.slice(1).map((p,k) => [p[0]-pts[k][0], p[1]-pts[k][1]]);
     doc.lines(lines, pts[0][0], pts[0][1], [1,1], "FD", true);
@@ -119,14 +121,16 @@ function desenharDonutPDF(
   doc.text("CHAMADOS", cx, cy+3.5, {align:"center",baseline:"middle"});
 }
 
-function DonutChart({ itens, onSelect, selecionado }: {
+function DonutChart({ itens, onSelect, selecionado, cores }: {
   itens: { label: string; value: number }[];
   onSelect?: (label: string) => void;
   selecionado?: string;
+  cores?: string[];
 }) {
   const total = itens.reduce((s,d) => s+d.value, 0);
   if (total === 0) return null;
   const cx = 150, cy = 150, or_ = 128, ir = 68;
+  const palette = cores ?? CORES_CHART;
   let ang = -Math.PI/2;
   const fatias = itens.map((d, i) => {
     const frac = d.value/total;
@@ -138,7 +142,7 @@ function DonutChart({ itens, onSelect, selecionado }: {
     const large=(ea-sa)>Math.PI?1:0;
     const path=`M${ox1.toFixed(1)},${oy1.toFixed(1)} A${or_},${or_} 0 ${large} 1 ${ox2.toFixed(1)},${oy2.toFixed(1)} L${ix2.toFixed(1)},${iy2.toFixed(1)} A${ir},${ir} 0 ${large} 0 ${ix1.toFixed(1)},${iy1.toFixed(1)} Z`;
     const ma=sa+(ea-sa)/2, lr=(or_+ir)/2;
-    const cor=CORES_CHART[i%CORES_CHART.length];
+    const cor=palette[i%palette.length];
     const sel=d.label===selecionado;
     return { label:d.label, value:d.value, path, cor, sel,
       pct:(frac*100).toFixed(1),
@@ -317,6 +321,8 @@ export default function ChamadosRedminePage() {
     } finally { setXlsExporting(false); }
   }
 
+  const CORES_PRAZO = ["#ef4444", "#eab308", "#22c55e"];
+
   function gerarPDF() {
     if (!stats) return;
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
@@ -331,21 +337,54 @@ export default function ChamadosRedminePage() {
     const donutItens = equipesExp.map(e => ({ label: e.equipe, value: e.total }));
     const donutTotal = donutItens.reduce((s,d)=>s+d.value, 0);
 
+    // Donut de prazo
+    const noPrazo = Math.max(0, stats.total - stats.totalAtraso - stats.totalAtencao);
+    const prazoItens = [
+      { label: "Em atraso (≥50d)",   value: stats.totalAtraso },
+      { label: "Em atenção (30-50d)", value: stats.totalAtencao },
+      { label: "No prazo",            value: noPrazo },
+    ].filter(d => d.value > 0);
+    const prazoTotal = stats.total;
+
     let y = 37;
+    const chartSz = 72;
+    const chartY = 36;
+
+    // Donut esquerdo: por equipe
     if (donutTotal > 0) {
-      const chartX=14, chartY=36, chartSz=78;
+      const chartX = 14;
+      doc.setFontSize(7); doc.setTextColor(80,80,80); doc.setFont("helvetica","bold");
+      doc.text("Por equipe", chartX + chartSz/2, chartY - 2, {align:"center"});
       desenharDonutPDF(doc, donutItens, donutTotal, chartX, chartY, chartSz);
-      const legX=chartX+chartSz+5; let legY=chartY+5;
+      const legX = chartX + chartSz + 3; let legY = chartY + 5;
       donutItens.forEach((d,i) => {
         const [r,g,b] = hexToRgb(CORES_CHART[i%CORES_CHART.length]);
         doc.setFillColor(r,g,b); doc.rect(legX, legY-2.8, 3.5, 3.5, "F");
         const pct = ((d.value/donutTotal)*100).toFixed(1);
-        doc.setFontSize(7.5); doc.setTextColor(40,40,40); doc.setFont("helvetica","normal");
+        doc.setFontSize(6.5); doc.setTextColor(40,40,40); doc.setFont("helvetica","normal");
         doc.text(`${d.label}  ${d.value.toLocaleString("pt-BR")} (${pct}%)`, legX+4.8, legY);
-        legY += 6.8;
+        legY += 6;
       });
-      y = chartY + chartSz + 8;
     }
+
+    // Donut direito: por prazo
+    if (prazoTotal > 0) {
+      const chartX2 = 113;
+      doc.setFontSize(7); doc.setTextColor(80,80,80); doc.setFont("helvetica","bold");
+      doc.text("Por prazo", chartX2 + chartSz/2, chartY - 2, {align:"center"});
+      desenharDonutPDF(doc, prazoItens, prazoTotal, chartX2, chartY, chartSz, CORES_PRAZO);
+      const legX2 = chartX2 + chartSz + 3; let legY2 = chartY + 5;
+      prazoItens.forEach((d,i) => {
+        const [r,g,b] = hexToRgb(CORES_PRAZO[i%CORES_PRAZO.length]);
+        doc.setFillColor(r,g,b); doc.rect(legX2, legY2-2.8, 3.5, 3.5, "F");
+        const pct = ((d.value/prazoTotal)*100).toFixed(1);
+        doc.setFontSize(6.5); doc.setTextColor(40,40,40); doc.setFont("helvetica","normal");
+        doc.text(`${d.label}  ${d.value.toLocaleString("pt-BR")} (${pct}%)`, legX2+4.8, legY2);
+        legY2 += 6;
+      });
+    }
+
+    y = chartY + chartSz + 10;
 
     autoTable(doc, {
       startY: y,
@@ -630,7 +669,7 @@ export default function ChamadosRedminePage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                 <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
                   <h3 className="text-sm font-semibold text-gray-300 mb-4">Distribuição por equipe</h3>
                   <DonutChart
@@ -640,12 +679,23 @@ export default function ChamadosRedminePage() {
                   />
                 </div>
                 <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-                  <h3 className="text-sm font-semibold text-gray-300 mb-4">Chamados por equipe</h3>
-                  <BarrasHorizontais
-                    itens={equipeQuant?stats.porEquipe.filter(e=>e.equipe===equipeQuant):stats.porEquipe}
-                    total={equipeQuant?stats.porEquipe.filter(e=>e.equipe===equipeQuant).reduce((s,e)=>s+e.total,0):stats.total}
+                  <h3 className="text-sm font-semibold text-gray-300 mb-4">Distribuição por prazo</h3>
+                  <DonutChart
+                    itens={[
+                      { label: "Em atraso (≥50d)",    value: stats.totalAtraso },
+                      { label: "Em atenção (30-50d)",  value: stats.totalAtencao },
+                      { label: "No prazo",              value: Math.max(0, stats.total - stats.totalAtraso - stats.totalAtencao) },
+                    ].filter(d => d.value > 0)}
+                    cores={["#ef4444","#eab308","#22c55e"]}
                   />
                 </div>
+              </div>
+              <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+                <h3 className="text-sm font-semibold text-gray-300 mb-4">Chamados por equipe</h3>
+                <BarrasHorizontais
+                  itens={equipeQuant?stats.porEquipe.filter(e=>e.equipe===equipeQuant):stats.porEquipe}
+                  total={equipeQuant?stats.porEquipe.filter(e=>e.equipe===equipeQuant).reduce((s,e)=>s+e.total,0):stats.total}
+                />
               </div>
             </>
           )}

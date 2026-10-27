@@ -37,7 +37,7 @@ const SLA_RULES = [
   { keyword: "Cadastro",      days: 2  },
   { keyword: "Migração",      days: 15 },
   { keyword: "Orientação",    days: 5  },
-  { keyword: "Erro ou Falha", days: 5  },
+  { keyword: "Erro e Falha", days: 5  },
 ];
 
 function getSLA(equipeAtribuida: string | null): number | null {
@@ -521,13 +521,13 @@ export default function ChamadosPowerbiPage() {
                   const tipoMatch = SLA_RULES.find(r => cat.categoria.toLowerCase().includes(r.keyword.toLowerCase()));
                   const label = tipoMatch ? tipoMatch.keyword : cat.categoria;
                   const colorMap: Record<string, string> = {
-                    "Erro ou Falha": "border-t-red-500",
+                    "Erro e Falha": "border-t-red-500",
                     Cadastro:        "border-t-sky-500",
                     Orientação:      "border-t-green-500",
                     Migração:        "border-t-orange-500",
                   };
                   const numColor: Record<string, string> = {
-                    "Erro ou Falha": "text-red-400",
+                    "Erro e Falha": "text-red-400",
                     Cadastro:        "text-sky-400",
                     Orientação:      "text-green-400",
                     Migração:        "text-orange-400",

@@ -187,9 +187,9 @@ function desenharDonutPDF(
   });
   doc.setFillColor(255, 255, 255); doc.setDrawColor(255, 255, 255); doc.circle(cx, cy, ri, "F");
   doc.setFontSize(10); doc.setTextColor(30, 41, 59); doc.setFont("helvetica", "bold");
-  doc.text(String(total), cx, cy - 1.5, { align: "center", baseline: "middle" });
+  doc.text(total.toLocaleString("pt-BR"), cx, cy - 1.5, { align: "center", baseline: "middle" });
   doc.setFontSize(5.5); doc.setTextColor(148, 163, 184); doc.setFont("helvetica", "normal");
-  doc.text("TOTAL", cx, cy + 4, { align: "center", baseline: "middle" });
+  doc.text("REDMINES", cx, cy + 4, { align: "center", baseline: "middle" });
 }
 
 export default function RedmineResolvidosPage() {
@@ -289,41 +289,39 @@ export default function RedmineResolvidosPage() {
     try {
       const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
 
-      doc.setFillColor(15, 23, 42);
-      doc.rect(0, 0, 210, 297, "F");
-
       doc.setFont("helvetica", "bold");
       doc.setFontSize(16);
-      doc.setTextColor(255, 255, 255);
+      doc.setTextColor(30, 41, 59);
       doc.text("Redmine Resolvidos - Quantitativo", 14, 18);
 
       doc.setFont("helvetica", "normal");
       doc.setFontSize(9);
-      doc.setTextColor(156, 163, 175);
-      doc.text(`Gerado em ${new Date().toLocaleDateString("pt-BR")}`, 14, 25);
+      doc.setTextColor(100, 116, 139);
+      doc.text(`Total: ${totalRedmine} redmines`, 14, 24);
+      doc.text(`Gerado em: ${new Date().toLocaleString("pt-BR")}`, 14, 29);
 
       // Cards resumo
       const cards = [
-        { label: "Total Redmine",           value: String(totalRedmine),     cor: [255,255,255] as [number,number,number] },
-        { label: "Resolvidos",              value: String(qtdResolvidos),    cor: [34,197,94]   as [number,number,number] },
-        { label: "Aguardando",              value: String(qtdAguardando),    cor: [234,179,8]   as [number,number,number] },
-        { label: "Nao resolvidos",          value: String(qtdNaoResolvidos), cor: [239,68,68]   as [number,number,number] },
+        { label: "Total Redmine",   value: String(totalRedmine),     cor: [30,41,59]   as [number,number,number] },
+        { label: "Resolvidos",      value: String(qtdResolvidos),    cor: [22,163,74]  as [number,number,number] },
+        { label: "Aguardando",      value: String(qtdAguardando),    cor: [161,98,7]   as [number,number,number] },
+        { label: "Nao resolvidos",  value: String(qtdNaoResolvidos), cor: [185,28,28]  as [number,number,number] },
       ];
       const CW = 43; const CH = 18; let cxCard = 14;
       for (const c of cards) {
-        doc.setFillColor(30, 41, 59);
-        doc.roundedRect(cxCard, 30, CW, CH, 2, 2, "F");
-        doc.setFontSize(7); doc.setTextColor(156, 163, 175); doc.setFont("helvetica", "normal");
-        doc.text(c.label, cxCard + 3, 36);
+        doc.setFillColor(241, 245, 249);
+        doc.roundedRect(cxCard, 34, CW, CH, 2, 2, "F");
+        doc.setFontSize(7); doc.setTextColor(100, 116, 139); doc.setFont("helvetica", "normal");
+        doc.text(c.label, cxCard + 3, 40);
         doc.setFontSize(14); doc.setTextColor(...c.cor); doc.setFont("helvetica", "bold");
-        doc.text(c.value, cxCard + 3, 44);
+        doc.text(c.value, cxCard + 3, 48);
         cxCard += CW + 3;
       }
 
       // Donut
-      const SZ = 56; const DX = 14; const DY = 55;
-      doc.setFontSize(10); doc.setTextColor(255, 255, 255); doc.setFont("helvetica", "bold");
-      doc.text("Distribuicao dos Redmines", 14, 53);
+      const SZ = 56; const DX = 14; const DY = 60;
+      doc.setFontSize(10); doc.setTextColor(30, 41, 59); doc.setFont("helvetica", "bold");
+      doc.text("Distribuicao dos Redmines", 14, 58);
       desenharDonutPDF(doc, donutItens, DX, DY, SZ);
 
       // Legenda ao lado do donut
@@ -333,7 +331,7 @@ export default function RedmineResolvidosPage() {
         const [r2, g2, b2] = hexToRgb(item.cor ?? "#6366f1");
         doc.setFillColor(r2, g2, b2);
         doc.circle(LX, ly, 2, "F");
-        doc.setFontSize(8); doc.setTextColor(220, 220, 220); doc.setFont("helvetica", "normal");
+        doc.setFontSize(8); doc.setTextColor(30, 41, 59); doc.setFont("helvetica", "normal");
         const pct2 = totalRedmine > 0 ? `${((item.value / totalRedmine) * 100).toFixed(1)}%` : "0%";
         doc.text(`${item.label}: ${item.value} (${pct2})`, LX + 4, ly + 1);
         ly += 9;
@@ -341,7 +339,7 @@ export default function RedmineResolvidosPage() {
 
       // Tabela resumo
       const tableY = DY + SZ + 10;
-      doc.setFontSize(10); doc.setFont("helvetica", "bold"); doc.setTextColor(255, 255, 255);
+      doc.setFontSize(10); doc.setFont("helvetica", "bold"); doc.setTextColor(30, 41, 59);
       doc.text("Resumo", 14, tableY);
 
       const pct = (v: number) => totalRedmine > 0 ? `${((v / totalRedmine) * 100).toFixed(1)}%` : "0%";
@@ -355,11 +353,11 @@ export default function RedmineResolvidosPage() {
           ["Aguardando encerramento", String(qtdAguardando),    pct(qtdAguardando)],
           ["Nao resolvidos",          String(qtdNaoResolvidos), pct(qtdNaoResolvidos)],
         ],
-        styles: { fontSize: 9, textColor: [220, 220, 220] as [number,number,number], fillColor: [30, 41, 59] as [number,number,number] },
-        headStyles: { fillColor: [15, 23, 42] as [number,number,number], textColor: [156, 163, 175] as [number,number,number], fontSize: 8 },
-        alternateRowStyles: { fillColor: [22, 33, 55] as [number,number,number] },
+        styles: { fontSize: 9, textColor: [30, 41, 59] as [number,number,number] },
+        headStyles: { fillColor: [30, 41, 59] as [number,number,number], textColor: [255, 255, 255] as [number,number,number], fontSize: 8 },
+        alternateRowStyles: { fillColor: [241, 245, 249] as [number,number,number] },
         margin: { left: 14, right: 14 },
-        theme: "plain",
+        theme: "striped",
       });
 
       doc.save("redmine-resolvidos-quantitativo.pdf");

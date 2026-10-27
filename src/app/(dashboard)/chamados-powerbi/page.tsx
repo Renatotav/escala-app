@@ -411,10 +411,14 @@ export default function ChamadosPowerbiPage() {
         const pct=((c.total/(donutTotal||1))*100).toFixed(1);
         return [pdfSafe(c.categoria), c.total.toLocaleString("pt-BR"), `${pct}%`];
       }),
-      styles:{ fontSize:7.5, cellPadding:2, halign:"left" },
+      styles:{ fontSize:7.5, cellPadding:2 },
       headStyles:{ fillColor:[59,130,246], textColor:255, fontStyle:"bold" },
       alternateRowStyles:{ fillColor:[241,245,249] },
       columnStyles:{ 0:{ halign:"left" }, 1:{ halign:"right" }, 2:{ halign:"right" } },
+      didParseCell:(data: {column:{index:number},cell:{styles:{halign:string}}})=>{
+        if(data.column.index===1||data.column.index===2) data.cell.styles.halign="right";
+        else data.cell.styles.halign="left";
+      },
     });
 
     doc.save(`chamados-powerbi-quantitativo-${new Date().toISOString().slice(0,10)}.pdf`);

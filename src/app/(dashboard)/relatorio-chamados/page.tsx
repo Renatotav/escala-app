@@ -222,6 +222,8 @@ function secaoPowerbi(doc:jsPDF,s:StatsPowerbi,y:number): number {
   const dt=donutItens.reduce((a,d)=>a+d.value,0);
   if(dt>0){
     const chartX=14,chartSz=78;
+    const pageH=doc.internal.pageSize.getHeight();
+    if(y+chartSz>pageH-15){doc.addPage();y=15;}
     desenharDonut(doc,donutItens,dt,chartX,y,chartSz);
     const legX=chartX+chartSz+5;
     let legY=y+5;
@@ -245,10 +247,14 @@ function secaoPowerbi(doc:jsPDF,s:StatsPowerbi,y:number): number {
         const pct=((c.total/(dt||1))*100).toFixed(1);
         return [pdfSafe(c.categoria),c.total.toLocaleString("pt-BR"),`${pct}%`];
       }),
-      styles:{fontSize:7.5,cellPadding:2,halign:"left"},
+      styles:{fontSize:7.5,cellPadding:2},
       headStyles:{fillColor:[59,130,246],textColor:255,fontStyle:"bold"},
       alternateRowStyles:{fillColor:[241,245,249]},
       columnStyles:{0:{halign:"left"},1:{halign:"right"},2:{halign:"right"}},
+      didParseCell:(data)=>{
+        if(data.column.index===1||data.column.index===2) data.cell.styles.halign="right";
+        else data.cell.styles.halign="left";
+      },
     });
     y=(doc as unknown as {lastAutoTable:{finalY:number}}).lastAutoTable.finalY+6;
   }

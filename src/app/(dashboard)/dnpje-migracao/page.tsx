@@ -504,14 +504,14 @@ export default function DnpjeMigracaoPage() {
               <button onClick={() => handleFiltro("atraso")} className={`rounded-xl p-4 border text-left transition ${
                 filtro==="atraso"?"bg-red-800 border-red-500 ring-2 ring-red-400 animate-pulse"
                 :totalAtraso>0?"bg-red-950 border-red-700 hover:bg-red-900":"bg-gray-900 border-gray-800 hover:bg-gray-800"}`}>
-                <p className="text-xs text-gray-400 mb-1">Em atraso (>=50 dias)</p>
+                <p className="text-xs text-gray-400 mb-1">Em atraso (&gt;=50 dias)</p>
                 <p className={`text-3xl font-bold ${totalAtraso>0?"text-red-400":"text-white"}`}>{totalAtraso}</p>
                 <p className="text-xs text-red-400 mt-1">{filtro==="atraso"?"✓ Filtro ativo — clique para remover":"⚠ Clique para filtrar"}</p>
               </button>
               <button onClick={() => handleFiltro("atencao")} className={`rounded-xl p-4 border text-left transition ${
                 filtro==="atencao"?"bg-yellow-700 border-yellow-400 ring-2 ring-yellow-300 animate-pulse"
                 :totalAtencao>0?"bg-yellow-950/40 border-yellow-700 hover:bg-yellow-900/30":"bg-gray-900 border-gray-800 hover:bg-gray-800"}`}>
-                <p className="text-xs text-gray-400 mb-1">Em atencao (>=30 dias)</p>
+                <p className="text-xs text-gray-400 mb-1">Em atencao (&gt;=30 dias)</p>
                 <p className={`text-3xl font-bold ${totalAtencao>0?"text-yellow-400":"text-white"}`}>{totalAtencao}</p>
                 <p className="text-xs text-yellow-500 mt-1">{filtro==="atencao"?"✓ Filtro ativo — clique para remover":"Clique para filtrar"}</p>
               </button>
@@ -619,11 +619,11 @@ export default function DnpjeMigracaoPage() {
                   <p className="text-3xl font-bold text-white">{stats.total.toLocaleString("pt-BR")}</p>
                 </div>
                 <div className="bg-red-950/40 border border-red-700 rounded-xl p-4">
-                  <p className="text-xs text-gray-400 mb-1">Em atraso (>=50 dias)</p>
+                  <p className="text-xs text-gray-400 mb-1">Em atraso (&gt;=50 dias)</p>
                   <p className="text-3xl font-bold text-red-400">{stats.totalAtraso.toLocaleString("pt-BR")}</p>
                 </div>
                 <div className="bg-yellow-950/30 border border-yellow-700 rounded-xl p-4">
-                  <p className="text-xs text-gray-400 mb-1">Em atencao (>=30 dias)</p>
+                  <p className="text-xs text-gray-400 mb-1">Em atencao (&gt;=30 dias)</p>
                   <p className="text-3xl font-bold text-yellow-400">{stats.totalAtencao.toLocaleString("pt-BR")}</p>
                 </div>
               </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type Resolvido = {
   id: number;
@@ -28,9 +28,6 @@ function diasAberto(dataAbertura: string | null | undefined): number | null {
   return Math.floor((Date.now() - new Date(dataAbertura).getTime()) / 86400000);
 }
 
-// Renderiza texto com #NNN como links clicáveis para o Redmine
-// Se o número estiver em resolvidosSet → badge verde "✓ Resolvido"
-// Se estiver resolvido mas o chamado atual não vinculado → badge laranja "⚠ Chamado não incluído"
 function TextoComLinks({
   texto, resolvidosSet, redmineToAssystMap, assystNums,
 }: {
@@ -73,7 +70,6 @@ function TextoComLinks({
   );
 }
 
-
 function preview(texto: string, max = 55): string {
   const s = texto.replace(/\s+/g, " ").trim();
   if (s.length <= max) return s;
@@ -81,7 +77,6 @@ function preview(texto: string, max = 55): string {
   const ultimoEspaco = cortado.lastIndexOf(" ");
   return (ultimoEspaco > 10 ? cortado.slice(0, ultimoEspaco) : cortado) + "…";
 }
-
 
 function splitAssyst(raw: string): string[] {
   return raw.split(/[;/,|\\]|\s+e\s+/i).map(s => s.trim()).filter(Boolean);
@@ -95,6 +90,133 @@ function redmineUrl(num: string) {
   return `https://redmine.tjce.jus.br/issues/${num}`;
 }
 
+// ─── DonutChart ────────────────────────────────────────────────────────────
+type DonutItem = { label: string; value: number; cor?: string };
+
+const CORES_DEFAULT = ["#6366f1","#22c55e","#f59e0b","#ef4444","#3b82f6","#ec4899","#14b8a6","#f97316"];
+
+function DonutChart({ itens, cores }: { itens: DonutItem[]; cores?: string[] }) {
+  const [hover, setHover] = useState<number | null>(null);
+  const total = itens.reduce((s, d) => s + d.value, 0);
+  if (total === 0) return null;
+
+  const R = 70; const CX = 90; const CY = 90; const IR = 42;
+  let ang = -Math.PI / 2;
+  const slices = itens.map((d, i) => {
+    const frac = d.value / total;
+    const start = ang; ang += frac * 2 * Math.PI;
+    const end = ang;
+    const lx = CX + R * Math.cos((start + end) / 2);
+    const ly = CY + R * Math.sin((start + end) / 2);
+    const x1 = CX + R * Math.cos(start); const y1 = CY + R * Math.sin(start);
+    const x2 = CX + R * Math.cos(end);   const y2 = CY + R * Math.sin(end);
+    const xi1 = CX + IR * Math.cos(start); const yi1 = CY + IR * Math.sin(start);
+    const xi2 = CX + IR * Math.cos(end);   const yi2 = CY + IR * Math.sin(end);
+    const large = frac > 0.5 ? 1 : 0;
+    const path = `M ${xi1} ${yi1} L ${x1} ${y1} A ${R} ${R} 0 ${large} 1 ${x2} ${y2} L ${xi2} ${yi2} A ${IR} ${IR} 0 ${large} 0 ${xi1} ${yi1} Z`;
+    const cor = d.cor ?? (cores?.[i] ?? CORES_DEFAULT[i % CORES_DEFAULT.length]);
+    return { ...d, frac, path, cor, lx, ly };
+  });
+
+  return (
+    <div className="flex flex-col sm:flex-row items-center gap-6">
+      <svg width="180" height="180" viewBox="0 0 180 180" className="shrink-0">
+        {slices.map((s, i) => (
+          <path key={i} d={s.path} fill={s.cor}
+            opacity={hover === null || hover === i ? 1 : 0.45}
+            className="cursor-pointer transition-opacity"
+            onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)} />
+        ))}
+        <text x={CX} y={CY - 7} textAnchor="middle" fill="#fff" fontSize="22" fontWeight="bold">{total}</text>
+        <text x={CX} y={CY + 11} textAnchor="middle" fill="#9ca3af" fontSize="10">total</text>
+      </svg>
+      <div className="flex flex-col gap-2 min-w-0">
+        {slices.map((s, i) => (
+          <div key={i} className="flex items-center gap-2 cursor-pointer"
+            onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)}
+            style={{ opacity: hover === null || hover === i ? 1 : 0.5 }}>
+            <span className="w-3 h-3 rounded-full shrink-0" style={{ background: s.cor }} />
+            <span className="text-xs text-gray-300 truncate">{s.label}</span>
+            <span className="text-xs font-bold text-white ml-auto pl-3 shrink-0">{s.value}</span>
+            <span className="text-xs text-gray-500 shrink-0">({(s.frac * 100).toFixed(1)}%)</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Desenha donut no canvas do jsPDF ──────────────────────────────────────
+function desenharDonutPDF(
+  doc: { setFillColor: (r: number, g: number, b: number) => void; circle: (x: number, y: number, r: number, style: string) => void },
+  itens: DonutItem[],
+  cx: number, cy: number, R: number, IR: number,
+  cores?: string[],
+) {
+  const total = itens.reduce((s, d) => s + d.value, 0);
+  if (total === 0) return;
+
+  function hexToRgb(hex: string) {
+    const h = hex.replace("#", "");
+    return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)] as [number,number,number];
+  }
+
+  function arc(ctx: CanvasRenderingContext2D, cx2: number, cy2: number, r: number, start: number, end: number, ccw = false) {
+    ctx.arc(cx2, cy2, r, start, end, ccw);
+  }
+
+  // jsPDF não suporta arco SVG nativo — usamos canvas via jsPDF interno
+  // Estratégia: usar doc.internal.write para SVG path não funciona direto
+  // Usamos círculos coloridos com "setor" via trapézios aproximados com muitos segmentos
+  let ang = -Math.PI / 2;
+  const STEPS = 60;
+  itens.forEach((d, i) => {
+    const frac = d.value / total;
+    const startAng = ang;
+    ang += frac * 2 * Math.PI;
+    const endAng = ang;
+    const cor = d.cor ?? (cores?.[i] ?? CORES_DEFAULT[i % CORES_DEFAULT.length]);
+    const [r2, g2, b2] = hexToRgb(cor);
+    doc.setFillColor(r2, g2, b2);
+
+    // Desenha como polígono de muitos pontos
+    const pts: [number, number][] = [];
+    const steps = Math.max(3, Math.round(STEPS * frac));
+    for (let s = 0; s <= steps; s++) {
+      const a = startAng + (endAng - startAng) * (s / steps);
+      pts.push([cx + R * Math.cos(a), cy + R * Math.sin(a)]);
+    }
+    for (let s = steps; s >= 0; s--) {
+      const a = startAng + (endAng - startAng) * (s / steps);
+      pts.push([cx + IR * Math.cos(a), cy + IR * Math.sin(a)]);
+    }
+
+    // usa lines para desenhar polígono
+    const jspdfDoc = doc as unknown as {
+      lines: (lines: [number, number, number, number, number, number][] | [number, number][], x: number, y: number, scale: [number, number], style: string, closed: boolean) => void;
+      triangle: (x1: number, y1: number, x2: number, y2: number, x3: number, y3: number, style: string) => void;
+      setDrawColor: (r: number, g: number, b: number) => void;
+    };
+    jspdfDoc.setDrawColor(r2, g2, b2);
+
+    // Desenha triângulos (fan) do centro IR → outer arc
+    for (let s = 0; s < steps; s++) {
+      const a1 = startAng + (endAng - startAng) * (s / steps);
+      const a2 = startAng + (endAng - startAng) * ((s + 1) / steps);
+      const ox1 = cx + R * Math.cos(a1); const oy1 = cy + R * Math.sin(a1);
+      const ox2 = cx + R * Math.cos(a2); const oy2 = cy + R * Math.sin(a2);
+      const ix1 = cx + IR * Math.cos(a1); const iy1 = cy + IR * Math.sin(a1);
+      const ix2 = cx + IR * Math.cos(a2); const iy2 = cy + IR * Math.sin(a2);
+      jspdfDoc.triangle(ox1, oy1, ox2, oy2, ix1, iy1, "F");
+      jspdfDoc.triangle(ox2, oy2, ix2, iy2, ix1, iy1, "F");
+    }
+  });
+
+  // Buraco central branco
+  doc.setFillColor(30, 41, 59); // bg escuro
+  doc.circle(cx, cy, IR - 0.5, "F");
+}
+
 export default function RedmineResolvidosPage() {
   const [dados, setDados] = useState<Dados | null>(null);
   const [loading, setLoading] = useState(true);
@@ -104,17 +226,19 @@ export default function RedmineResolvidosPage() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [importResult, setImportResult] = useState<{ count?: number; skipped?: number; error?: string } | null>(null);
   const [aba, setAba] = useState<"esquecidos" | "resolvidos">("esquecidos");
+  const [abaVis, setAbaVis] = useState<"lista" | "quantitativo">("lista");
   const [busca, setBusca] = useState("");
   const [paginaEsq, setPaginaEsq] = useState(1);
   const POR_PAGINA = 100;
   const [substituir, setSubstituir] = useState(true);
+  const [pdfExporting, setPdfExporting] = useState(false);
+  const [jpegExporting, setJpegExporting] = useState(false);
 
   const [marcadorRes, setMarcadorResState] = useState<{ assyst: string; page: number } | null>(null);
   const marcadorResRef = useRef<HTMLTableRowElement>(null);
   const marcadorResNavigated = useRef(false);
   const fileRef = useRef<HTMLInputElement>(null);
-  const topScrollRef = useRef<HTMLDivElement>(null);
-  const tableScrollRef = useRef<HTMLDivElement>(null);
+  const quantRef = useRef<HTMLDivElement>(null);
 
   const MARKER_RES_KEY = "redmine-resolvidos-marcador-res";
 
@@ -146,7 +270,6 @@ export default function RedmineResolvidosPage() {
 
   useEffect(() => { load(); }, []);
 
-  // Recarga ao mudar busca (debounce) ou ao mudar para aba resolvidos
   useEffect(() => {
     if (aba !== "resolvidos") return;
     const t = setTimeout(() => load(1, busca), 300);
@@ -154,7 +277,6 @@ export default function RedmineResolvidosPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [busca, aba]);
 
-  // Navega para a página do marcador (resolvidos) quando dados carregam — só uma vez
   useEffect(() => {
     if (!dados || !marcadorRes || marcadorResNavigated.current) return;
     marcadorResNavigated.current = true;
@@ -168,6 +290,144 @@ export default function RedmineResolvidosPage() {
       setTimeout(() => marcadorResRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 150);
     }
   }, [dados, aba]);
+
+  // ─── dados quantitativos ─────────────────────────────────────────────────
+  const totalRedmine = dados?.totalRedmine ?? 0;
+  const encontrados = dados?.encontrados ?? [];
+  const esquecidos = dados?.esquecidos ?? [];
+  const aguardandoEmChamados = dados?.aguardandoEmChamados ?? [];
+
+  const qtdResolvidos = encontrados.length - aguardandoEmChamados.length;
+  const qtdAguardando = aguardandoEmChamados.length;
+  const qtdNaoResolvidos = esquecidos.length;
+
+  const donutItens: DonutItem[] = [
+    { label: "Resolvidos",              value: qtdResolvidos,    cor: "#22c55e" },
+    { label: "Aguardando encerramento", value: qtdAguardando,    cor: "#eab308" },
+    { label: "Nao resolvidos",          value: qtdNaoResolvidos, cor: "#ef4444" },
+  ].filter(d => d.value > 0);
+
+  // ─── PDF ─────────────────────────────────────────────────────────────────
+  const gerarPDF = useCallback(async () => {
+    if (!dados) return;
+    setPdfExporting(true);
+    try {
+      const { jsPDF } = await import("jspdf");
+      await import("jspdf-autotable");
+      const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+
+      doc.setFillColor(15, 23, 42);
+      doc.rect(0, 0, 210, 297, "F");
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(16);
+      doc.setTextColor(255, 255, 255);
+      doc.text("Redmine Resolvidos - Quantitativo", 14, 18);
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(156, 163, 175);
+      doc.text(`Gerado em ${new Date().toLocaleDateString("pt-BR")}`, 14, 25);
+
+      // Cards resumo
+      const cards = [
+        { label: "Total Redmine",            value: String(totalRedmine),    cor: [255,255,255] as [number,number,number] },
+        { label: "Resolvidos",               value: String(qtdResolvidos),   cor: [34,197,94]  as [number,number,number] },
+        { label: "Aguardando encerramento",  value: String(qtdAguardando),   cor: [234,179,8]  as [number,number,number] },
+        { label: "Nao resolvidos",           value: String(qtdNaoResolvidos),cor: [239,68,68]  as [number,number,number] },
+      ];
+      const CW = 43; const CH = 18; let cx2 = 14;
+      for (const c of cards) {
+        doc.setFillColor(30, 41, 59);
+        doc.roundedRect(cx2, 30, CW, CH, 2, 2, "F");
+        doc.setFontSize(7); doc.setTextColor(156,163,175); doc.setFont("helvetica","normal");
+        doc.text(c.label, cx2 + 3, 36);
+        doc.setFontSize(14); doc.setTextColor(...c.cor); doc.setFont("helvetica","bold");
+        doc.text(c.value, cx2 + 3, 44);
+        cx2 += CW + 3;
+      }
+
+      // Donut
+      const CX = 60; const CY = 90; const R = 28; const IR = 14;
+      doc.setFontSize(10); doc.setTextColor(255,255,255); doc.setFont("helvetica","bold");
+      doc.text("Distribuicao dos Redmines", 14, 58);
+      desenharDonutPDF(doc, donutItens, CX, CY, R, IR);
+
+      // Total no centro
+      doc.setFontSize(10); doc.setFont("helvetica","bold"); doc.setTextColor(255,255,255);
+      doc.text(String(totalRedmine), CX, CY - 2, { align: "center" });
+      doc.setFontSize(7); doc.setFont("helvetica","normal"); doc.setTextColor(156,163,175);
+      doc.text("total", CX, CY + 4, { align: "center" });
+
+      // Legenda do donut
+      const CORES_DONUT = ["#22c55e","#eab308","#ef4444"];
+      let ly = CY - R + 2;
+      const LX2 = CX + R + 8;
+      donutItens.forEach((item, i) => {
+        const hex = item.cor ?? CORES_DONUT[i];
+        const [r2,g2,b2] = [parseInt(hex.slice(1,3),16), parseInt(hex.slice(3,5),16), parseInt(hex.slice(5,7),16)];
+        doc.setFillColor(r2,g2,b2);
+        doc.circle(LX2, ly, 2, "F");
+        doc.setFontSize(8); doc.setTextColor(220,220,220); doc.setFont("helvetica","normal");
+        doc.text(`${item.label}: ${item.value} (${totalRedmine > 0 ? ((item.value/totalRedmine)*100).toFixed(1) : "0"}%)`, LX2 + 4, ly + 1);
+        ly += 9;
+      });
+
+      // Tabela resumo
+      const tableY = Math.max(CY + R + 12, ly + 6);
+      doc.setFontSize(10); doc.setFont("helvetica","bold"); doc.setTextColor(255,255,255);
+      doc.text("Resumo", 14, tableY);
+
+      const pct = (v: number) => totalRedmine > 0 ? `${((v/totalRedmine)*100).toFixed(1)}%` : "0%";
+
+      (doc as unknown as { autoTable: (opts: unknown) => void }).autoTable({
+        startY: tableY + 4,
+        head: [["Categoria", "Quantidade", "Percentual"]],
+        body: [
+          ["Total Redmine",           totalRedmine,    "100%"],
+          ["Resolvidos",              qtdResolvidos,   pct(qtdResolvidos)],
+          ["Aguardando encerramento", qtdAguardando,   pct(qtdAguardando)],
+          ["Nao resolvidos",          qtdNaoResolvidos,pct(qtdNaoResolvidos)],
+        ],
+        styles: { fontSize: 9, textColor: [220,220,220], fillColor: [30,41,59] },
+        headStyles: { fillColor: [15,23,42], textColor: [156,163,175], fontSize: 8 },
+        alternateRowStyles: { fillColor: [22,33,55] },
+        columnStyles: { 0: { cellWidth: 80 }, 1: { cellWidth: 40, halign: "center" }, 2: { cellWidth: 40, halign: "center" } },
+        margin: { left: 14, right: 14 },
+        theme: "plain",
+      });
+
+      doc.save("redmine-resolvidos-quantitativo.pdf");
+    } finally {
+      setPdfExporting(false);
+    }
+  }, [dados, donutItens, totalRedmine, qtdResolvidos, qtdAguardando, qtdNaoResolvidos]);
+
+  // ─── JPEG ────────────────────────────────────────────────────────────────
+  const exportarJPEG = useCallback(async () => {
+    if (!quantRef.current) return;
+    setJpegExporting(true);
+    try {
+      const el = quantRef.current;
+      const canvas = document.createElement("canvas");
+      const scale = 2;
+      canvas.width = el.offsetWidth * scale;
+      canvas.height = el.offsetHeight * scale;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      ctx.scale(scale, scale);
+      ctx.fillStyle = "#0f172a";
+      ctx.fillRect(0, 0, el.offsetWidth, el.offsetHeight);
+      const { default: html2canvas } = await import("html2canvas");
+      const c2 = await html2canvas(el, { backgroundColor: "#0f172a", scale: 2, useCORS: true });
+      const a = document.createElement("a");
+      a.href = c2.toDataURL("image/jpeg", 0.92);
+      a.download = "redmine-resolvidos-quantitativo.jpg";
+      a.click();
+    } finally {
+      setJpegExporting(false);
+    }
+  }, []);
 
   async function handleImport() {
     if (selectedFiles.length === 0) return;
@@ -256,30 +516,24 @@ export default function RedmineResolvidosPage() {
 
   const semResolvidoRaw = dados?.esquecidos ?? [];
   const comResolvido = dados?.encontrados ?? [];
-  const aguardandoEmChamados = dados?.aguardandoEmChamados ?? [];
-  const resolvidos = dados?.resolvidos ?? [];  // página atual (server-side)
+  const resolvidos = dados?.resolvidos ?? [];
   const chamadosMap = dados?.chamadosMap ?? {};
 
   const buscaLow = busca.toLowerCase();
-  // Esquecidos: filtro client-side (array de strings, leve)
   const semResolvido = buscaLow
     ? semResolvidoRaw.filter(n => n.toLowerCase().includes(buscaLow))
     : semResolvidoRaw;
 
-  // Paginação Esquecidos — client-side
   const totalPaginasEsq = Math.max(1, Math.ceil(semResolvido.length / POR_PAGINA));
   const paginaEsqAtual = Math.min(paginaEsq, totalPaginasEsq);
   const semResolvidoPag = semResolvido.slice((paginaEsqAtual - 1) * POR_PAGINA, paginaEsqAtual * POR_PAGINA);
 
-  // Paginação Resolvidos — server-side
   const totalPaginasRes = dados?.totalPages ?? 1;
   const paginaResAtual = dados?.page ?? 1;
-  const resolvidosPag = resolvidos;  // já paginado pelo servidor
+  const resolvidosPag = resolvidos;
 
-  // Set de Redmine# encontrados — vem do servidor (leve: só os números)
   const resolvidosRedmineSet = new Set(dados?.resolvidosRedmineNums ?? []);
 
-  // Mapa Redmine# → Set<Assyst#> — calculado da página atual (suficiente para o modal de notas)
   const redmineToAssystMap = new Map<string, Set<string>>();
   for (const r of resolvidos) {
     const key = r.numeroRedmine.trim();
@@ -295,7 +549,19 @@ export default function RedmineResolvidosPage() {
           <p className="text-sm text-gray-400 mt-0.5">Comparativo entre Chamados Redmine e Resolvidos</p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          {dados && resolvidos.length > 0 && (
+          {abaVis === "quantitativo" && dados && (
+            <>
+              <button onClick={gerarPDF} disabled={pdfExporting}
+                className="bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-gray-200 text-sm font-medium px-4 py-2 rounded-lg transition">
+                {pdfExporting ? "Gerando..." : "↓ PDF"}
+              </button>
+              <button onClick={exportarJPEG} disabled={jpegExporting}
+                className="bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-gray-200 text-sm font-medium px-4 py-2 rounded-lg transition">
+                {jpegExporting ? "Exportando..." : "↓ JPEG"}
+              </button>
+            </>
+          )}
+          {abaVis === "lista" && dados && resolvidos.length > 0 && (
             <>
               <button onClick={exportXLS} disabled={xlsExporting}
                 className="bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-gray-200 text-sm font-medium px-4 py-2 rounded-lg transition">
@@ -314,215 +580,275 @@ export default function RedmineResolvidosPage() {
         </div>
       </div>
 
-      <div className="flex items-center gap-3 mb-6 flex-wrap">
-        <a href="/redmine-resolvidos/como-funciona" target="_blank" rel="noopener noreferrer"
-          className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-blue-900/30 border border-blue-700/40 text-blue-400 hover:bg-blue-800/40 hover:text-blue-300 transition font-medium">
-          <span>ℹ</span> Como funciona?
-        </a>
+      {/* Abas Lista / Quantitativo */}
+      <div className="flex gap-1 mb-6">
+        {(["lista","quantitativo"] as const).map(t => (
+          <button key={t} onClick={() => setAbaVis(t)}
+            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition ${abaVis === t ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white"}`}>
+            {t === "lista" ? "Lista" : "Quantitativo"}
+          </button>
+        ))}
       </div>
 
-      {/* Cards */}
-      {dados && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
-            <p className="text-xs text-gray-400 mb-1">Total Redmine</p>
-            <p className="text-3xl font-bold text-white">{dados.totalRedmine}</p>
+      {abaVis === "lista" && (
+        <>
+          <div className="flex items-center gap-3 mb-6 flex-wrap">
+            <a href="/redmine-resolvidos/como-funciona" target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-blue-900/30 border border-blue-700/40 text-blue-400 hover:bg-blue-800/40 hover:text-blue-300 transition font-medium">
+              <span>ℹ</span> Como funciona?
+            </a>
           </div>
-          <a href="/chamados?filtro=redmine-resolvido"
-            className={`rounded-xl p-4 border text-left transition block ${aguardandoEmChamados.length > 0 ? "bg-orange-950/30 border-orange-600 hover:bg-orange-950/50 animate-pulse" : "bg-gray-900 border-gray-800"}`}>
-            <p className="text-xs text-gray-400 mb-1">Aguardando encerramento em Chamados</p>
-            <p className={`text-3xl font-bold ${aguardandoEmChamados.length > 0 ? "text-orange-400" : "text-white"}`}>{aguardandoEmChamados.length}</p>
-            {aguardandoEmChamados.length > 0 && (
-              <p className="text-xs text-orange-500 mt-1">⚡ Ver filtrado em Chamados →</p>
-            )}
-          </a>
-          <button
-            onClick={() => { setAba("esquecidos"); setPaginaEsq(1); }}
-            className={`rounded-xl p-4 border text-left transition ${aba === "esquecidos" ? "bg-red-900/40 border-red-500 ring-2 ring-red-400 animate-pulse" : semResolvido.length > 0 ? "bg-red-950/30 border-red-700 hover:bg-red-900/20" : "bg-gray-900 border-gray-800"}`}>
-            <p className="text-xs text-gray-400 mb-1">Não resolvidos</p>
-            <p className={`text-3xl font-bold ${semResolvido.length > 0 ? "text-red-400" : "text-white"}`}>{semResolvido.length}</p>
-            {semResolvido.length > 0 && <p className="text-xs text-red-400 mt-1">⚠ Clique para ver</p>}
-          </button>
-          <button
-            onClick={() => { setAba("resolvidos"); }}
-            className={`rounded-xl p-4 border text-left transition ${aba === "resolvidos" ? "bg-green-900/40 border-green-500 ring-2 ring-green-400 animate-pulse" : "bg-gray-900 border-gray-800 hover:bg-gray-800"}`}>
-            <p className="text-xs text-gray-400 mb-1">Encontrados nos Resolvidos</p>
-            <p className="text-3xl font-bold text-green-400">{comResolvido.length}</p>
-            <p className="text-xs text-green-600 mt-1">Clique para ver</p>
-          </button>
-        </div>
-      )}
 
-      {/* Pesquisa */}
-      {dados && (dados.totalResolvidos > 0 || semResolvidoRaw.length > 0) && (
-        <div className="mb-4">
-          <div className="relative w-fit">
-            <input
-              type="text"
-              value={busca}
-              onChange={e => { setBusca(e.target.value); setPaginaEsq(1); }}
-              placeholder="Pesquisar chamado..."
-              className="bg-gray-900 border border-gray-700 text-white text-xs rounded-lg pl-7 pr-7 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[220px]"
-            />
-            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 text-xs pointer-events-none">🔍</span>
-            {busca && (
-              <button onClick={() => setBusca("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white text-xs">✕</button>
-            )}
-          </div>
-        </div>
-      )}
+          {dados && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+                <p className="text-xs text-gray-400 mb-1">Total Redmine</p>
+                <p className="text-3xl font-bold text-white">{dados.totalRedmine}</p>
+              </div>
+              <a href="/chamados?filtro=redmine-resolvido"
+                className={`rounded-xl p-4 border text-left transition block ${aguardandoEmChamados.length > 0 ? "bg-orange-950/30 border-orange-600 hover:bg-orange-950/50 animate-pulse" : "bg-gray-900 border-gray-800"}`}>
+                <p className="text-xs text-gray-400 mb-1">Aguardando encerramento em Chamados</p>
+                <p className={`text-3xl font-bold ${aguardandoEmChamados.length > 0 ? "text-orange-400" : "text-white"}`}>{aguardandoEmChamados.length}</p>
+                {aguardandoEmChamados.length > 0 && (
+                  <p className="text-xs text-orange-500 mt-1">⚡ Ver filtrado em Chamados →</p>
+                )}
+              </a>
+              <button
+                onClick={() => { setAba("esquecidos"); setPaginaEsq(1); }}
+                className={`rounded-xl p-4 border text-left transition ${aba === "esquecidos" ? "bg-red-900/40 border-red-500 ring-2 ring-red-400 animate-pulse" : semResolvido.length > 0 ? "bg-red-950/30 border-red-700 hover:bg-red-900/20" : "bg-gray-900 border-gray-800"}`}>
+                <p className="text-xs text-gray-400 mb-1">Não resolvidos</p>
+                <p className={`text-3xl font-bold ${semResolvido.length > 0 ? "text-red-400" : "text-white"}`}>{semResolvido.length}</p>
+                {semResolvido.length > 0 && <p className="text-xs text-red-400 mt-1">⚠ Clique para ver</p>}
+              </button>
+              <button
+                onClick={() => { setAba("resolvidos"); }}
+                className={`rounded-xl p-4 border text-left transition ${aba === "resolvidos" ? "bg-green-900/40 border-green-500 ring-2 ring-green-400 animate-pulse" : "bg-gray-900 border-gray-800 hover:bg-gray-800"}`}>
+                <p className="text-xs text-gray-400 mb-1">Encontrados nos Resolvidos</p>
+                <p className="text-3xl font-bold text-green-400">{comResolvido.length}</p>
+                <p className="text-xs text-green-600 mt-1">Clique para ver</p>
+              </button>
+            </div>
+          )}
 
-      {/* Tabela */}
-      <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto">
-        {loading ? (
-          <p className="px-4 py-8 text-center text-gray-500 text-sm">Carregando...</p>
-        ) : !dados || resolvidos.length === 0 ? (
-          <p className="px-4 py-12 text-center text-gray-500 text-sm">
-            {dados?.totalRedmine === 0
-              ? "Nenhum Chamado Redmine importado ainda. Importe os chamados primeiro."
-              : "Nenhum arquivo de Resolvidos importado. Clique em \"Importar Resolvidos\"."}
-          </p>
-        ) : aba === "esquecidos" ? (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wide">
-                <th className="text-left px-4 py-3">Nº Chamado (Assyst)</th>
-                <th className="text-left px-4 py-3">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {semResolvido.length === 0 ? (
-                <tr><td colSpan={2} className="px-4 py-8 text-center text-green-400 text-sm">Todos os chamados foram resolvidos!</td></tr>
-              ) : semResolvidoPag.map(num => (
-                <tr key={num} className="border-b border-gray-800 last:border-0 bg-red-950/20 border-l-2 border-l-red-600 hover:bg-red-950/30 transition">
-                  <td className="px-4 py-3">
-                    <a href={assystUrl(num)} target="_blank" rel="noopener noreferrer"
-                      className="font-mono text-sm text-blue-400 hover:text-blue-300 hover:underline transition">
-                      {num}
-                    </a>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full bg-red-600 text-white animate-pulse">
-                      ⚠ Ainda não resolvido
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : (
-          <table className="w-full min-w-[900px] text-sm">
-            <thead>
-              <tr className="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wide">
-                <th className="text-left px-4 py-3 whitespace-nowrap">Redmine #</th>
-                <th className="text-left px-4 py-3 whitespace-nowrap">Nº Assyst</th>
-                <th className="text-left px-4 py-3 whitespace-nowrap">Tipo</th>
-                <th className="text-left px-4 py-3 whitespace-nowrap">Situação</th>
-              </tr>
-            </thead>
-            <tbody>
-              {resolvidosPag.flatMap(r => {
-                const nums = splitAssyst(r.numerosAssyst);
-                const esMarcado = marcadorRes ? nums.some(n => n.toUpperCase() === marcadorRes.assyst) : false;
-                const rows = [];
-                if (esMarcado) {
-                  rows.push(
-                    <tr key={`div-${r.id}`}>
-                      <td colSpan={4} className="px-4 py-2 bg-blue-950/50 border-y border-blue-500/40">
-                        <span className="text-xs text-blue-300 font-semibold flex items-center gap-2">
-                          📍 Você parou aqui — continue a partir deste chamado
+          {dados && (dados.totalResolvidos > 0 || semResolvidoRaw.length > 0) && (
+            <div className="mb-4">
+              <div className="relative w-fit">
+                <input
+                  type="text"
+                  value={busca}
+                  onChange={e => { setBusca(e.target.value); setPaginaEsq(1); }}
+                  placeholder="Pesquisar chamado..."
+                  className="bg-gray-900 border border-gray-700 text-white text-xs rounded-lg pl-7 pr-7 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[220px]"
+                />
+                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 text-xs pointer-events-none">🔍</span>
+                {busca && (
+                  <button onClick={() => setBusca("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white text-xs">✕</button>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto">
+            {loading ? (
+              <p className="px-4 py-8 text-center text-gray-500 text-sm">Carregando...</p>
+            ) : !dados || resolvidos.length === 0 ? (
+              <p className="px-4 py-12 text-center text-gray-500 text-sm">
+                {dados?.totalRedmine === 0
+                  ? "Nenhum Chamado Redmine importado ainda. Importe os chamados primeiro."
+                  : "Nenhum arquivo de Resolvidos importado. Clique em \"Importar Resolvidos\"."}
+              </p>
+            ) : aba === "esquecidos" ? (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wide">
+                    <th className="text-left px-4 py-3">Nº Chamado (Assyst)</th>
+                    <th className="text-left px-4 py-3">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {semResolvido.length === 0 ? (
+                    <tr><td colSpan={2} className="px-4 py-8 text-center text-green-400 text-sm">Todos os chamados foram resolvidos!</td></tr>
+                  ) : semResolvidoPag.map(num => (
+                    <tr key={num} className="border-b border-gray-800 last:border-0 bg-red-950/20 border-l-2 border-l-red-600 hover:bg-red-950/30 transition">
+                      <td className="px-4 py-3">
+                        <a href={assystUrl(num)} target="_blank" rel="noopener noreferrer"
+                          className="font-mono text-sm text-blue-400 hover:text-blue-300 hover:underline transition">
+                          {num}
+                        </a>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full bg-red-600 text-white animate-pulse">
+                          ⚠ Ainda não resolvido
                         </span>
                       </td>
                     </tr>
-                  );
-                }
-                rows.push(
-                  <tr key={r.id} ref={esMarcado ? marcadorResRef : undefined}
-                    className={`border-b border-gray-800 last:border-0 transition border-l-2 ${esMarcado ? "bg-blue-950/20 border-l-blue-500 hover:bg-blue-950/30" : "border-l-transparent hover:bg-gray-800/50"}`}>
-                    <td className="px-4 py-3">
-                      <a href={redmineUrl(r.numeroRedmine)} target="_blank" rel="noopener noreferrer"
-                        className="font-mono text-xs text-blue-400 hover:text-blue-300 hover:underline transition">
-                        {r.numeroRedmine}
-                      </a>
-                    </td>
-                    <td className="px-4 py-3 text-xs">
-                      {nums.length > 0 ? (
-                        <div className="flex flex-col gap-1">
-                          {nums.map(n => {
-                            const dias = diasAberto(chamadosMap[n.toUpperCase()]);
-                            const esMarcadoAssyst = marcadorRes?.assyst === n.toUpperCase();
-                            return (
-                              <div key={n} className="flex items-center gap-1.5">
-                                <button onClick={() => toggleMarcadorRes(n, paginaResAtual)}
-                                  title={esMarcadoAssyst ? "Remover marcador" : "Marcar posição aqui"}
-                                  className={`text-sm leading-none transition shrink-0 ${esMarcadoAssyst ? "text-blue-400 hover:text-gray-500" : "text-gray-700 hover:text-blue-400"}`}>
-                                  📍
-                                </button>
-                                <a href={assystUrl(n)} target="_blank" rel="noopener noreferrer"
-                                  className={`font-mono hover:underline transition ${esMarcadoAssyst ? "text-blue-300 font-bold" : "text-blue-400 hover:text-blue-300"}`}>
-                                  {n}
-                                </a>
-                                {dias !== null && (
-                                  <span title="Chamado atrasado" className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-600 text-white text-xs font-bold animate-pulse whitespace-nowrap cursor-help">
-                                    ⚠ {dias}d
-                                  </span>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ) : <span className="text-gray-500">—</span>}
-                    </td>
-                    <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">{r.tipo ?? "—"}</td>
-                    <td className="px-4 py-3">
-                      {r.situacao ? (
-                        <span className="text-xs px-2 py-0.5 rounded-full whitespace-nowrap bg-green-500/20 text-green-400 border border-green-500/30">{r.situacao}</span>
-                      ) : "—"}
-                    </td>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <table className="w-full min-w-[900px] text-sm">
+                <thead>
+                  <tr className="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wide">
+                    <th className="text-left px-4 py-3 whitespace-nowrap">Redmine #</th>
+                    <th className="text-left px-4 py-3 whitespace-nowrap">Nº Assyst</th>
+                    <th className="text-left px-4 py-3 whitespace-nowrap">Tipo</th>
+                    <th className="text-left px-4 py-3 whitespace-nowrap">Situação</th>
                   </tr>
-                );
-                return rows;
-              })}
-            </tbody>
-          </table>
-        )}
-      </div>
+                </thead>
+                <tbody>
+                  {resolvidosPag.flatMap(r => {
+                    const nums = splitAssyst(r.numerosAssyst);
+                    const esMarcado = marcadorRes ? nums.some(n => n.toUpperCase() === marcadorRes.assyst) : false;
+                    const rows = [];
+                    if (esMarcado) {
+                      rows.push(
+                        <tr key={`div-${r.id}`}>
+                          <td colSpan={4} className="px-4 py-2 bg-blue-950/50 border-y border-blue-500/40">
+                            <span className="text-xs text-blue-300 font-semibold flex items-center gap-2">
+                              📍 Você parou aqui — continue a partir deste chamado
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    }
+                    rows.push(
+                      <tr key={r.id} ref={esMarcado ? marcadorResRef : undefined}
+                        className={`border-b border-gray-800 last:border-0 transition border-l-2 ${esMarcado ? "bg-blue-950/20 border-l-blue-500 hover:bg-blue-950/30" : "border-l-transparent hover:bg-gray-800/50"}`}>
+                        <td className="px-4 py-3">
+                          <a href={redmineUrl(r.numeroRedmine)} target="_blank" rel="noopener noreferrer"
+                            className="font-mono text-xs text-blue-400 hover:text-blue-300 hover:underline transition">
+                            {r.numeroRedmine}
+                          </a>
+                        </td>
+                        <td className="px-4 py-3 text-xs">
+                          {nums.length > 0 ? (
+                            <div className="flex flex-col gap-1">
+                              {nums.map(n => {
+                                const dias = diasAberto(chamadosMap[n.toUpperCase()]);
+                                const esMarcadoAssyst = marcadorRes?.assyst === n.toUpperCase();
+                                return (
+                                  <div key={n} className="flex items-center gap-1.5">
+                                    <button onClick={() => toggleMarcadorRes(n, paginaResAtual)}
+                                      title={esMarcadoAssyst ? "Remover marcador" : "Marcar posição aqui"}
+                                      className={`text-sm leading-none transition shrink-0 ${esMarcadoAssyst ? "text-blue-400 hover:text-gray-500" : "text-gray-700 hover:text-blue-400"}`}>
+                                      📍
+                                    </button>
+                                    <a href={assystUrl(n)} target="_blank" rel="noopener noreferrer"
+                                      className={`font-mono hover:underline transition ${esMarcadoAssyst ? "text-blue-300 font-bold" : "text-blue-400 hover:text-blue-300"}`}>
+                                      {n}
+                                    </a>
+                                    {dias !== null && (
+                                      <span title="Chamado atrasado" className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-600 text-white text-xs font-bold animate-pulse whitespace-nowrap cursor-help">
+                                        ⚠ {dias}d
+                                      </span>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : <span className="text-gray-500">—</span>}
+                        </td>
+                        <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">{r.tipo ?? "—"}</td>
+                        <td className="px-4 py-3">
+                          {r.situacao ? (
+                            <span className="text-xs px-2 py-0.5 rounded-full whitespace-nowrap bg-green-500/20 text-green-400 border border-green-500/30">{r.situacao}</span>
+                          ) : "—"}
+                        </td>
+                      </tr>
+                    );
+                    return rows;
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
 
-      {/* Paginação */}
-      {aba === "esquecidos" && totalPaginasEsq > 1 && semResolvido.length > 0 && (
-        <div className="flex items-center justify-between mt-4 px-1">
-          <p className="text-xs text-gray-500">
-            Exibindo <span className="text-gray-300">{(paginaEsqAtual - 1) * POR_PAGINA + 1}–{Math.min(paginaEsqAtual * POR_PAGINA, semResolvido.length)}</span> de <span className="text-gray-300">{semResolvido.length}</span> registros
-          </p>
-          <div className="flex items-center gap-2">
-            <button onClick={() => setPaginaEsq(p => Math.max(1, p - 1))} disabled={paginaEsqAtual === 1}
-              className="px-3 py-1.5 text-xs rounded-lg bg-gray-800 hover:bg-gray-700 disabled:opacity-40 text-gray-300 transition">
-              ← Anterior
-            </button>
-            <span className="text-xs text-gray-400">Página {paginaEsqAtual} de {totalPaginasEsq}</span>
-            <button onClick={() => setPaginaEsq(p => Math.min(totalPaginasEsq, p + 1))} disabled={paginaEsqAtual === totalPaginasEsq}
-              className="px-3 py-1.5 text-xs rounded-lg bg-gray-800 hover:bg-gray-700 disabled:opacity-40 text-gray-300 transition">
-              Próxima →
-            </button>
-          </div>
-        </div>
+          {aba === "esquecidos" && totalPaginasEsq > 1 && semResolvido.length > 0 && (
+            <div className="flex items-center justify-between mt-4 px-1">
+              <p className="text-xs text-gray-500">
+                Exibindo <span className="text-gray-300">{(paginaEsqAtual - 1) * POR_PAGINA + 1}–{Math.min(paginaEsqAtual * POR_PAGINA, semResolvido.length)}</span> de <span className="text-gray-300">{semResolvido.length}</span> registros
+              </p>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setPaginaEsq(p => Math.max(1, p - 1))} disabled={paginaEsqAtual === 1}
+                  className="px-3 py-1.5 text-xs rounded-lg bg-gray-800 hover:bg-gray-700 disabled:opacity-40 text-gray-300 transition">
+                  ← Anterior
+                </button>
+                <span className="text-xs text-gray-400">Página {paginaEsqAtual} de {totalPaginasEsq}</span>
+                <button onClick={() => setPaginaEsq(p => Math.min(totalPaginasEsq, p + 1))} disabled={paginaEsqAtual === totalPaginasEsq}
+                  className="px-3 py-1.5 text-xs rounded-lg bg-gray-800 hover:bg-gray-700 disabled:opacity-40 text-gray-300 transition">
+                  Próxima →
+                </button>
+              </div>
+            </div>
+          )}
+          {aba === "resolvidos" && totalPaginasRes > 1 && (dados?.totalResolvidos ?? 0) > 0 && (
+            <div className="flex items-center justify-between mt-4 px-1">
+              <p className="text-xs text-gray-500">
+                Exibindo <span className="text-gray-300">{(paginaResAtual - 1) * POR_PAGINA + 1}–{Math.min(paginaResAtual * POR_PAGINA, dados?.totalResolvidos ?? 0)}</span> de <span className="text-gray-300">{dados?.totalResolvidos ?? 0}</span> registros
+              </p>
+              <div className="flex items-center gap-2">
+                <button onClick={() => load(paginaResAtual - 1, busca)} disabled={paginaResAtual === 1}
+                  className="px-3 py-1.5 text-xs rounded-lg bg-gray-800 hover:bg-gray-700 disabled:opacity-40 text-gray-300 transition">
+                  ← Anterior
+                </button>
+                <span className="text-xs text-gray-400">Página {paginaResAtual} de {totalPaginasRes}</span>
+                <button onClick={() => load(paginaResAtual + 1, busca)} disabled={paginaResAtual === totalPaginasRes}
+                  className="px-3 py-1.5 text-xs rounded-lg bg-gray-800 hover:bg-gray-700 disabled:opacity-40 text-gray-300 transition">
+                  Próxima →
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       )}
-      {aba === "resolvidos" && totalPaginasRes > 1 && (dados?.totalResolvidos ?? 0) > 0 && (
-        <div className="flex items-center justify-between mt-4 px-1">
-          <p className="text-xs text-gray-500">
-            Exibindo <span className="text-gray-300">{(paginaResAtual - 1) * POR_PAGINA + 1}–{Math.min(paginaResAtual * POR_PAGINA, dados?.totalResolvidos ?? 0)}</span> de <span className="text-gray-300">{dados?.totalResolvidos ?? 0}</span> registros
-          </p>
-          <div className="flex items-center gap-2">
-            <button onClick={() => load(paginaResAtual - 1, busca)} disabled={paginaResAtual === 1}
-              className="px-3 py-1.5 text-xs rounded-lg bg-gray-800 hover:bg-gray-700 disabled:opacity-40 text-gray-300 transition">
-              ← Anterior
-            </button>
-            <span className="text-xs text-gray-400">Página {paginaResAtual} de {totalPaginasRes}</span>
-            <button onClick={() => load(paginaResAtual + 1, busca)} disabled={paginaResAtual === totalPaginasRes}
-              className="px-3 py-1.5 text-xs rounded-lg bg-gray-800 hover:bg-gray-700 disabled:opacity-40 text-gray-300 transition">
-              Próxima →
-            </button>
-          </div>
+
+      {/* ─── QUANTITATIVO ─── */}
+      {abaVis === "quantitativo" && (
+        <div ref={quantRef}>
+          {loading ? (
+            <p className="py-12 text-center text-gray-500 text-sm">Carregando...</p>
+          ) : !dados ? (
+            <p className="py-12 text-center text-gray-500 text-sm">Nenhum dado disponível.</p>
+          ) : (
+            <>
+              {/* Cards */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+                  <p className="text-xs text-gray-400 mb-1">Total Redmine</p>
+                  <p className="text-3xl font-bold text-white">{totalRedmine}</p>
+                </div>
+                <div className="bg-gray-900 border border-green-800/40 rounded-xl p-4">
+                  <p className="text-xs text-gray-400 mb-1">Resolvidos</p>
+                  <p className="text-3xl font-bold text-green-400">{qtdResolvidos}</p>
+                  {totalRedmine > 0 && <p className="text-xs text-gray-500 mt-1">{((qtdResolvidos/totalRedmine)*100).toFixed(1)}%</p>}
+                </div>
+                <div className={`bg-gray-900 rounded-xl p-4 border ${qtdAguardando > 0 ? "border-yellow-700/60" : "border-gray-800"}`}>
+                  <p className="text-xs text-gray-400 mb-1">Aguardando encerramento</p>
+                  <p className={`text-3xl font-bold ${qtdAguardando > 0 ? "text-yellow-400" : "text-white"}`}>{qtdAguardando}</p>
+                  {totalRedmine > 0 && <p className="text-xs text-gray-500 mt-1">{((qtdAguardando/totalRedmine)*100).toFixed(1)}%</p>}
+                </div>
+                <div className={`bg-gray-900 rounded-xl p-4 border ${qtdNaoResolvidos > 0 ? "border-red-700/60" : "border-gray-800"}`}>
+                  <p className="text-xs text-gray-400 mb-1">Não resolvidos</p>
+                  <p className={`text-3xl font-bold ${qtdNaoResolvidos > 0 ? "text-red-400" : "text-white"}`}>{qtdNaoResolvidos}</p>
+                  {totalRedmine > 0 && <p className="text-xs text-gray-500 mt-1">{((qtdNaoResolvidos/totalRedmine)*100).toFixed(1)}%</p>}
+                </div>
+              </div>
+
+              {/* Donut */}
+              {donutItens.length > 0 && (
+                <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 mb-6">
+                  <p className="text-sm font-semibold text-white mb-4">Total Redmine vs Resolvidos</p>
+                  <DonutChart itens={donutItens} />
+                </div>
+              )}
+
+              {totalRedmine === 0 && (
+                <p className="py-12 text-center text-gray-500 text-sm">
+                  Nenhum Chamado Redmine importado ainda.
+                </p>
+              )}
+            </>
+          )}
         </div>
       )}
 

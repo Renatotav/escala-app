@@ -172,19 +172,6 @@ function DonutChart({ itens, onSelect, selecionado }: {
           </text>
         ))}
       </svg>
-      <div className="space-y-1 max-h-56 overflow-y-auto pr-1">
-        {fatias.map((f,i)=>(
-          <div key={i} onClick={()=>onSelect?.(f.label===selecionado?"":f.label)}
-            className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs transition
-              ${onSelect?"cursor-pointer hover:bg-white/5":""}
-              ${f.sel?"bg-white/10 ring-1 ring-white/20":""}`}>
-            <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{background:f.cor}}/>
-            <span className="flex-1 text-gray-300 font-medium truncate" title={f.label}>{f.label}</span>
-            <span className="font-mono font-bold text-white tabular-nums">{f.value.toLocaleString("pt-BR")}</span>
-            <span className="text-gray-500 w-11 text-right">{f.pct}%</span>
-          </div>
-        ))}
-      </div>
     </div>
   );
 }
@@ -345,7 +332,7 @@ export default function ChamadosPowerbiPage() {
       { label:"Total", value:dados.totalValidos, cor:[59,130,246] as [number,number,number], sla:null as number|null },
       ...itensExp.map(c => {
         const rule = SLA_RULES.find(r => c.categoria.toLowerCase().includes(r.keyword.toLowerCase()));
-        const lbl  = rule?.keyword ?? (c.categoria.length>18 ? c.categoria.slice(0,17)+"…" : c.categoria);
+        const lbl  = rule?.display ?? (c.categoria.length>18 ? c.categoria.slice(0,17)+"…" : c.categoria);
         return { label:lbl, value:c.total, cor:corCard(c.categoria), sla:rule?.days ?? null };
       }),
     ];
@@ -364,7 +351,7 @@ export default function ChamadosPowerbiPage() {
       // SLA abaixo do número
       if (c.sla !== null) {
         doc.setFontSize(6); doc.setFont("helvetica","normal"); doc.setTextColor(100,116,139);
-        doc.text(`≥${c.sla} dias`, cx+3, cy+20);
+        doc.text(`>=${c.sla} dias`, cx+3, cy+20);
       }
     });
 
@@ -374,7 +361,7 @@ export default function ChamadosPowerbiPage() {
     // Donut por categoria — usa nome curto (keyword) como label
     const donutItens=itensExp.map(c=>{
       const rule=SLA_RULES.find(r=>c.categoria.toLowerCase().includes(r.keyword.toLowerCase()));
-      const lbl=rule?.keyword ?? (c.categoria.length>20?c.categoria.slice(0,19)+"…":c.categoria);
+      const lbl=rule?.display ?? (c.categoria.length>20?c.categoria.slice(0,19)+"…":c.categoria);
       return{label:lbl,value:c.total};
     });
     const donutTotal=donutItens.reduce((s,d)=>s+d.value,0);
@@ -382,15 +369,6 @@ export default function ChamadosPowerbiPage() {
     if (donutTotal>0) {
       const chartX=14, chartSz=78;
       desenharDonutPDF(doc,donutItens,donutTotal,chartX,donutTopY,chartSz);
-      const legX=chartX+chartSz+5; let legY=donutTopY+5;
-      donutItens.forEach((d,i)=>{
-        const [r,g,b]=hexToRgb(CORES_CHART[i%CORES_CHART.length]);
-        doc.setFillColor(r,g,b); doc.rect(legX,legY-2.8,3.5,3.5,"F");
-        const pct=((d.value/donutTotal)*100).toFixed(1);
-        doc.setFontSize(7.5);doc.setTextColor(40,40,40);doc.setFont("helvetica","normal");
-        doc.text(`${d.label}  ${d.value.toLocaleString("pt-BR")} (${pct}%)`,legX+4.8,legY);
-        legY+=6.8;
-      });
     }
 
     doc.save(`chamados-powerbi-quantitativo-${new Date().toISOString().slice(0,10)}.pdf`);

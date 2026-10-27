@@ -373,7 +373,7 @@ export default function RelatorioChamadosPage() {
       if(produtividade&&selecionados.has("produtividade")){novaSecao(60);secaoProdutividade(doc,produtividade,y);}
 
       const nomes=SECOES.filter(s=>selecionados.has(s.key)).map(s=>s.key).join("-");
-      doc.save(`relatorio-${nomes}-${new Date().toISOString().slice(0,10)}.pdf`);
+      doc.save(`relatorio-chamados-${new Date().toISOString().slice(0,10)}.pdf`);
     } catch(e) {
       console.error(e);
       setErro("Erro ao buscar dados. Verifique se todos os módulos selecionados têm dados importados.");

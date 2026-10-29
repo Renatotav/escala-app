@@ -704,7 +704,7 @@ export default function RedmineAtribuidosPage() {
         ) : registros.length === 0 ? (
           <p className="px-4 py-8 text-center text-gray-400 text-sm">Nenhum registro encontrado para os filtros selecionados.</p>
         ) : (
-          <table className="w-full text-sm table-fixed">
+          <table className="w-full min-w-[750px] text-sm table-fixed">
             <colgroup>
               <col className="w-[6%]" />
               <col className="w-[8%]" />

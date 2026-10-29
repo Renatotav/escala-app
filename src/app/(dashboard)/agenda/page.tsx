@@ -283,6 +283,8 @@ export default function AgendaPage() {
             </button>
           </div>
 
+          <div className="overflow-x-auto">
+          <div className="min-w-[560px]">
           {/* Day headers */}
           <div className="grid grid-cols-7 border-b border-gray-800 bg-gray-800/30">
             {DIAS_SEMANA.map((d) => (
@@ -353,6 +355,8 @@ export default function AgendaPage() {
                 })}
               </div>
             ))}
+          </div>
+          </div>
           </div>
         </div>
       )}

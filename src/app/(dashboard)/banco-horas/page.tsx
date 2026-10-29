@@ -217,7 +217,7 @@ export default function BancoHorasPage() {
 
       {/* Tabela */}
       <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full min-w-[500px] text-sm">
           <thead>
             <tr className="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wide">
               <th className="text-left px-4 py-3">Colaborador</th>

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 
@@ -202,15 +202,15 @@ export default function BancoHorasPage() {
       {/* Resumo */}
       <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="bg-gray-900 rounded-xl border border-gray-800 p-4">
-          <p className="text-xs text-gray-400 mb-1">Total colaboradores</p>
+          <p className="text-xs text-gray-500 mb-1">Total colaboradores</p>
           <p className="text-2xl font-bold text-white">{dados.length}</p>
         </div>
         <div className="bg-gray-900 rounded-xl border border-gray-800 p-4">
-          <p className="text-xs text-gray-400 mb-1">Com crédito</p>
+          <p className="text-xs text-gray-500 mb-1">Com crédito</p>
           <p className="text-2xl font-bold text-green-400">{totalCredito}</p>
         </div>
         <div className="bg-gray-900 rounded-xl border border-gray-800 p-4">
-          <p className="text-xs text-gray-400 mb-1">Devendo horas</p>
+          <p className="text-xs text-gray-500 mb-1">Devendo horas</p>
           <p className="text-2xl font-bold text-red-400">{totalDevendo}</p>
         </div>
       </div>
@@ -230,7 +230,7 @@ export default function BancoHorasPage() {
           </thead>
           <tbody>
             {dados.length === 0 && (
-              <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400">Nenhum colaborador encontrado</td></tr>
+              <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-500">Nenhum colaborador encontrado</td></tr>
             )}
             {dados.map(d => (
               <>
@@ -295,7 +295,7 @@ export default function BancoHorasPage() {
                           if (newId !== null && d.saldoMinutos < 0) loadPendentes(d.id);
                         }}
                         title="Ver / editar / excluir lançamentos"
-                        className="text-gray-400 hover:text-gray-300 transition text-xs">
+                        className="text-gray-500 hover:text-gray-300 transition text-xs">
                         {expandido === d.id ? "▲" : "▼"}
                       </button>
                     )}
@@ -321,8 +321,8 @@ export default function BancoHorasPage() {
                               <div className="h-full bg-blue-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
                             </div>
                             <div className="flex justify-between text-xs mt-1.5">
-                              <span className="text-gray-400">Pago: <span className="text-blue-400 font-mono">+{Math.floor(totalPago/60)}h{String(Math.round(totalPago%60)).padStart(2,"0")}m</span></span>
-                              <span className="text-gray-400">Dívida: <span className="text-red-400 font-mono">-{Math.floor(totalDevido/60)}h{String(Math.round(totalDevido%60)).padStart(2,"0")}m</span></span>
+                              <span className="text-gray-500">Pago: <span className="text-blue-400 font-mono">+{Math.floor(totalPago/60)}h{String(Math.round(totalPago%60)).padStart(2,"0")}m</span></span>
+                              <span className="text-gray-500">Dívida: <span className="text-red-400 font-mono">-{Math.floor(totalDevido/60)}h{String(Math.round(totalDevido%60)).padStart(2,"0")}m</span></span>
                             </div>
                           </div>
                         );
@@ -335,7 +335,7 @@ export default function BancoHorasPage() {
                           <div className="mb-3 p-2.5 rounded-lg bg-green-500/5 border border-green-500/15">
                             <div className="flex items-center justify-between mb-2">
                               <p className="text-xs text-gray-400 font-medium">Folgas disponíveis para abater dívida</p>
-                              <label className="flex items-center gap-1.5 text-xs text-gray-400">
+                              <label className="flex items-center gap-1.5 text-xs text-gray-500">
                                 h/dia
                                 <input type="number" min="1" max="24" value={hPorDiaAbate}
                                   onChange={e => setHPorDiaAbate(Number(e.target.value))}
@@ -368,7 +368,7 @@ export default function BancoHorasPage() {
                       })()}
                       <table className="w-full text-xs">
                         <thead>
-                          <tr className="text-gray-400 border-b border-gray-700">
+                          <tr className="text-gray-500 border-b border-gray-700">
                             <th className="text-left pb-1">Data</th>
                             <th className="text-left pb-1">Horas</th>
                             <th className="text-left pb-1">Descrição</th>
@@ -425,21 +425,21 @@ export default function BancoHorasPage() {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-base font-semibold text-white">{verHistorico.nome}</h3>
-                <p className="text-xs text-gray-400 mt-0.5">
+                <p className="text-xs text-gray-500 mt-0.5">
                   {verHistorico.equipe.nome} · Saldo: <span className={`font-mono font-medium ${verHistorico.saldoMinutos >= 0 ? "text-green-400" : "text-red-400"}`}>{verHistorico.saldo}</span>
                 </p>
               </div>
               <button onClick={() => setVerHistorico(null)} className="text-gray-600 hover:text-gray-400 transition">✕</button>
             </div>
             {verHistorico.historico.length === 0 ? (
-              <p className="text-sm text-gray-400 text-center py-6">Nenhum lançamento registrado.</p>
+              <p className="text-sm text-gray-500 text-center py-6">Nenhum lançamento registrado.</p>
             ) : (
               <div className="divide-y divide-gray-800 max-h-96 overflow-y-auto">
                 {verHistorico.historico.map(h => (
                   <div key={h.id} className="flex items-center justify-between py-2.5">
                     <div>
                       <p className="text-sm text-gray-300 font-mono">{fmt(h.data)}</p>
-                      {h.descricao && <p className="text-xs text-gray-400 italic mt-0.5">"{h.descricao}"</p>}
+                      {h.descricao && <p className="text-xs text-gray-500 italic mt-0.5">"{h.descricao}"</p>}
                     </div>
                     <span className={`font-mono font-semibold text-sm ${h.horas >= 0 ? "text-green-400" : "text-red-400"}`}>
                       {horasFmt(h.horas)}
@@ -516,26 +516,26 @@ export default function BancoHorasPage() {
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <div className="flex-1">
-                        <label className="block text-xs text-gray-400 mb-1">Nº de dias</label>
+                        <label className="block text-xs text-gray-500 mb-1">Nº de dias</label>
                         <input type="number" min="1" max="365" value={form.dias}
                           onChange={e => setForm(f => ({ ...f, dias: e.target.value }))}
                           className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500" />
                       </div>
-                      <span className="text-gray-400 text-sm mt-4">×</span>
+                      <span className="text-gray-500 text-sm mt-4">×</span>
                       <div className="flex-1">
-                        <label className="block text-xs text-gray-400 mb-1">h/dia</label>
+                        <label className="block text-xs text-gray-500 mb-1">h/dia</label>
                         <input type="number" min="1" max="24" value={form.hPorDia}
                           onChange={e => setForm(f => ({ ...f, hPorDia: e.target.value }))}
                           className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500" />
                       </div>
-                      <span className="text-gray-400 text-sm mt-4">=</span>
+                      <span className="text-gray-500 text-sm mt-4">=</span>
                       <div className="flex-1 mt-4">
                         <p className="text-center text-red-400 font-mono font-bold text-sm">
                           -{Number(form.dias) * Number(form.hPorDia)}h
                         </p>
                       </div>
                     </div>
-                    <p className="text-xs text-gray-400">
+                    <p className="text-xs text-gray-500">
                       A dívida será lançada como um único débito de <span className="text-red-400 font-mono">-{Number(form.dias) * Number(form.hPorDia)}h00m</span>. O colaborador quita com lançamentos positivos fracionados.
                     </p>
                   </div>

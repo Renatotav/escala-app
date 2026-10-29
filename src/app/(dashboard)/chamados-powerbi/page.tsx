@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useRef, useState } from "react";
 import jsPDF from "jspdf";
@@ -183,7 +183,7 @@ function DonutChart({ itens, onSelect, selecionado }: {
             <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{background:f.cor}}/>
             <span className="flex-1 text-gray-300 font-medium truncate" title={f.label}>{f.label}</span>
             <span className="font-mono font-bold text-white tabular-nums">{f.value.toLocaleString("pt-BR")}</span>
-            <span className="text-gray-400 w-11 text-right">{f.pct}%</span>
+            <span className="text-gray-500 w-11 text-right">{f.pct}%</span>
           </div>
         ))}
       </div>
@@ -207,15 +207,15 @@ function BarrasHorizontais({ itens, total }: { itens: CategoriaStats[]; total: n
               <div className="h-full rounded-full bg-blue-500/60" style={{width:`${barW}%`}}/>
             </div>
             <span className="font-mono font-bold text-sm tabular-nums w-10 text-right shrink-0 text-white">{d.total.toLocaleString("pt-BR")}</span>
-            <span className="text-gray-400 text-xs w-11 text-right shrink-0">{pct}%</span>
+            <span className="text-gray-500 text-xs w-11 text-right shrink-0">{pct}%</span>
           </div>
         );
       })}
       <div className="flex items-center gap-2.5 px-3 py-2 mt-1 border-t border-gray-800">
-        <span className="text-xs text-gray-400 w-5 shrink-0"/>
+        <span className="text-xs text-gray-500 w-5 shrink-0"/>
         <span className="text-xs font-semibold text-gray-400 flex-1">Total</span>
         <span className="font-mono font-bold text-sm text-white w-10 text-right shrink-0">{total.toLocaleString("pt-BR")}</span>
-        <span className="text-gray-400 text-xs w-11 text-right shrink-0">100%</span>
+        <span className="text-gray-500 text-xs w-11 text-right shrink-0">100%</span>
       </div>
     </div>
   );
@@ -541,7 +541,7 @@ export default function ChamadosPowerbiPage() {
                 <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 min-w-[150px] border-t-2 border-t-blue-600">
                   <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">Total</p>
                   <p className="text-3xl font-bold text-white tabular-nums">{totalValidos.toLocaleString("pt-BR")}</p>
-                  <p className="text-xs text-gray-400 mt-1">chamados</p>
+                  <p className="text-xs text-gray-500 mt-1">chamados</p>
                 </div>
 
                 {porCategoria.map(cat => {
@@ -571,7 +571,7 @@ export default function ChamadosPowerbiPage() {
                       <p className={`text-3xl font-bold tabular-nums ${numColor[accent] ?? "text-white"}`}>
                         {cat.total.toLocaleString("pt-BR")}
                       </p>
-                      {sla !== null && <p className="text-xs text-gray-400 mt-1">≥{sla} dias</p>}
+                      {sla !== null && <p className="text-xs text-gray-500 mt-1">≥{sla} dias</p>}
                       {ativo && <p className="text-xs text-white/60 mt-1">✓ filtrado</p>}
                     </button>
                   );
@@ -582,7 +582,7 @@ export default function ChamadosPowerbiPage() {
                   <p className="text-xs font-medium text-gray-300">
                     {dados.periodoMin ? fmtDateTime(dados.periodoMin).slice(0,10) : "—"}
                   </p>
-                  <p className="text-xs text-gray-400">→ {dados.periodoMax ? fmtDateTime(dados.periodoMax).slice(0,10) : "—"}</p>
+                  <p className="text-xs text-gray-500">→ {dados.periodoMax ? fmtDateTime(dados.periodoMax).slice(0,10) : "—"}</p>
                 </div>
                 {dados.ultimaImportacao && (
                   <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 min-w-[150px] border-t-2 border-t-blue-600">
@@ -599,7 +599,7 @@ export default function ChamadosPowerbiPage() {
                   <span className="text-xs text-yellow-400">
                     {`Filtrando: ${filtroCategoria}`} — {total.toLocaleString("pt-BR")} resultado(s)
                   </span>
-                  <button onClick={clearFiltros} className="text-xs text-gray-400 hover:text-white underline">Limpar filtro</button>
+                  <button onClick={clearFiltros} className="text-xs text-gray-500 hover:text-white underline">Limpar filtro</button>
                 </div>
               )}
             </>
@@ -613,8 +613,8 @@ export default function ChamadosPowerbiPage() {
                   placeholder="Pesquisar Chamado..."
                   className="bg-gray-900 border border-gray-700 text-white text-xs rounded-lg pl-7 pr-7 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[220px]"
                 />
-                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none">🔍</span>
-                {busca && <button onClick={() => setBusca("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white text-xs">✕</button>}
+                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 text-xs pointer-events-none">🔍</span>
+                {busca && <button onClick={() => setBusca("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white text-xs">✕</button>}
               </div>
             </div>
           )}
@@ -633,9 +633,9 @@ export default function ChamadosPowerbiPage() {
                 </tr>
               </thead>
               <tbody>
-                {loading && <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400">Carregando...</td></tr>}
+                {loading && <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-500">Carregando...</td></tr>}
                 {!loading && chamados.length === 0 && (
-                  <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400">
+                  <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-500">
                     {totalValidos===0?"Nenhum chamado importado":"Nenhum chamado encontrado"}
                   </td></tr>
                 )}
@@ -678,7 +678,7 @@ export default function ChamadosPowerbiPage() {
           {/* Paginação */}
           {totalPages > 1 && total > 0 && (
             <div className="flex items-center justify-between mt-4 px-1">
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-gray-500">
                 Exibindo <span className="text-gray-300">{(page-1)*100+1}–{Math.min(page*100,total)}</span> de <span className="text-gray-300">{total.toLocaleString("pt-BR")}</span> registros
               </p>
               <div className="flex items-center gap-2">
@@ -701,7 +701,7 @@ export default function ChamadosPowerbiPage() {
       {view === "quantitativo" && (
         <div>
           {!dados || dados.totalValidos === 0 ? (
-            <div className="text-center py-16 text-gray-400">
+            <div className="text-center py-16 text-gray-500">
               <p className="text-lg">Nenhum dado disponível</p>
               <p className="text-sm mt-1">Importe chamados primeiro.</p>
             </div>

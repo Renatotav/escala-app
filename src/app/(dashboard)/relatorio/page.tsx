@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 
@@ -61,7 +61,7 @@ export default function RelatorioPage() {
           { label: "Saldo negativo", value: totalNegativo, color: "text-red-400" },
         ].map(card => (
           <div key={card.label} className="bg-gray-900 rounded-xl border border-gray-800 p-4">
-            <p className="text-xs text-gray-400 mb-1">{card.label}</p>
+            <p className="text-xs text-gray-500 mb-1">{card.label}</p>
             <p className={`text-2xl font-bold ${card.color}`}>{card.value}</p>
           </div>
         ))}
@@ -79,7 +79,7 @@ export default function RelatorioPage() {
           </thead>
           <tbody>
             {dados.length === 0 && (
-              <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400">Nenhum dado</td></tr>
+              <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-500">Nenhum dado</td></tr>
             )}
             {dados.map(d => (
               <tr key={d.id} className="border-b border-gray-800 last:border-0 hover:bg-gray-800/50 transition">

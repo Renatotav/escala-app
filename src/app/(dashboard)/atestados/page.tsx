@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState, useRef } from "react";
 
@@ -163,7 +163,7 @@ export default function AtestadosPage() {
           </thead>
           <tbody>
             {atestados.length === 0 && (
-              <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-400">Nenhum atestado registrado</td></tr>
+              <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-500">Nenhum atestado registrado</td></tr>
             )}
             {atestados.map(a => {
               const ativo = a.dataInicio <= hoje && a.dataFim >= hoje;
@@ -186,7 +186,7 @@ export default function AtestadosPage() {
                     {a.cid ? (
                       <div>
                         <p className="text-xs font-mono text-blue-400">{a.cid}</p>
-                        {cidLabel && <p className="text-xs text-gray-400">{cidLabel}</p>}
+                        {cidLabel && <p className="text-xs text-gray-500">{cidLabel}</p>}
                       </div>
                     ) : <span className="text-gray-600 text-xs">—</span>}
                   </td>
@@ -220,21 +220,21 @@ export default function AtestadosPage() {
               <button onClick={() => setVerAtestado(null)} className="text-gray-600 hover:text-gray-400">✕</button>
             </div>
             <div className="space-y-3 text-sm">
-              <div><p className="text-xs text-gray-400">Colaborador</p><p className="text-white font-medium">{verAtestado.colaborador.nome}</p></div>
+              <div><p className="text-xs text-gray-500">Colaborador</p><p className="text-white font-medium">{verAtestado.colaborador.nome}</p></div>
               <div className="grid grid-cols-3 gap-3">
-                <div><p className="text-xs text-gray-400">Início</p><p className="text-gray-300">{fmt(verAtestado.dataInicio)}</p></div>
-                <div><p className="text-xs text-gray-400">Fim</p><p className="text-gray-300">{fmt(verAtestado.dataFim)}</p></div>
-                <div><p className="text-xs text-gray-400">Dias</p><p className="text-orange-400 font-bold">{verAtestado.dias}</p></div>
+                <div><p className="text-xs text-gray-500">Início</p><p className="text-gray-300">{fmt(verAtestado.dataInicio)}</p></div>
+                <div><p className="text-xs text-gray-500">Fim</p><p className="text-gray-300">{fmt(verAtestado.dataFim)}</p></div>
+                <div><p className="text-xs text-gray-500">Dias</p><p className="text-orange-400 font-bold">{verAtestado.dias}</p></div>
               </div>
               {verAtestado.cid && (
                 <div>
-                  <p className="text-xs text-gray-400">CID</p>
+                  <p className="text-xs text-gray-500">CID</p>
                   <p className="text-blue-400 font-mono text-sm">{verAtestado.cid}</p>
                   {cidDescricoes[verAtestado.cid] && <p className="text-gray-300 text-xs mt-0.5">{cidDescricoes[verAtestado.cid]}</p>}
                 </div>
               )}
               {verAtestado.descricao && (
-                <div><p className="text-xs text-gray-400">Observação</p><p className="text-gray-300">{verAtestado.descricao}</p></div>
+                <div><p className="text-xs text-gray-500">Observação</p><p className="text-gray-300">{verAtestado.descricao}</p></div>
               )}
             </div>
             <button onClick={() => setVerAtestado(null)} className="mt-4 w-full bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-lg py-2 transition">Fechar</button>

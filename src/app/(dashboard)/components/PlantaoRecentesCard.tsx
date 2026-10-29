@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 
@@ -59,7 +59,7 @@ export default function PlantaoRecentesCard({ items }: { items: Item[] }) {
               <div key={p.id} className="flex items-center justify-between py-2.5">
                 <div>
                   <p className="text-white text-sm font-medium">{p.colaborador.nome}</p>
-                  <p className="text-xs text-gray-400">{p.colaborador.equipe.nome}</p>
+                  <p className="text-xs text-gray-500">{p.colaborador.equipe.nome}</p>
                 </div>
                 <div className="text-right">
                   {(() => {
@@ -67,7 +67,7 @@ export default function PlantaoRecentesCard({ items }: { items: Item[] }) {
                     const color = label === "Hoje" ? "text-blue-400" : label === "Amanhã" ? "text-teal-400" : "text-gray-300";
                     return <p className={`text-sm font-medium ${color}`}>{label}</p>;
                   })()}
-                  <p className="text-xs text-gray-400">{tipoLabel[p.tipo] ?? p.tipo}</p>
+                  <p className="text-xs text-gray-500">{tipoLabel[p.tipo] ?? p.tipo}</p>
                 </div>
               </div>
             ))}
@@ -81,12 +81,12 @@ export default function PlantaoRecentesCard({ items }: { items: Item[] }) {
             <div className="flex items-start justify-between mb-4">
               <div>
                 <h3 className="text-base font-semibold text-white">{fichaModal.nome}</h3>
-                <p className="text-xs text-gray-400">{fichaModal.equipe}</p>
+                <p className="text-xs text-gray-500">{fichaModal.equipe}</p>
               </div>
               <button onClick={() => setFichaModal(null)} className="text-gray-600 hover:text-gray-400 text-lg leading-none ml-4">✕</button>
             </div>
             {fichaLoading ? (
-              <p className="text-gray-400 text-sm py-6 text-center">Carregando...</p>
+              <p className="text-gray-500 text-sm py-6 text-center">Carregando...</p>
             ) : (
               <>
                 {fichaPlantoes.length > 0 && (() => {
@@ -98,7 +98,7 @@ export default function PlantaoRecentesCard({ items }: { items: Item[] }) {
                       <span className="text-gray-400">Plantões: <strong className="text-white">{fichaPlantoes.length}</strong></span>
                       <span className="text-gray-400">Folgas devidas: <strong className="text-white">{creditos}</strong></span>
                       <span className="text-gray-400">Agendadas: <strong className="text-green-400">{agendadas}</strong></span>
-                      <span className="text-gray-400">Pendentes: <strong className={pendentes > 0 ? "text-yellow-400" : "text-gray-400"}>{pendentes}</strong></span>
+                      <span className="text-gray-400">Pendentes: <strong className={pendentes > 0 ? "text-yellow-400" : "text-gray-500"}>{pendentes}</strong></span>
                     </div>
                   );
                 })()}
@@ -115,7 +115,7 @@ export default function PlantaoRecentesCard({ items }: { items: Item[] }) {
                     </thead>
                     <tbody>
                       {fichaPlantoes.length === 0 && (
-                        <tr><td colSpan={5} className="text-center text-gray-400 py-6">Nenhum plantão registrado</td></tr>
+                        <tr><td colSpan={5} className="text-center text-gray-500 py-6">Nenhum plantão registrado</td></tr>
                       )}
                       {fichaPlantoes.map(p => (
                         <tr key={p.id} className="border-b border-gray-800 last:border-0">

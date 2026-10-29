@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import jsPDF from "jspdf";
@@ -88,7 +88,7 @@ function DonutChart({ itens, cores }: { itens: { label: string; value: number; c
             <span className="w-3 h-3 rounded-full shrink-0" style={{background:f.cor}} />
             <span className="text-xs text-gray-300 truncate">{f.label}</span>
             <span className="text-xs font-bold text-white ml-auto pl-3 shrink-0">{f.value}</span>
-            <span className="text-xs text-gray-400 shrink-0">({f.pct}%)</span>
+            <span className="text-xs text-gray-500 shrink-0">({f.pct}%)</span>
           </div>
         ))}
       </div>
@@ -582,28 +582,28 @@ export default function RedmineAtribuidosPage() {
             className={`rounded-xl p-4 border text-left transition cursor-pointer ${filtroAtraso === "atraso" ? "ring-2 ring-red-500 animate-pulse" : ""} ${emAtrasoTotal > 0 ? "bg-red-950/30 border-red-700 hover:border-red-500" : "bg-gray-900 border-gray-800 hover:border-gray-600"}`}>
             <p className="text-xs text-gray-400 mb-1">Em atraso (≥5 dias)</p>
             <p className={`text-3xl font-bold ${emAtrasoTotal > 0 ? "text-red-400" : "text-white"}`}>{emAtrasoTotal}</p>
-            <p className="text-xs mt-1 text-gray-400">{filtroAtraso === "atraso" ? "✓ Filtro ativo — clique para remover" : "⚠ Clique para filtrar"}</p>
+            <p className="text-xs mt-1 text-gray-500">{filtroAtraso === "atraso" ? "✓ Filtro ativo — clique para remover" : "⚠ Clique para filtrar"}</p>
           </button>
           <button
             onClick={() => handleFiltroAtraso("atencao")}
             className={`rounded-xl p-4 border text-left transition cursor-pointer ${filtroAtraso === "atencao" ? "ring-2 ring-yellow-500 animate-pulse" : ""} ${emAtencaoTotal > 0 ? "bg-yellow-950/30 border-yellow-700 hover:border-yellow-500" : "bg-gray-900 border-gray-800 hover:border-gray-600"}`}>
             <p className="text-xs text-gray-400 mb-1">Em atenção (≥3 dias)</p>
             <p className={`text-3xl font-bold ${emAtencaoTotal > 0 ? "text-yellow-400" : "text-white"}`}>{emAtencaoTotal}</p>
-            <p className="text-xs mt-1 text-gray-400">{filtroAtraso === "atencao" ? "✓ Filtro ativo — clique para remover" : "⚠ Clique para filtrar"}</p>
+            <p className="text-xs mt-1 text-gray-500">{filtroAtraso === "atencao" ? "✓ Filtro ativo — clique para remover" : "⚠ Clique para filtrar"}</p>
           </button>
           <button
             onClick={handleFiltroDevolverTI}
             className={`rounded-xl p-4 border text-left transition cursor-pointer ${filtroDevolverTI ? "ring-2 ring-yellow-400 animate-pulse bg-yellow-950/30 border-yellow-600" : paraDevolver > 0 ? "bg-yellow-950/20 border-yellow-800 hover:border-yellow-600" : "bg-gray-900 border-gray-800 hover:border-gray-600"}`}>
             <p className="text-xs text-gray-400 mb-1">Devolver à TI</p>
             <p className={`text-3xl font-bold ${paraDevolver > 0 ? "text-yellow-400" : "text-white"}`}>{paraDevolver}</p>
-            <p className="text-xs mt-1 text-gray-400">{filtroDevolverTI ? "✓ Filtro ativo" : "Assyst encerrado"}</p>
+            <p className="text-xs mt-1 text-gray-500">{filtroDevolverTI ? "✓ Filtro ativo" : "Assyst encerrado"}</p>
           </button>
           <button
             onClick={handleFiltroAcomp}
             className={`rounded-xl p-4 border text-left transition cursor-pointer ${filtroAcomp ? "ring-2 ring-orange-500 animate-pulse bg-orange-950/30 border-orange-600" : emAcompanhamento > 0 ? "bg-orange-950/20 border-orange-800 hover:border-orange-600" : "bg-gray-900 border-gray-800 hover:border-gray-600"}`}>
             <p className="text-xs text-gray-400 mb-1">Em acompanhamento</p>
             <p className={`text-3xl font-bold ${emAcompanhamento > 0 ? "text-orange-400" : "text-white"}`}>{emAcompanhamento}</p>
-            <p className="text-xs mt-1 text-gray-400">{filtroAcomp ? "✓ Filtro ativo" : "📌 Clique para filtrar"}</p>
+            <p className="text-xs mt-1 text-gray-500">{filtroAcomp ? "✓ Filtro ativo" : "📌 Clique para filtrar"}</p>
           </button>
         </div>
       )}
@@ -627,7 +627,7 @@ export default function RedmineAtribuidosPage() {
       {/* Por responsável */}
       {contagemPorPessoa.length > 0 && (
         <div className="mb-6">
-          <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">Por responsável</p>
+          <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Por responsável</p>
           <div className="flex flex-wrap gap-3">
             {contagemPorPessoa.map(p => (
               <button
@@ -673,7 +673,7 @@ export default function RedmineAtribuidosPage() {
               placeholder="0"
               className="w-16 bg-gray-800 border border-gray-700 text-white text-xs rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-orange-500" />
             {filtroAcompDias && (
-              <button onClick={() => setFiltroAcompDias("")} className="text-xs text-gray-400 hover:text-white">✕</button>
+              <button onClick={() => setFiltroAcompDias("")} className="text-xs text-gray-500 hover:text-white">✕</button>
             )}
           </div>
           {(filtroAcompOperador || filtroAcompDias) && (
@@ -689,8 +689,8 @@ export default function RedmineAtribuidosPage() {
             <input type="text" value={busca} onChange={e => setBusca(e.target.value)}
               placeholder="Pesquisar chamado..."
               className="bg-gray-900 border border-gray-700 text-white text-xs rounded-lg pl-7 pr-7 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[220px]" />
-            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none">🔍</span>
-            {busca && <button onClick={() => setBusca("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white text-xs">✕</button>}
+            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 text-xs pointer-events-none">🔍</span>
+            {busca && <button onClick={() => setBusca("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white text-xs">✕</button>}
           </div>
         </div>
       )}
@@ -698,11 +698,11 @@ export default function RedmineAtribuidosPage() {
       {/* Tabela */}
       <div ref={tableScrollRef} className="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto">
         {loading ? (
-          <p className="px-4 py-8 text-center text-gray-400 text-sm">Carregando...</p>
+          <p className="px-4 py-8 text-center text-gray-500 text-sm">Carregando...</p>
         ) : totalGeral === 0 ? (
-          <p className="px-4 py-12 text-center text-gray-400 text-sm">Nenhum Redmine atribuído importado. Clique em "Importar Atribuídos".</p>
+          <p className="px-4 py-12 text-center text-gray-500 text-sm">Nenhum Redmine atribuído importado. Clique em "Importar Atribuídos".</p>
         ) : registros.length === 0 ? (
-          <p className="px-4 py-8 text-center text-gray-400 text-sm">Nenhum registro encontrado para os filtros selecionados.</p>
+          <p className="px-4 py-8 text-center text-gray-500 text-sm">Nenhum registro encontrado para os filtros selecionados.</p>
         ) : (
           <table className="w-full text-sm table-fixed">
             <colgroup>
@@ -760,7 +760,7 @@ export default function RedmineAtribuidosPage() {
                                       {new Date(h.em).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}
                                     </span>
                                     {h.operador && <span className="ml-1 opacity-70">· {h.operador.split(" ")[0]}</span>}
-                                    {h.obs && <div className="text-gray-400 text-xs mt-0.5 leading-tight max-w-[160px] truncate" title={h.obs}>{h.obs}</div>}
+                                    {h.obs && <div className="text-gray-500 text-xs mt-0.5 leading-tight max-w-[160px] truncate" title={h.obs}>{h.obs}</div>}
                                   </div>
                                 ))}
                               </div>
@@ -796,7 +796,7 @@ export default function RedmineAtribuidosPage() {
                             </span>
                           )}
                         </div>
-                      ) : <span className="text-gray-400">—</span>}
+                      ) : <span className="text-gray-500">—</span>}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       {r.criadoEm
@@ -831,7 +831,7 @@ export default function RedmineAtribuidosPage() {
       {/* Paginação */}
       {totalPages > 1 && total > 0 && (
         <div className="flex items-center justify-between mt-4 px-1">
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-gray-500">
             Exibindo <span className="text-gray-300">{(page - 1) * 100 + 1}–{Math.min(page * 100, total)}</span> de <span className="text-gray-300">{total}</span> registros
           </p>
           <div className="flex items-center gap-2">
@@ -854,9 +854,9 @@ export default function RedmineAtribuidosPage() {
       {abaVis === "quantitativo" && (
         <div ref={quantRef}>
           {loading ? (
-            <p className="py-12 text-center text-gray-400 text-sm">Carregando...</p>
+            <p className="py-12 text-center text-gray-500 text-sm">Carregando...</p>
           ) : totalGeral === 0 ? (
-            <p className="py-12 text-center text-gray-400 text-sm">Nenhum Redmine atribuído importado ainda.</p>
+            <p className="py-12 text-center text-gray-500 text-sm">Nenhum Redmine atribuído importado ainda.</p>
           ) : (
             <>
               {/* Cards */}
@@ -873,12 +873,12 @@ export default function RedmineAtribuidosPage() {
                 <div className={`bg-gray-900 rounded-xl p-4 border ${emAtrasoTotal>0?"border-red-700/60":"border-gray-800"}`}>
                   <p className="text-xs text-gray-400 mb-1">Em atraso (≥5d)</p>
                   <p className={`text-3xl font-bold ${emAtrasoTotal>0?"text-red-400":"text-white"}`}>{emAtrasoTotal}</p>
-                  {totalGeral>0 && <p className="text-xs text-gray-400 mt-1">{((emAtrasoTotal/totalGeral)*100).toFixed(1)}%</p>}
+                  {totalGeral>0 && <p className="text-xs text-gray-500 mt-1">{((emAtrasoTotal/totalGeral)*100).toFixed(1)}%</p>}
                 </div>
                 <div className={`bg-gray-900 rounded-xl p-4 border ${emAtencaoTotal>0?"border-yellow-700/60":"border-gray-800"}`}>
                   <p className="text-xs text-gray-400 mb-1">Em atenção (3-5d)</p>
                   <p className={`text-3xl font-bold ${emAtencaoTotal>0?"text-yellow-400":"text-white"}`}>{emAtencaoTotal}</p>
-                  {totalGeral>0 && <p className="text-xs text-gray-400 mt-1">{((emAtencaoTotal/totalGeral)*100).toFixed(1)}%</p>}
+                  {totalGeral>0 && <p className="text-xs text-gray-500 mt-1">{((emAtencaoTotal/totalGeral)*100).toFixed(1)}%</p>}
                 </div>
                 <div className={`bg-gray-900 rounded-xl p-4 border ${paraDevolver>0?"border-yellow-700/60":"border-gray-800"}`}>
                   <p className="text-xs text-gray-400 mb-1">Para devolver</p>
@@ -919,7 +919,7 @@ export default function RedmineAtribuidosPage() {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-base font-semibold text-yellow-300">⚠ Chamados no Assyst para verificar</h3>
-                <p className="text-xs text-gray-400 mt-0.5">Redmines cujo Assyst saiu da fila — verifique a situação e devolva à TI</p>
+                <p className="text-xs text-gray-500 mt-0.5">Redmines cujo Assyst saiu da fila — verifique a situação e devolva à TI</p>
               </div>
               <button onClick={() => setModalDevolverTI(false)} className="text-gray-600 hover:text-gray-400 transition">✕</button>
             </div>
@@ -933,7 +933,7 @@ export default function RedmineAtribuidosPage() {
                         <div>
                           <a href={`https://cati.tjce.jus.br/assystnet/#events/${item.assyst}?eventType=1&currentIndex=0`} target="_blank" rel="noopener noreferrer"
                             className="font-mono text-sm text-blue-400 hover:text-blue-300 hover:underline transition">{item.assyst}</a>
-                          <p className="text-xs text-gray-400 mt-0.5">Redmine #{item.redmine}</p>
+                          <p className="text-xs text-gray-500 mt-0.5">Redmine #{item.redmine}</p>
                         </div>
                         <span className="text-xs text-green-400 font-medium">✓ Fechar Redmine</span>
                       </div>
@@ -950,7 +950,7 @@ export default function RedmineAtribuidosPage() {
                         <div>
                           <a href={`https://cati.tjce.jus.br/assystnet/#events/${item.assyst}?eventType=1&currentIndex=0`} target="_blank" rel="noopener noreferrer"
                             className="font-mono text-sm text-blue-400 hover:text-blue-300 hover:underline transition">{item.assyst}</a>
-                          <p className="text-xs text-gray-400 mt-0.5">Redmine #{item.redmine}</p>
+                          <p className="text-xs text-gray-500 mt-0.5">Redmine #{item.redmine}</p>
                         </div>
                         <span className="text-xs text-yellow-600 font-medium">Devolver à TI</span>
                       </div>
@@ -1021,7 +1021,7 @@ export default function RedmineAtribuidosPage() {
             <h3 className="text-sm font-semibold text-white mb-1">📌 Marcar em acompanhamento</h3>
             <p className="text-xs text-gray-400 mb-4">A data de hoje será registrada. Tickets marcados não são removidos ao sincronizar.</p>
             <div className="mb-3">
-              <label className="block text-xs text-gray-400 mb-1.5">Operador</label>
+              <label className="block text-xs text-gray-500 mb-1.5">Operador</label>
               <div className="relative">
                 <select value={solicitandoOperador} onChange={e => setSolicitandoOperador(e.target.value)}
                   className="w-full appearance-none bg-gray-800 border border-gray-600 text-sm rounded-lg px-3 py-2.5 text-gray-200 focus:outline-none focus:border-orange-500 cursor-pointer pr-8">
@@ -1032,7 +1032,7 @@ export default function RedmineAtribuidosPage() {
               </div>
             </div>
             <div className="mb-1">
-              <label className="block text-xs text-gray-400 mb-1.5">Observação</label>
+              <label className="block text-xs text-gray-500 mb-1.5">Observação</label>
               <textarea value={solicitandoObs} onChange={e => setSolicitandoObs(e.target.value)}
                 placeholder="Ex: Verificando com o usuário se o problema foi resolvido..."
                 rows={4}
@@ -1061,14 +1061,14 @@ export default function RedmineAtribuidosPage() {
                 <input type="radio" name="modo-atribuidos" checked={substituir} onChange={() => setSubstituir(true)} className="accent-blue-500 mt-0.5" />
                 <div>
                   <span className="text-sm text-gray-300">Sincronizar fila</span>
-                  <p className="text-xs text-gray-400">Remove tickets sem 📌 que saíram do CSV. Tickets em trânsito (com 📌) são preservados.</p>
+                  <p className="text-xs text-gray-500">Remove tickets sem 📌 que saíram do CSV. Tickets em trânsito (com 📌) são preservados.</p>
                 </div>
               </label>
               <label className="flex items-start gap-2 cursor-pointer">
                 <input type="radio" name="modo-atribuidos" checked={!substituir} onChange={() => setSubstituir(false)} className="accent-blue-500 mt-0.5" />
                 <div>
                   <span className="text-sm text-gray-300">Atualizar e adicionar</span>
-                  <p className="text-xs text-gray-400">Mantém todos os tickets anteriores, insere novos e atualiza os dados.</p>
+                  <p className="text-xs text-gray-500">Mantém todos os tickets anteriores, insere novos e atualiza os dados.</p>
                 </div>
               </label>
             </div>

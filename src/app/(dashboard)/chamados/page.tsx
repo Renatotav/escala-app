@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useSearchParams } from "next/navigation";
@@ -353,7 +353,7 @@ function DonutChart({ itens, onSelect, selecionado }: {
             <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ background: f.cor }} />
             <span className="flex-1 text-gray-300 font-medium truncate" title={f.label}>{f.label}</span>
             <span className="font-mono font-bold text-white tabular-nums">{f.value.toLocaleString("pt-BR")}</span>
-            <span className="text-gray-400 w-11 text-right">{f.pct}%</span>
+            <span className="text-gray-500 w-11 text-right">{f.pct}%</span>
           </div>
         ))}
       </div>
@@ -382,15 +382,15 @@ function BarrasHorizontais({ itens, totalEquipe }: {
                 style={{ width: `${barW}%` }} />
             </div>
             <span className={`font-mono font-bold text-sm tabular-nums w-10 text-right shrink-0 ${alto ? "text-red-400" : "text-white"}`}>{d.total}</span>
-            <span className="text-gray-400 text-xs w-10 text-right shrink-0">{pct}%</span>
+            <span className="text-gray-500 text-xs w-10 text-right shrink-0">{pct}%</span>
           </div>
         );
       })}
       <div className="flex items-center gap-2.5 px-3 py-2 mt-1 border-t border-gray-800">
-        <span className="text-xs text-gray-400 w-5 shrink-0" />
+        <span className="text-xs text-gray-500 w-5 shrink-0" />
         <span className="text-xs font-semibold text-gray-400 flex-1">Total</span>
         <span className="font-mono font-bold text-sm text-white w-10 text-right shrink-0">{totalEquipe.toLocaleString("pt-BR")}</span>
-        <span className="text-gray-400 text-xs w-10 text-right shrink-0">100%</span>
+        <span className="text-gray-500 text-xs w-10 text-right shrink-0">100%</span>
       </div>
     </div>
   );
@@ -900,12 +900,12 @@ export default function ChamadosPage() {
       <div className="flex gap-1 mb-6 bg-gray-900 border border-gray-800 rounded-lg p-1 w-fit">
         <button
           onClick={() => setView("lista")}
-          className={`text-sm px-4 py-1.5 rounded-md transition ${view === "lista" ? "bg-gray-700 text-white font-medium" : "text-gray-400 hover:text-gray-300"}`}>
+          className={`text-sm px-4 py-1.5 rounded-md transition ${view === "lista" ? "bg-gray-700 text-white font-medium" : "text-gray-500 hover:text-gray-300"}`}>
           Lista
         </button>
         <button
           onClick={() => setView("quantitativo")}
-          className={`text-sm px-4 py-1.5 rounded-md transition ${view === "quantitativo" ? "bg-gray-700 text-white font-medium" : "text-gray-400 hover:text-gray-300"}`}>
+          className={`text-sm px-4 py-1.5 rounded-md transition ${view === "quantitativo" ? "bg-gray-700 text-white font-medium" : "text-gray-500 hover:text-gray-300"}`}>
           Quantitativo
         </button>
       </div>
@@ -914,11 +914,11 @@ export default function ChamadosPage() {
       {view === "quantitativo" && stats && stats.total > 0 && (
         <div className="flex gap-1 mb-4 bg-gray-900 border border-gray-800 rounded-lg p-1 w-fit">
           <button onClick={() => setSubViewQuant("lista")}
-            className={`text-xs px-3 py-1.5 rounded transition ${subViewQuant === "lista" ? "bg-gray-700 text-white font-medium" : "text-gray-400 hover:text-gray-300"}`}>
+            className={`text-xs px-3 py-1.5 rounded transition ${subViewQuant === "lista" ? "bg-gray-700 text-white font-medium" : "text-gray-500 hover:text-gray-300"}`}>
             Lista
           </button>
           <button onClick={() => { setSubViewQuant("graficos"); setEquipeGrafico(""); }}
-            className={`text-xs px-3 py-1.5 rounded transition ${subViewQuant === "graficos" ? "bg-gray-700 text-white font-medium" : "text-gray-400 hover:text-gray-300"}`}>
+            className={`text-xs px-3 py-1.5 rounded transition ${subViewQuant === "graficos" ? "bg-gray-700 text-white font-medium" : "text-gray-500 hover:text-gray-300"}`}>
             Gráficos
           </button>
         </div>
@@ -944,7 +944,7 @@ export default function ChamadosPage() {
       {dados && dados.total > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
           <div className="bg-gray-900 rounded-xl border border-gray-800 p-4">
-            <p className="text-xs text-gray-400 mb-1">Total de chamados</p>
+            <p className="text-xs text-gray-500 mb-1">Total de chamados</p>
             <p className="text-3xl font-bold text-white tabular-nums">
               {dados.total.toLocaleString("pt-BR")}
             </p>
@@ -952,7 +952,7 @@ export default function ChamadosPage() {
           <div
             onClick={toggleUrgentes}
             className={`rounded-xl border p-4 cursor-pointer transition light-card-red ${urgentes ? "bg-red-900/30 border-red-500/50 animate-pulse" : "bg-gray-900 border-gray-800 hover:border-red-500/30"}`}>
-            <p className="text-xs text-gray-400 mb-1">Solicitação de Urgência</p>
+            <p className="text-xs text-gray-500 mb-1">Solicitação de Urgência</p>
             <p className={`text-3xl font-bold tabular-nums ${dados.totalUrgentes > 0 ? "text-red-400" : "text-gray-600"}`}>
               {dados.totalUrgentes.toLocaleString("pt-BR")}
             </p>
@@ -961,21 +961,21 @@ export default function ChamadosPage() {
           <div
             onClick={() => { setFiltroRedmineResolvido(f => !f); setPage(1); }}
             className={`rounded-xl border p-4 cursor-pointer transition ${filtroRedmineResolvido ? "bg-orange-900/30 border-orange-500/50 animate-pulse" : aguardandoCount > 0 ? "bg-orange-950/20 border-orange-800 hover:border-orange-600" : "bg-gray-900 border-gray-800"}`}>
-            <p className="text-xs text-gray-400 mb-1">Redmine resolvido</p>
+            <p className="text-xs text-gray-500 mb-1">Redmine resolvido</p>
             <p className={`text-3xl font-bold tabular-nums ${aguardandoCount > 0 ? "text-orange-400" : "text-gray-600"}`}>
               {aguardandoCount}
             </p>
-            <p className="text-xs mt-1 text-gray-400">{filtroRedmineResolvido ? "✓ Filtro ativo" : "⚡ Clique para filtrar"}</p>
+            <p className="text-xs mt-1 text-gray-500">{filtroRedmineResolvido ? "✓ Filtro ativo" : "⚡ Clique para filtrar"}</p>
           </div>
           <div className="bg-gray-900 rounded-xl border border-gray-800 p-4">
-            <p className="text-xs text-gray-400 mb-1">Atendentes</p>
+            <p className="text-xs text-gray-500 mb-1">Atendentes</p>
             <p className="text-3xl font-bold text-white tabular-nums">
               {dados.usuarios.length}
             </p>
           </div>
           {dados.dataMin && dados.dataMax && (
             <div className="bg-gray-900 rounded-xl border border-gray-800 p-4">
-              <p className="text-xs text-gray-400 mb-1">Período dos dados</p>
+              <p className="text-xs text-gray-500 mb-1">Período dos dados</p>
               <p className="text-sm font-medium text-gray-300">
                 {fmtDateShort(dados.dataMin)} → {fmtDateShort(dados.dataMax)}
               </p>
@@ -1003,9 +1003,9 @@ export default function ChamadosPage() {
               placeholder="Pesquisar Chamado..."
               className="bg-gray-900 border border-gray-700 text-white text-xs rounded-lg pl-7 pr-7 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[200px]"
             />
-            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none">🔍</span>
+            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 text-xs pointer-events-none">🔍</span>
             {busca && (
-              <button onClick={() => { setBusca(""); setPage(1); }} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white text-xs">✕</button>
+              <button onClick={() => { setBusca(""); setPage(1); }} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white text-xs">✕</button>
             )}
           </div>
           {dados.equipes && dados.equipes.length > 0 && (
@@ -1048,15 +1048,15 @@ export default function ChamadosPage() {
 
       {/* Table — apenas na aba Lista */}
       {view === "lista" && loading ? (
-        <p className="text-gray-400 text-sm">Carregando...</p>
+        <p className="text-gray-500 text-sm">Carregando...</p>
       ) : view === "lista" && (!dados || dados.total === 0) && !busca && !usuario && !equipe && !urgentes ? (
         <div className="bg-gray-900 rounded-xl border border-gray-800 p-12 text-center">
-          <p className="text-gray-400 text-sm mb-1">Nenhum dado importado ainda.</p>
+          <p className="text-gray-500 text-sm mb-1">Nenhum dado importado ainda.</p>
           <p className="text-gray-600 text-xs">Clique em "Importar chamados" e selecione o arquivo CSV exportado do sistema.</p>
         </div>
       ) : view === "lista" && (!dados || dados.total === 0 || dados.chamados.length === 0) ? (
         <div className="bg-gray-900 rounded-xl border border-gray-800 p-8 text-center space-y-3">
-          <p className="text-gray-400 text-sm">Nenhum chamado encontrado para a pesquisa realizada.</p>
+          <p className="text-gray-500 text-sm">Nenhum chamado encontrado para a pesquisa realizada.</p>
           {filtroRedmineResolvido && (
             <button
               onClick={() => { setFiltroRedmineResolvido(false); setPage(1); }}
@@ -1168,7 +1168,7 @@ export default function ChamadosPage() {
           {/* Pagination */}
           {dados.totalPages > 1 && (
             <div className="flex items-center justify-between mt-4">
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-gray-500">
                 {((page - 1) * dados.pageSize + 1).toLocaleString("pt-BR")}–
                 {Math.min(page * dados.pageSize, dados.total).toLocaleString("pt-BR")} de{" "}
                 {dados.total.toLocaleString("pt-BR")} chamados
@@ -1212,14 +1212,14 @@ export default function ChamadosPage() {
         <>
           {!stats || stats.total === 0 ? (
             <div className="bg-gray-900 rounded-xl border border-gray-800 p-12 text-center">
-              <p className="text-gray-400 text-sm">Nenhum dado importado ainda.</p>
+              <p className="text-gray-500 text-sm">Nenhum dado importado ainda.</p>
             </div>
           ) : subViewQuant === "graficos" ? (
             <div className="grid md:grid-cols-2 gap-6">
               {/* Donut por equipe */}
               <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
                 <p className="text-sm font-semibold text-white mb-0.5">Distribuição por equipe</p>
-                <p className="text-xs text-gray-400 mb-5">Clique numa fatia ou item da legenda para ver os atendentes</p>
+                <p className="text-xs text-gray-500 mb-5">Clique numa fatia ou item da legenda para ver os atendentes</p>
                 <DonutChart
                   itens={stats.porEquipe.map(eq => ({ label: eq.equipe, value: eq.total }))}
                   onSelect={setEquipeGrafico}
@@ -1233,7 +1233,7 @@ export default function ChamadosPage() {
                   return eq ? (
                     <>
                       <p className="text-sm font-semibold text-white mb-0.5">{equipeGrafico}</p>
-                      <p className="text-xs text-gray-400 mb-5">
+                      <p className="text-xs text-gray-500 mb-5">
                         {eq.total.toLocaleString("pt-BR")} chamados · {eq.usuarios.length} atendente{eq.usuarios.length !== 1 ? "s" : ""}
                         {eq.usuarios.some(u => u.total > 50) && (
                           <span className="ml-2 text-red-400">· barra vermelha = sobrecarga (&gt;50)</span>
@@ -1328,7 +1328,7 @@ export default function ChamadosPage() {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-base font-semibold text-yellow-300">⚠ Assysts para verificar</h3>
-                <p className="text-xs text-gray-400 mt-0.5">Vinculados a Redmines marcados como "Devolver à TI" — verifique se já podem ser encerrados</p>
+                <p className="text-xs text-gray-500 mt-0.5">Vinculados a Redmines marcados como "Devolver à TI" — verifique se já podem ser encerrados</p>
               </div>
               <button onClick={() => setModalDevolverTI(false)} className="text-gray-600 hover:text-gray-400 transition">✕</button>
             </div>
@@ -1341,7 +1341,7 @@ export default function ChamadosPage() {
                       className="font-mono text-sm text-blue-400 hover:text-blue-300 hover:underline transition">
                       {item.assyst}
                     </a>
-                    <p className="text-xs text-gray-400 mt-0.5">Redmine #{item.redmine}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">Redmine #{item.redmine}</p>
                   </div>
                   <span className="text-xs text-yellow-600 font-medium">Devolver à TI</span>
                 </div>
@@ -1362,7 +1362,7 @@ export default function ChamadosPage() {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-base font-semibold text-white">Importar chamados</h3>
-                <p className="text-xs text-gray-400 mt-0.5">Selecione o arquivo CSV exportado do sistema</p>
+                <p className="text-xs text-gray-500 mt-0.5">Selecione o arquivo CSV exportado do sistema</p>
               </div>
               <button onClick={() => setImportModal(false)} className="text-gray-600 hover:text-gray-400 transition">✕</button>
             </div>
@@ -1377,9 +1377,9 @@ export default function ChamadosPage() {
                     {fileNames.length === 1 ? fileNames[0] : `${fileNames.length} arquivos selecionados`}
                   </span>
                   {fileNames.length > 1 && (
-                    <span className="text-[10px] text-gray-400 mt-1 text-center">{fileNames.join(", ")}</span>
+                    <span className="text-[10px] text-gray-500 mt-1 text-center">{fileNames.join(", ")}</span>
                   )}
-                  <span className="text-xs text-gray-400 mt-1">Clique para trocar</span>
+                  <span className="text-xs text-gray-500 mt-1">Clique para trocar</span>
                 </>
               ) : (
                 <>
@@ -1423,7 +1423,7 @@ export default function ChamadosPage() {
                 <p className="text-gray-400">{importResult.parsed.toLocaleString("pt-BR")} linha{importResult.parsed !== 1 ? "s" : ""} lida{importResult.parsed !== 1 ? "s" : ""} dos arquivos</p>
                 <p>{importResult.count.toLocaleString("pt-BR")} chamado{importResult.count !== 1 ? "s" : ""} importado{importResult.count !== 1 ? "s" : ""}</p>
                 {importResult.skipped > 0 && (
-                  <p className="text-gray-400">{importResult.skipped.toLocaleString("pt-BR")} ignorado{importResult.skipped !== 1 ? "s" : ""} (referência já existia)</p>
+                  <p className="text-gray-500">{importResult.skipped.toLocaleString("pt-BR")} ignorado{importResult.skipped !== 1 ? "s" : ""} (referência já existia)</p>
                 )}
               </div>
             )}

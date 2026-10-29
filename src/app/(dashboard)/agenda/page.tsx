@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import jsPDF from "jspdf";
@@ -286,7 +286,7 @@ export default function AgendaPage() {
           {/* Day headers */}
           <div className="grid grid-cols-7 border-b border-gray-800 bg-gray-800/30">
             {DIAS_SEMANA.map((d) => (
-              <div key={d} className="py-2 text-center text-xs font-medium text-gray-400 uppercase tracking-wider">
+              <div key={d} className="py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                 {d}
               </div>
             ))}
@@ -343,7 +343,7 @@ export default function AgendaPage() {
                         {events.length > MAX_VISIBLE && (
                           <div
                             onClick={(e) => { e.stopPropagation(); setDetalheId(events[MAX_VISIBLE].id); }}
-                            className="text-[10px] text-gray-400 hover:text-gray-300 px-1 cursor-pointer transition">
+                            className="text-[10px] text-gray-500 hover:text-gray-300 px-1 cursor-pointer transition">
                             +{events.length - MAX_VISIBLE} mais
                           </div>
                         )}
@@ -369,7 +369,7 @@ export default function AgendaPage() {
           </div>
           {listaVisivel.length === 0 ? (
             <div className="bg-gray-900 rounded-xl border border-gray-800 p-12 text-center">
-              <p className="text-gray-400 text-sm">Nenhum compromisso {mostrarPassados ? "" : "futuro "}registrado.</p>
+              <p className="text-gray-500 text-sm">Nenhum compromisso {mostrarPassados ? "" : "futuro "}registrado.</p>
             </div>
           ) : (
             <div className="space-y-0.5">
@@ -394,11 +394,11 @@ export default function AgendaPage() {
                       onClick={() => setDetalheId(c.id)}>
                       <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${eventColor(c.id)}`} />
                       <div className="flex-1 min-w-0">
-                        <span className={`text-sm font-medium ${isPast && !isHoje ? "text-gray-400" : "text-white"}`}>
+                        <span className={`text-sm font-medium ${isPast && !isHoje ? "text-gray-500" : "text-white"}`}>
                           {c.titulo}
                         </span>
                         {horarioStr(c) && (
-                          <span className="text-xs text-gray-400 ml-2 font-mono">{horarioStr(c)}</span>
+                          <span className="text-xs text-gray-500 ml-2 font-mono">{horarioStr(c)}</span>
                         )}
                         {c.local && <span className="text-xs text-gray-600 ml-2">· {c.local}</span>}
                       </div>
@@ -427,7 +427,7 @@ export default function AgendaPage() {
           <div className="bg-[#1c1c1e] border border-gray-700/50 rounded-2xl w-full max-w-lg flex flex-col shadow-2xl overflow-hidden"
             style={{ maxHeight: "85vh" }} onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-700/40">
-              <span className="text-xs text-gray-400 font-medium capitalize">{fmtDataNota(detalhe.data)}</span>
+              <span className="text-xs text-gray-500 font-medium capitalize">{fmtDataNota(detalhe.data)}</span>
               <button onClick={() => setDetalheId(null)} className="text-gray-600 hover:text-gray-300 text-lg leading-none transition">✕</button>
             </div>
             <div className="flex flex-col flex-1 overflow-hidden px-5 py-4 gap-3">
@@ -459,7 +459,7 @@ export default function AgendaPage() {
 
             {/* Topo estilo notas */}
             <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-700/40">
-              <span className="text-xs text-gray-400 font-medium capitalize">
+              <span className="text-xs text-gray-500 font-medium capitalize">
                 {form.data ? fmtDataNota(form.data) : "Nova nota"}
               </span>
               <button onClick={closeModal} className="text-gray-600 hover:text-gray-300 text-lg leading-none transition">✕</button>

@@ -1,4 +1,4 @@
-﻿export const dynamic = "force-dynamic";
+export const dynamic = "force-dynamic";
 
 import { prisma } from "@/lib/prisma";
 import PlantaoRecentesCard from "@/app/(dashboard)/components/PlantaoRecentesCard";
@@ -81,7 +81,7 @@ export default async function DashboardPage() {
     { label: "Colaboradores ativos", value: colaboradores.length, color: "text-white", icon: "👥" },
     { label: "De folga hoje", value: deFolgaHoje, color: "text-blue-400", icon: "🌴" },
     { label: "Compromissos hoje", value: compromissosHoje, color: "text-purple-400", icon: "🗓" },
-    { label: "Folgas a agendar", value: folgasPendentes, color: folgasPendentes > 0 ? "text-orange-400" : "text-gray-400", icon: "⏳" },
+    { label: "Folgas a agendar", value: folgasPendentes, color: folgasPendentes > 0 ? "text-orange-400" : "text-gray-500", icon: "⏳" },
   ];
 
   return (
@@ -91,7 +91,7 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4">
         {cards.map(card => (
           <div key={card.label} className="bg-gray-900 rounded-xl border border-gray-800 p-5 flex flex-col gap-2">
-            <p className="text-xs text-gray-400">{card.label}</p>
+            <p className="text-xs text-gray-500">{card.label}</p>
             <p className={`text-4xl font-bold ${card.color}`}>{card.value}</p>
           </div>
         ))}
@@ -111,7 +111,7 @@ export default async function DashboardPage() {
         <div className="bg-gray-900 rounded-xl border border-gray-800 p-5">
           <h3 className="text-sm font-medium text-gray-300 mb-4">
             Próximas folgas
-            <span className="ml-2 text-xs text-gray-400 font-normal">próximos 14 dias</span>
+            <span className="ml-2 text-xs text-gray-500 font-normal">próximos 14 dias</span>
           </h3>
           {proximasEntries.length === 0 ? (
             <p className="text-gray-600 text-sm">Nenhuma folga agendada nos próximos 14 dias.</p>
@@ -121,7 +121,7 @@ export default async function DashboardPage() {
                 <div key={i} className="flex items-center justify-between py-2.5">
                   <div>
                     <p className="text-white text-sm font-medium">{f.nome}</p>
-                    <p className="text-xs text-gray-400">{f.equipe}</p>
+                    <p className="text-xs text-gray-500">{f.equipe}</p>
                   </div>
                   <div className="text-right">
                     {(() => {
@@ -129,7 +129,7 @@ export default async function DashboardPage() {
                       const color = label === "Hoje" ? "text-green-400" : label === "Amanhã" ? "text-blue-400" : "text-gray-300";
                       return <p className={`text-sm font-medium ${color}`}>{label}</p>;
                     })()}
-                    <p className="text-xs text-gray-400">
+                    <p className="text-xs text-gray-500">
                       {new Date(f.data + "T12:00:00").toLocaleDateString("pt-BR", { weekday: "long" })}
                     </p>
                     <p className="text-xs text-gray-600">Plantão: {tipoLabel[f.tipo] ?? f.tipo}</p>
@@ -144,7 +144,7 @@ export default async function DashboardPage() {
         <div className="bg-gray-900 rounded-xl border border-gray-800 p-5">
           <h3 className="text-sm font-medium text-gray-300 mb-4">
             Próximos compromissos
-            <span className="ml-2 text-xs text-gray-400 font-normal">próximos 14 dias</span>
+            <span className="ml-2 text-xs text-gray-500 font-normal">próximos 14 dias</span>
           </h3>
           {compromissosProximos.length === 0 ? (
             <p className="text-gray-600 text-sm">Nenhum compromisso agendado nos próximos 14 dias.</p>
@@ -158,12 +158,12 @@ export default async function DashboardPage() {
                   <div key={c.id} className="flex items-center justify-between py-2.5 gap-3">
                     <div className="min-w-0">
                       <p className="text-white text-sm font-medium truncate">{c.titulo}</p>
-                      {c.local && <p className="text-xs text-gray-400 truncate">📍 {c.local}</p>}
+                      {c.local && <p className="text-xs text-gray-500 truncate">📍 {c.local}</p>}
                     </div>
                     <div className="text-right shrink-0">
                       <p className={`text-sm font-medium ${color}`}>{label}</p>
                       {(c.horaInicio || c.horaFim) && (
-                        <p className="text-xs text-gray-400 font-mono">
+                        <p className="text-xs text-gray-500 font-mono">
                           {c.horaInicio ?? "—"}{c.horaFim ? ` – ${c.horaFim}` : ""}
                         </p>
                       )}

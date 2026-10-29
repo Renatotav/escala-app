@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 
@@ -633,7 +633,7 @@ export default function PlantoesPage() {
               {rankingAlfabetico.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
             </select>
             <button onClick={() => setMostrarInativos(v => !v)}
-              className={`px-3 py-2 text-xs rounded-lg border transition ${mostrarInativos ? "bg-gray-700 border-gray-500 text-gray-200" : "bg-gray-900 border-gray-700 text-gray-400 hover:text-gray-300"}`}>
+              className={`px-3 py-2 text-xs rounded-lg border transition ${mostrarInativos ? "bg-gray-700 border-gray-500 text-gray-200" : "bg-gray-900 border-gray-700 text-gray-500 hover:text-gray-300"}`}>
               {mostrarInativos ? "Ocultar inativos" : "Mostrar inativos"}
             </button>
           </div>
@@ -654,13 +654,13 @@ export default function PlantoesPage() {
               </thead>
               <tbody>
                 {lista.length === 0 && (
-                  <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400">Nenhum colaborador encontrado</td></tr>
+                  <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-500">Nenhum colaborador encontrado</td></tr>
                 )}
                 {lista.map((entry, idx) => {
                   const isNext = entry.score === minScore;
                   return (
                     <tr key={entry.id} className={`border-b border-gray-800 last:border-0 transition ${isNext && idx === 0 ? "bg-green-900/10" : "hover:bg-gray-800/50"}`}>
-                      <td className="px-4 py-3 text-center text-gray-400 font-mono text-xs">{idx + 1}</td>
+                      <td className="px-4 py-3 text-center text-gray-500 font-mono text-xs">{idx + 1}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <button onClick={() => openFicha(entry.id, entry.nome, entry.equipe)} className="text-white font-medium hover:text-blue-400 transition text-left">{entry.nome}</button>
@@ -691,7 +691,7 @@ export default function PlantoesPage() {
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-2">
                           {isNext && !entry.semPlantao && <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/40 font-medium">Próximo</span>}
-                          {entry.semPlantao && <span className="text-xs px-1.5 py-0.5 rounded bg-gray-700 text-gray-400">Inativo</span>}
+                          {entry.semPlantao && <span className="text-xs px-1.5 py-0.5 rounded bg-gray-700 text-gray-500">Inativo</span>}
                           <button
                             title={entry.semPlantao ? "Reativar na contagem" : "Retirar da contagem"}
                             onClick={async () => {
@@ -744,7 +744,7 @@ export default function PlantoesPage() {
             </thead>
             <tbody>
               {historico.length === 0 && (
-                <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400">Nenhum plantão registrado</td></tr>
+                <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-500">Nenhum plantão registrado</td></tr>
               )}
               {historico.map((h) => {
                 const needsFolga2 = h.tipo === "DOMINGO" || h.tipo === "FERIADO";
@@ -768,7 +768,7 @@ export default function PlantoesPage() {
                       <div className="flex items-center justify-end gap-3">
                         {h.data <= hoje && (
                           <button onClick={() => openFolga(h)}
-                            className={`text-xs font-medium transition ${pendente ? "text-yellow-400 hover:text-yellow-300" : "text-gray-400 hover:text-gray-300"}`}>
+                            className={`text-xs font-medium transition ${pendente ? "text-yellow-400 hover:text-yellow-300" : "text-gray-500 hover:text-gray-300"}`}>
                             {pendente ? "Agendar folga" : "Folgas"}
                           </button>
                         )}
@@ -810,7 +810,7 @@ export default function PlantoesPage() {
             </thead>
             <tbody>
               {saldo.length === 0 && (
-                <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400">Nenhum registro encontrado</td></tr>
+                <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-500">Nenhum registro encontrado</td></tr>
               )}
               {saldo.map((s) => (
                 <tr key={s.id} className={`border-b border-gray-800 last:border-0 transition hover:bg-gray-800/50 ${s.pendentes > 0 ? "bg-yellow-900/5" : ""}`}>
@@ -886,7 +886,7 @@ export default function PlantoesPage() {
               </thead>
               <tbody>
                 {folgasAgendadas.length === 0 && (
-                  <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400">Nenhuma folga agendada neste mês</td></tr>
+                  <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-500">Nenhuma folga agendada neste mês</td></tr>
                 )}
                 {folgasAgendadas.map(f => (
                   <tr key={f.id} className="border-b border-gray-800 last:border-0 hover:bg-gray-800/50 transition">
@@ -929,7 +929,7 @@ export default function PlantoesPage() {
                 className="bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
               <button onClick={() => { const [y,m] = mesEscala.split("-").map(Number); const d = new Date(y,m,1); setMesEscala(d.toISOString().slice(0,7)); }} className="bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg px-3 py-2 text-sm transition">›</button>
             </div>
-            <p className="text-xs text-gray-400">{diasMes.length} dias de plantão neste mês</p>
+            <p className="text-xs text-gray-500">{diasMes.length} dias de plantão neste mês</p>
           </div>
 
           <div className="space-y-3">
@@ -957,7 +957,7 @@ export default function PlantoesPage() {
                       <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${badgeCls}`}>
                         {badgeLabel}
                       </span>
-                      <span className="text-xs text-gray-400">{designados.length} designado{designados.length !== 1 ? "s" : ""}</span>
+                      <span className="text-xs text-gray-500">{designados.length} designado{designados.length !== 1 ? "s" : ""}</span>
                     </div>
                     <button
                       onClick={() => { setModalEscala({ data, tipo }); setEscalaColabId(""); }}
@@ -973,7 +973,7 @@ export default function PlantoesPage() {
                       {designados.map(d => (
                         <div key={d.id} className="flex items-center gap-1.5 bg-gray-800 rounded-lg px-3 py-1.5 text-sm">
                           <span className="text-white">{d.colaborador.nome}</span>
-                          <span className="text-gray-400 text-xs">· {d.colaborador.equipe}</span>
+                          <span className="text-gray-500 text-xs">· {d.colaborador.equipe}</span>
                           <button
                             onClick={() => handleRemoveEscala(d.id)}
                             className="ml-1 text-gray-600 hover:text-red-400 transition text-xs leading-none">
@@ -1179,14 +1179,14 @@ export default function PlantoesPage() {
             <h3 className="text-base font-semibold text-white mb-1">Folgas agendadas</h3>
             <p className="text-xs text-gray-400 mb-4">{saldoVerColab.nome}</p>
             {saldoVerFolgas.length === 0 ? (
-              <p className="text-sm text-gray-400 py-4 text-center">Nenhuma folga agendada.</p>
+              <p className="text-sm text-gray-500 py-4 text-center">Nenhuma folga agendada.</p>
             ) : (
               <div className="divide-y divide-gray-800 max-h-80 overflow-y-auto">
                 {saldoVerFolgas.map(f => (
                   <div key={f.id} className="flex items-center justify-between py-2.5">
                     <div>
                       <p className="text-green-400 font-medium text-sm">{fmt(f.data)}</p>
-                      <p className="text-xs text-gray-400">Plantão: {fmt(f.dataPlantao)}</p>
+                      <p className="text-xs text-gray-500">Plantão: {fmt(f.dataPlantao)}</p>
                     </div>
                     <span className={`text-xs px-2 py-0.5 rounded-full ${tipoBadgeFolga[f.tipoPlantao] ?? "bg-gray-700 text-gray-300"}`}>
                       {tipoLabel[f.tipoPlantao] ?? f.tipoPlantao}
@@ -1215,10 +1215,10 @@ export default function PlantoesPage() {
               <button onClick={() => setAbaterBHColab(null)} className="text-gray-600 hover:text-gray-400 transition">✕</button>
             </div>
             <div className="flex items-center justify-between mb-3">
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-gray-500">
                 Selecione uma folga para converter no banco de horas.
               </p>
-              <label className="flex items-center gap-1.5 text-xs text-gray-400 shrink-0 ml-3">
+              <label className="flex items-center gap-1.5 text-xs text-gray-500 shrink-0 ml-3">
                 h/dia
                 <input type="number" min="1" max="24" value={hPorDiaAbate}
                   onChange={e => setHPorDiaAbate(Number(e.target.value))}
@@ -1226,7 +1226,7 @@ export default function PlantoesPage() {
               </label>
             </div>
             {abaterBHPlantoes.length === 0 ? (
-              <p className="text-sm text-gray-400 text-center py-4">
+              <p className="text-sm text-gray-500 text-center py-4">
                 {abatendoBH !== null ? "Processando..." : "Nenhuma folga pendente"}
               </p>
             ) : (
@@ -1240,7 +1240,7 @@ export default function PlantoesPage() {
                         <p className="text-sm text-gray-200 font-mono">{fmt(p.data)}</p>
                         <div className="flex items-center gap-1.5 mt-0.5">
                           {tipoBadge(p.tipo)}
-                          {slotsDisponiveis > 1 && <span className="text-xs text-gray-400">{slotsDisponiveis} slots disponíveis</span>}
+                          {slotsDisponiveis > 1 && <span className="text-xs text-gray-500">{slotsDisponiveis} slots disponíveis</span>}
                         </div>
                       </div>
                       <button
@@ -1284,7 +1284,7 @@ export default function PlantoesPage() {
             </div>
             <p className="text-xs text-gray-400 mb-4">{saldoPendingColab.nome} · selecione o plantão</p>
             {saldoPendingPlantoes.length === 0 ? (
-              <p className="text-sm text-gray-400 py-4 text-center">Nenhum plantão pendente encontrado.</p>
+              <p className="text-sm text-gray-500 py-4 text-center">Nenhum plantão pendente encontrado.</p>
             ) : (
               <div className="divide-y divide-gray-800 max-h-72 overflow-y-auto">
                 {saldoPendingPlantoes.map(h => {
@@ -1295,7 +1295,7 @@ export default function PlantoesPage() {
                       className="w-full flex items-center justify-between px-2 py-3 hover:bg-gray-800 rounded transition text-left">
                       <div>
                         <p className="text-white text-sm font-medium">{fmt(h.data)}</p>
-                        <p className="text-xs text-gray-400">{tipoLabel[h.tipo]}</p>
+                        <p className="text-xs text-gray-500">{tipoLabel[h.tipo]}</p>
                       </div>
                       <span className="text-xs text-yellow-400">{falta}</span>
                     </button>
@@ -1410,12 +1410,12 @@ export default function PlantoesPage() {
             <div className="flex items-start justify-between mb-4">
               <div>
                 <h3 className="text-base font-semibold text-white">{fichaModal.nome}</h3>
-                <p className="text-xs text-gray-400">{fichaModal.equipe}</p>
+                <p className="text-xs text-gray-500">{fichaModal.equipe}</p>
               </div>
               <button onClick={() => setFichaModal(null)} className="text-gray-600 hover:text-gray-400 text-lg leading-none ml-4">✕</button>
             </div>
             {fichaLoading ? (
-              <p className="text-gray-400 text-sm py-6 text-center">Carregando...</p>
+              <p className="text-gray-500 text-sm py-6 text-center">Carregando...</p>
             ) : (
               <>
                 {fichaPlantoes.length > 0 && (() => {
@@ -1427,7 +1427,7 @@ export default function PlantoesPage() {
                       <span className="text-gray-400">Plantões: <strong className="text-white">{fichaPlantoes.length}</strong></span>
                       <span className="text-gray-400">Folgas devidas: <strong className="text-white">{creditos}</strong></span>
                       <span className="text-gray-400">Agendadas: <strong className="text-green-400">{agendadas}</strong></span>
-                      <span className="text-gray-400">Pendentes: <strong className={pendentes > 0 ? "text-yellow-400" : "text-gray-400"}>{pendentes}</strong></span>
+                      <span className="text-gray-400">Pendentes: <strong className={pendentes > 0 ? "text-yellow-400" : "text-gray-500"}>{pendentes}</strong></span>
                     </div>
                   );
                 })()}
@@ -1444,7 +1444,7 @@ export default function PlantoesPage() {
                     </thead>
                     <tbody>
                       {fichaPlantoes.length === 0 && (
-                        <tr><td colSpan={5} className="text-center text-gray-400 py-6">Nenhum plantão registrado</td></tr>
+                        <tr><td colSpan={5} className="text-center text-gray-500 py-6">Nenhum plantão registrado</td></tr>
                       )}
                       {fichaPlantoes.map(p => (
                         <tr key={p.id} className="border-b border-gray-800 last:border-0">
@@ -1474,16 +1474,16 @@ export default function PlantoesPage() {
               <p className="text-xs text-gray-400">{toast.nome}</p>
               <div className="mt-2 space-y-1">
                 <p className="text-xs text-gray-300">
-                  <span className="text-gray-400">Folga simples:</span>{" "}
+                  <span className="text-gray-500">Folga simples:</span>{" "}
                   <span className="text-green-400 font-medium">{fmt(toast.folga1)}</span>
                 </p>
                 {toast.folga2 && (
                   <p className="text-xs text-gray-300">
-                    <span className="text-gray-400">Folga dupla:</span>{" "}
+                    <span className="text-gray-500">Folga dupla:</span>{" "}
                     <span className="text-green-400 font-medium">{fmt(toast.folga2)}</span>
                   </p>
                 )}
-                <p className="text-xs text-gray-400 pt-1 border-t border-gray-800">
+                <p className="text-xs text-gray-500 pt-1 border-t border-gray-800">
                   Plantão: {fmt(toast.plantaoData)} · {tipoLabel[toast.plantaoTipo] ?? toast.plantaoTipo}
                 </p>
               </div>

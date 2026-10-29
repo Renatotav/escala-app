@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 
@@ -244,14 +244,14 @@ export default function ConfiguracoesPage() {
       <section>
         <div className="mb-3">
           <h3 className="text-sm font-medium text-gray-300">Feriados e Pontos Facultativos extras</h3>
-          <p className="text-xs text-gray-400 mt-0.5">
+          <p className="text-xs text-gray-500 mt-0.5">
             Os feriados nacionais, estaduais (Ceará) e municipais (Fortaleza) já aparecem automaticamente na Escala do Mês.
             Cadastre aqui apenas <strong className="text-gray-400">pontos facultativos</strong> ou feriados adicionais não previstos.
           </p>
         </div>
         <div className="bg-gray-900 rounded-xl border border-gray-800 divide-y divide-gray-800">
           {feriados.length === 0 && (
-            <div className="px-4 py-4 text-sm text-gray-400">Nenhum feriado extra cadastrado</div>
+            <div className="px-4 py-4 text-sm text-gray-500">Nenhum feriado extra cadastrado</div>
           )}
           {feriados.map(f => (
             <div key={f.id} className="px-4 py-3 flex items-center justify-between">

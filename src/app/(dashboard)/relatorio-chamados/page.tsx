@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useRef } from "react";
 import jsPDF from "jspdf";
@@ -539,7 +539,7 @@ export default function RelatorioChamadosPage() {
               <span className="text-xl">{s.icon}</span>
               <div className="flex-1 min-w-0" onClick={()=>toggle(s.key)}>
                 <p className={`font-semibold text-xs leading-tight ${ativo?"text-white":"text-gray-400"}`}>{s.label}</p>
-                <p className="text-xs text-gray-400 mt-0.5">{ativo?"Incluído":"Excluído"}</p>
+                <p className="text-xs text-gray-500 mt-0.5">{ativo?"Incluído":"Excluído"}</p>
               </div>
               <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 cursor-pointer
                 ${ativo?"bg-blue-500 border-blue-500":"border-gray-600"}`}

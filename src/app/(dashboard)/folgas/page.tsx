@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 
@@ -77,7 +77,7 @@ export default function FolgasPage() {
           </thead>
           <tbody>
             {folgas.length === 0 && (
-              <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400">Nenhuma folga registrada</td></tr>
+              <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-500">Nenhuma folga registrada</td></tr>
             )}
             {folgas.map(f => (
               <tr key={f.id} className="border-b border-gray-800 last:border-0 hover:bg-gray-800/50 transition">

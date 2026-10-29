@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 
@@ -244,7 +244,7 @@ export default function ColaboradoresPage() {
           </thead>
           <tbody>
             {colaboradores.length === 0 && (
-              <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400">Nenhum colaborador encontrado</td></tr>
+              <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-500">Nenhum colaborador encontrado</td></tr>
             )}
             {colaboradores.map(c => (
               <tr key={c.id} className={`border-b border-gray-800 last:border-0 transition ${c.ativo ? "hover:bg-gray-800/50" : "opacity-50 hover:opacity-70"}`}>
@@ -259,7 +259,7 @@ export default function ColaboradoresPage() {
                   </label>
                 </td>
                 <td className="px-4 py-3">
-                  <a href={`/colaboradores/${c.id}`} className={`font-medium hover:text-blue-400 transition ${c.ativo ? "text-white" : "text-gray-400"}`}>{c.nome}</a>
+                  <a href={`/colaboradores/${c.id}`} className={`font-medium hover:text-blue-400 transition ${c.ativo ? "text-white" : "text-gray-500"}`}>{c.nome}</a>
                 </td>
                 <td className="px-4 py-3 text-gray-400">{c.matricula ?? "—"}</td>
                 <td className="px-4 py-3 text-gray-400">{c.cargo ?? "—"}</td>
@@ -346,7 +346,7 @@ export default function ColaboradoresPage() {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-base font-semibold text-white">Links de atendimento</h3>
-                <p className="text-xs text-gray-400 mt-0.5">
+                <p className="text-xs text-gray-500 mt-0.5">
                   {gerandoLinks
                     ? "Gerando..."
                     : linksResultado
@@ -358,7 +358,7 @@ export default function ColaboradoresPage() {
             </div>
 
             {gerandoLinks ? (
-              <p className="text-gray-400 text-sm py-8 text-center">Gerando links para todos os colaboradores...</p>
+              <p className="text-gray-500 text-sm py-8 text-center">Gerando links para todos os colaboradores...</p>
             ) : linksResultado ? (
               <>
                 <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">

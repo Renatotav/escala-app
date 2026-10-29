@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef, useState } from "react";
 import jsPDF from "jspdf";
@@ -146,7 +146,7 @@ function DonutChartProd({ itens, onSelect, selecionado }: {
             <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ background: f.cor }} />
             <span className="flex-1 text-gray-300 font-medium truncate" title={f.label}>{f.label}</span>
             <span className="font-mono font-bold text-white tabular-nums">{f.value.toLocaleString("pt-BR")}</span>
-            <span className="text-gray-500 w-11 text-right">{f.pct}%</span>
+            <span className="text-gray-400 w-11 text-right">{f.pct}%</span>
           </div>
         ))}
       </div>
@@ -170,16 +170,16 @@ function BarrasProd({ itens, total }: { itens: { nome: string; total: number }[]
               <div className="h-full rounded-full bg-blue-500/60" style={{ width: `${barW}%` }} />
             </div>
             <span className="font-mono font-bold text-sm tabular-nums w-10 text-right shrink-0 text-white">{d.total}</span>
-            <span className="text-gray-500 text-xs w-10 text-right shrink-0">{pct}%</span>
+            <span className="text-gray-400 text-xs w-10 text-right shrink-0">{pct}%</span>
           </div>
         );
       })}
       <div className="flex items-center gap-2.5 px-3 py-2 mt-1 border-t border-gray-800">
-        <span className="text-xs text-gray-500 w-5 shrink-0" />
+        <span className="text-xs text-gray-400 w-5 shrink-0" />
         <span className="text-xs font-semibold text-gray-400 w-40 shrink-0">Total</span>
         <span className="flex-1" />
         <span className="font-mono font-bold text-sm text-white w-10 text-right shrink-0">{total.toLocaleString("pt-BR")}</span>
-        <span className="text-gray-500 text-xs w-10 text-right shrink-0">100%</span>
+        <span className="text-gray-400 text-xs w-10 text-right shrink-0">100%</span>
       </div>
     </div>
   );
@@ -692,11 +692,11 @@ export default function ProdutividadePage() {
       <div className="flex items-center gap-3 mb-6 flex-wrap">
         <div className="flex gap-1 bg-gray-900 border border-gray-800 rounded-lg p-1">
           <button onClick={() => setView("lista")}
-            className={`text-sm px-4 py-1.5 rounded-md transition ${view === "lista" ? "bg-gray-700 text-white font-medium" : "text-gray-500 hover:text-gray-300"}`}>
+            className={`text-sm px-4 py-1.5 rounded-md transition ${view === "lista" ? "bg-gray-700 text-white font-medium" : "text-gray-400 hover:text-gray-300"}`}>
             Lista
           </button>
           <button onClick={() => setView("quantitativo")}
-            className={`text-sm px-4 py-1.5 rounded-md transition ${view === "quantitativo" ? "bg-gray-700 text-white font-medium" : "text-gray-500 hover:text-gray-300"}`}>
+            className={`text-sm px-4 py-1.5 rounded-md transition ${view === "quantitativo" ? "bg-gray-700 text-white font-medium" : "text-gray-400 hover:text-gray-300"}`}>
             Quantitativo
           </button>
         </div>
@@ -710,11 +710,11 @@ export default function ProdutividadePage() {
       {view === "quantitativo" && statsData && statsData.stats.length > 0 && (
         <div className="flex gap-1 mb-4 bg-gray-900 border border-gray-800 rounded-lg p-1 w-fit">
           <button onClick={() => setSubViewQuant("lista")}
-            className={`text-xs px-3 py-1.5 rounded transition ${subViewQuant === "lista" ? "bg-gray-700 text-white font-medium" : "text-gray-500 hover:text-gray-300"}`}>
+            className={`text-xs px-3 py-1.5 rounded transition ${subViewQuant === "lista" ? "bg-gray-700 text-white font-medium" : "text-gray-400 hover:text-gray-300"}`}>
             Lista
           </button>
           <button onClick={() => { setSubViewQuant("graficos"); setEquipeGrafico(""); }}
-            className={`text-xs px-3 py-1.5 rounded transition ${subViewQuant === "graficos" ? "bg-gray-700 text-white font-medium" : "text-gray-500 hover:text-gray-300"}`}>
+            className={`text-xs px-3 py-1.5 rounded transition ${subViewQuant === "graficos" ? "bg-gray-700 text-white font-medium" : "text-gray-400 hover:text-gray-300"}`}>
             Gráficos
           </button>
         </div>
@@ -772,8 +772,8 @@ export default function ProdutividadePage() {
               <input type="text" value={busca} onChange={e => setBusca(e.target.value)}
                 placeholder="Pesquisar chamado..."
                 className="bg-gray-900 border border-gray-700 text-white text-xs rounded-lg pl-7 pr-7 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-48" />
-              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 text-xs pointer-events-none">🔍</span>
-              {busca && <button onClick={() => setBusca("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white text-xs">✕</button>}
+              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none">🔍</span>
+              {busca && <button onClick={() => setBusca("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white text-xs">✕</button>}
             </div>
           )}
           {temFiltro && (
@@ -788,7 +788,7 @@ export default function ProdutividadePage() {
         <div className="flex flex-wrap items-center gap-3">
           {/* Recebimento */}
           <div className="flex items-center gap-1.5 bg-gray-900 border border-gray-800 rounded-lg px-3 py-2">
-            <span className="text-xs text-gray-500 whitespace-nowrap">Ano Receb.</span>
+            <span className="text-xs text-gray-400 whitespace-nowrap">Ano Receb.</span>
             <select value={anoRec} onChange={e => setAnoRec(e.target.value)}
               className="bg-transparent text-white text-xs focus:outline-none">
               <option value="">Todos</option>
@@ -796,7 +796,7 @@ export default function ProdutividadePage() {
             </select>
           </div>
           <div className="flex items-center gap-1 bg-gray-900 border border-gray-800 rounded-lg px-3 py-2">
-            <span className="text-xs text-gray-500 whitespace-nowrap">Data Receb.</span>
+            <span className="text-xs text-gray-400 whitespace-nowrap">Data Receb.</span>
             <input type="date" value={dataRecDe} onChange={e => setDataRecDe(e.target.value)}
               className="bg-transparent text-white text-xs focus:outline-none p-0 w-[105px]" />
             <span className="text-gray-600 text-xs">→</span>
@@ -805,7 +805,7 @@ export default function ProdutividadePage() {
           </div>
           {/* Resolução */}
           <div className="flex items-center gap-1.5 bg-gray-900 border border-gray-800 rounded-lg px-3 py-2">
-            <span className="text-xs text-gray-500 whitespace-nowrap">Ano Resolução</span>
+            <span className="text-xs text-gray-400 whitespace-nowrap">Ano Resolução</span>
             <select value={anoRes} onChange={e => setAnoRes(e.target.value)}
               className="bg-transparent text-white text-xs focus:outline-none">
               <option value="">Todos</option>
@@ -813,7 +813,7 @@ export default function ProdutividadePage() {
             </select>
           </div>
           <div className="flex items-center gap-1 bg-gray-900 border border-gray-800 rounded-lg px-3 py-2">
-            <span className="text-xs text-gray-500 whitespace-nowrap">Data Resolução</span>
+            <span className="text-xs text-gray-400 whitespace-nowrap">Data Resolução</span>
             <input type="date" value={dataResDe} onChange={e => setDataResDe(e.target.value)}
               className="bg-transparent text-white text-xs focus:outline-none p-0 w-[105px]" />
             <span className="text-gray-600 text-xs">→</span>
@@ -845,9 +845,9 @@ export default function ProdutividadePage() {
               </tr>
             </thead>
             <tbody>
-              {loading && <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-500">Carregando...</td></tr>}
+              {loading && <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400">Carregando...</td></tr>}
               {!loading && registros.length === 0 && (
-                <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-500">
+                <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400">
                   {totalRegistros === 0 ? "Nenhum registro importado" : "Nenhum registro encontrado"}
                 </td></tr>
               )}
@@ -894,7 +894,7 @@ export default function ProdutividadePage() {
       {/* Paginação Lista */}
       {view === "lista" && totalPages > 1 && total > 0 && (
         <div className="flex items-center justify-between mt-4 px-1">
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-gray-400">
             Exibindo <span className="text-gray-300">{(page - 1) * 100 + 1}–{Math.min(page * 100, total)}</span> de <span className="text-gray-300">{total.toLocaleString("pt-BR")}</span>
           </p>
           <div className="flex items-center gap-2">
@@ -910,10 +910,10 @@ export default function ProdutividadePage() {
       {/* ── QUANTITATIVO ── */}
       {view === "quantitativo" && (
         loadingStats ? (
-          <p className="text-gray-500 text-sm">Calculando estatísticas...</p>
+          <p className="text-gray-400 text-sm">Calculando estatísticas...</p>
         ) : !statsData || statsData.stats.length === 0 ? (
           <div className="bg-gray-900 rounded-xl border border-gray-800 p-12 text-center">
-            <p className="text-gray-500 text-sm">Nenhum dado importado ainda.</p>
+            <p className="text-gray-400 text-sm">Nenhum dado importado ainda.</p>
           </div>
         ) : subViewQuant === "graficos" ? (() => {
           // Agrupa por equipe para o donut
@@ -933,14 +933,14 @@ export default function ProdutividadePage() {
             <div className="grid md:grid-cols-2 gap-6">
               <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
                 <p className="text-sm font-semibold text-white mb-0.5">Distribuição por equipe</p>
-                <p className="text-xs text-gray-500 mb-5">Clique numa fatia ou item da legenda para ver os atendentes</p>
+                <p className="text-xs text-gray-400 mb-5">Clique numa fatia ou item da legenda para ver os atendentes</p>
                 <DonutChartProd itens={donutItens} onSelect={setEquipeGrafico} selecionado={equipeGrafico} />
               </div>
               <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
                 {eqSel ? (
                   <>
                     <p className="text-sm font-semibold text-white mb-0.5">{eqSel.equipe}</p>
-                    <p className="text-xs text-gray-500 mb-5">
+                    <p className="text-xs text-gray-400 mb-5">
                       {eqSel.total.toLocaleString("pt-BR")} recebidos · {eqSel.usuarios.length} atendente{eqSel.usuarios.length !== 1 ? "s" : ""}
                     </p>
                     <BarrasProd itens={eqSel.usuarios.sort((a, b) => b.total - a.total)} total={eqSel.total} />

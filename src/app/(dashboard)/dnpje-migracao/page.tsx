@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import jsPDF from "jspdf";
@@ -168,7 +168,7 @@ function DonutChart({ itens, onSelect, selecionado, cores }: {
             <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{background:f.cor}}/>
             <span className="flex-1 text-gray-300 font-medium truncate" title={f.label}>{f.label}</span>
             <span className="font-mono font-bold text-white tabular-nums">{f.value.toLocaleString("pt-BR")}</span>
-            <span className="text-gray-500 w-11 text-right">{f.pct}%</span>
+            <span className="text-gray-400 w-11 text-right">{f.pct}%</span>
           </div>
         ))}
       </div>
@@ -192,15 +192,15 @@ function BarrasHorizontais({ itens, total }: { itens: EquipeStats[]; total: numb
               <div className="h-full rounded-full bg-blue-500/60" style={{width:`${barW}%`}}/>
             </div>
             <span className="font-mono font-bold text-sm tabular-nums w-10 text-right shrink-0 text-white">{d.total.toLocaleString("pt-BR")}</span>
-            <span className="text-gray-500 text-xs w-11 text-right shrink-0">{pct}%</span>
+            <span className="text-gray-400 text-xs w-11 text-right shrink-0">{pct}%</span>
           </div>
         );
       })}
       <div className="flex items-center gap-2.5 px-3 py-2 mt-1 border-t border-gray-800">
-        <span className="text-xs text-gray-500 w-5 shrink-0"/>
+        <span className="text-xs text-gray-400 w-5 shrink-0"/>
         <span className="text-xs font-semibold text-gray-400 flex-1">Total</span>
         <span className="font-mono font-bold text-sm text-white w-10 text-right shrink-0">{total.toLocaleString("pt-BR")}</span>
-        <span className="text-gray-500 text-xs w-11 text-right shrink-0">100%</span>
+        <span className="text-gray-400 text-xs w-11 text-right shrink-0">100%</span>
       </div>
     </div>
   );
@@ -518,8 +518,8 @@ export default function DnpjeMigracaoPage() {
                 <input type="text" value={busca} onChange={e=>setBusca(e.target.value)}
                   placeholder="Pesquisar Chamado..."
                   className="bg-gray-900 border border-gray-700 text-white text-xs rounded-lg pl-7 pr-7 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[220px]"/>
-                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 text-xs pointer-events-none">🔍</span>
-                {busca && <button onClick={()=>setBusca("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white text-xs">✕</button>}
+                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none">🔍</span>
+                {busca && <button onClick={()=>setBusca("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white text-xs">✕</button>}
               </div>
             </div>
           )}
@@ -536,9 +536,9 @@ export default function DnpjeMigracaoPage() {
                 </tr>
               </thead>
               <tbody>
-                {loading && <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-500">Carregando...</td></tr>}
+                {loading && <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400">Carregando...</td></tr>}
                 {!loading && chamados.length === 0 && (
-                  <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-500">
+                  <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400">
                     {totalValidos===0?"Nenhum chamado importado":"Nenhum chamado encontrado"}
                   </td></tr>
                 )}
@@ -576,7 +576,7 @@ export default function DnpjeMigracaoPage() {
 
           {totalPages > 1 && total > 0 && (
             <div className="flex items-center justify-between mt-4 px-1">
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-400">
                 Exibindo <span className="text-gray-300">{(page-1)*100+1}–{Math.min(page*100,total)}</span> de <span className="text-gray-300">{total.toLocaleString("pt-BR")}</span> registros
               </p>
               <div className="flex items-center gap-2">
@@ -595,7 +595,7 @@ export default function DnpjeMigracaoPage() {
       {view === "quantitativo" && (
         <div>
           {!stats || stats.total === 0 ? (
-            <div className="text-center py-16 text-gray-500">
+            <div className="text-center py-16 text-gray-400">
               <p className="text-lg">Nenhum dado disponível</p>
               <p className="text-sm mt-1">Importe chamados primeiro.</p>
             </div>

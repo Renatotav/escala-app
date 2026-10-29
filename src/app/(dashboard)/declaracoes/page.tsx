@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 
@@ -157,7 +157,7 @@ export default function DeclaracoesPage() {
           </thead>
           <tbody>
             {declaracoes.length === 0 && (
-              <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-500">Nenhuma declaração registrada</td></tr>
+              <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-400">Nenhuma declaração registrada</td></tr>
             )}
             {declaracoes.map(d => {
               const isHoje = d.data === hoje;
@@ -210,17 +210,17 @@ export default function DeclaracoesPage() {
               <button onClick={() => setVerDeclaracao(null)} className="text-gray-600 hover:text-gray-400">✕</button>
             </div>
             <div className="space-y-3 text-sm">
-              <div><p className="text-xs text-gray-500">Colaborador</p><p className="text-white font-medium">{verDeclaracao.colaborador.nome}</p></div>
+              <div><p className="text-xs text-gray-400">Colaborador</p><p className="text-white font-medium">{verDeclaracao.colaborador.nome}</p></div>
               <div className="grid grid-cols-3 gap-3">
-                <div><p className="text-xs text-gray-500">Data</p><p className="text-gray-300">{fmt(verDeclaracao.data)}</p></div>
-                <div><p className="text-xs text-gray-500">Entrada</p><p className="text-gray-300">{verDeclaracao.horaEntrada ?? "—"}</p></div>
-                <div><p className="text-xs text-gray-500">Saída</p><p className="text-gray-300">{verDeclaracao.horaSaida ?? "—"}</p></div>
+                <div><p className="text-xs text-gray-400">Data</p><p className="text-gray-300">{fmt(verDeclaracao.data)}</p></div>
+                <div><p className="text-xs text-gray-400">Entrada</p><p className="text-gray-300">{verDeclaracao.horaEntrada ?? "—"}</p></div>
+                <div><p className="text-xs text-gray-400">Saída</p><p className="text-gray-300">{verDeclaracao.horaSaida ?? "—"}</p></div>
               </div>
               {verDeclaracao.especialidade && (
-                <div><p className="text-xs text-gray-500">Especialidade</p><p className="text-violet-400">{verDeclaracao.especialidade}</p></div>
+                <div><p className="text-xs text-gray-400">Especialidade</p><p className="text-violet-400">{verDeclaracao.especialidade}</p></div>
               )}
               {verDeclaracao.observacao && (
-                <div><p className="text-xs text-gray-500">Observação</p><p className="text-gray-300">{verDeclaracao.observacao}</p></div>
+                <div><p className="text-xs text-gray-400">Observação</p><p className="text-gray-300">{verDeclaracao.observacao}</p></div>
               )}
             </div>
             <button onClick={() => setVerDeclaracao(null)} className="mt-4 w-full bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-lg py-2 transition">Fechar</button>

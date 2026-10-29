@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 
@@ -491,7 +491,7 @@ export default function TriagemPage() {
           </thead>
           <tbody>
             {lista.length === 0 && (
-              <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-500">Nenhum colaborador encontrado</td></tr>
+              <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-400">Nenhum colaborador encontrado</td></tr>
             )}
             {lista.map((c, i) => {
               const reg = registroEfetivo(registros, c.id, isNonWorking);
@@ -506,7 +506,7 @@ export default function TriagemPage() {
                   style={novoGrupo ? { boxShadow: "inset 0 3px 0 0 rgb(55 65 81)" } : undefined}>
                   <td className="px-4 py-3" style={novoGrupo ? { paddingTop: "1.25rem" } : undefined}>
                     {novoGrupo && (
-                      <span className="block text-xs font-semibold text-gray-500 uppercase tracking-widest mb-1">{c.equipe.nome}</span>
+                      <span className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">{c.equipe.nome}</span>
                     )}
                     <div className="flex items-center gap-2 flex-wrap">
                       <button onClick={() => setPopup(c)} className="text-white font-medium hover:text-blue-400 transition text-left">
@@ -600,7 +600,7 @@ export default function TriagemPage() {
                     {reg ? (
                       reg.dataFim
                         ? <span className="text-green-400 font-mono">{fmt(reg.dataFim)}{reg.horaFim ? ` ${reg.horaFim}` : ""}</span>
-                        : <span className="text-gray-500">Em aberto</span>
+                        : <span className="text-gray-400">Em aberto</span>
                     ) : regRecente ? (
                       <span className="text-gray-600 font-mono">{fmt(regRecente.dataFim)}{regRecente.horaFim ? ` ${regRecente.horaFim}` : ""}</span>
                     ) : folgasHoje.has(c.id) ? (
@@ -674,7 +674,7 @@ export default function TriagemPage() {
                 ) : (
                   <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30 whitespace-nowrap">Na lista</span>
                 )}
-                <button onClick={() => setPopup(null)} className="text-gray-500 hover:text-white text-lg leading-none">×</button>
+                <button onClick={() => setPopup(null)} className="text-gray-400 hover:text-white text-lg leading-none">×</button>
               </div>
             </div>
 
@@ -695,7 +695,7 @@ export default function TriagemPage() {
               )}
             </div>
 
-            <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Histórico</p>
+            <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">Histórico</p>
             {popupRegistros.length === 0 ? (
               <p className="text-sm text-gray-600 text-center py-4">Nenhum registro</p>
             ) : (
@@ -721,7 +721,7 @@ export default function TriagemPage() {
                             ? <span>{fmt(r.dataFim)}{r.horaFim ? ` ${r.horaFim}` : ""}</span>
                             : <span className="text-red-400">em aberto</span>}
                         </p>
-                        {r.observacao && <p className="text-xs text-gray-500 italic mt-0.5">{r.observacao}</p>}
+                        {r.observacao && <p className="text-xs text-gray-400 italic mt-0.5">{r.observacao}</p>}
                       </div>
                       <div className="flex gap-2 shrink-0">
                         <button onClick={() => { setPopup(null); abrirEditar(r); }} className="text-xs text-blue-400 hover:text-blue-300">Editar</button>

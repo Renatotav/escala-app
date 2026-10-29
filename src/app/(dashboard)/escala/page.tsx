@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { sinalConfig, type Sinal } from "@/lib/eligibility";
@@ -501,7 +501,7 @@ export default function EscalaPage() {
       </div>
 
       {loading ? (
-        <p className="text-gray-500 text-sm">Carregando...</p>
+        <p className="text-gray-400 text-sm">Carregando...</p>
       ) : (
         <div className="space-y-6">
           {grupos.map(({ equipe, membros }) => {
@@ -545,7 +545,7 @@ export default function EscalaPage() {
                                       </span>
                                     )}
                                   </div>
-                                  {c.cargo && <p className="text-xs text-gray-500 truncate">{c.cargo}</p>}
+                                  {c.cargo && <p className="text-xs text-gray-400 truncate">{c.cargo}</p>}
                                 </div>
                               </div>
                             </td>
@@ -556,7 +556,7 @@ export default function EscalaPage() {
                             </td>
                             <td className="px-4 py-3">
                               {c.semRemoto ? (
-                                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs bg-gray-700/50 text-gray-500 border border-gray-700">
+                                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs bg-gray-700/50 text-gray-400 border border-gray-700">
                                   <span className="w-1.5 h-1.5 rounded-full bg-gray-600" />
                                   Sem remoto
                                 </span>
@@ -626,7 +626,7 @@ export default function EscalaPage() {
                                 <button
                                   onClick={() => handleToggleWhatsapp(c.id)}
                                   title={c.whatsapp ? "Remover responsável WhatsApp" : "Designar como responsável WhatsApp"}
-                                  className={`text-xs px-2 py-1 rounded transition ${c.whatsapp ? "bg-green-700 hover:bg-green-600 text-white" : "bg-gray-800 hover:bg-green-900/40 text-gray-500 hover:text-green-400 border border-gray-700"}`}>
+                                  className={`text-xs px-2 py-1 rounded transition ${c.whatsapp ? "bg-green-700 hover:bg-green-600 text-white" : "bg-gray-800 hover:bg-green-900/40 text-gray-400 hover:text-green-400 border border-gray-700"}`}>
                                   💬
                                 </button>
                                 <button
@@ -655,14 +655,14 @@ export default function EscalaPage() {
           <div className="bg-gray-900 border border-gray-700 rounded-xl w-full max-w-lg shadow-xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 pt-5 pb-3 border-b border-gray-800">
               <h3 className="text-white font-semibold flex items-center gap-2">⚙ Configurações da Escala</h3>
-              <button onClick={() => setSettingsOpen(false)} className="text-gray-500 hover:text-white transition text-lg leading-none">✕</button>
+              <button onClick={() => setSettingsOpen(false)} className="text-gray-400 hover:text-white transition text-lg leading-none">✕</button>
             </div>
 
             {/* Abas */}
             <div className="flex border-b border-gray-800 px-6">
               {([["locais", "📍 Locais"], ["equipes", "👥 Equipes"], ["horarios", "🕐 Horários"]] as const).map(([tab, label]) => (
                 <button key={tab} onClick={() => setSettingsTab(tab)}
-                  className={`text-xs py-3 px-3 border-b-2 transition ${settingsTab === tab ? "border-blue-500 text-white" : "border-transparent text-gray-500 hover:text-gray-300"}`}>
+                  className={`text-xs py-3 px-3 border-b-2 transition ${settingsTab === tab ? "border-blue-500 text-white" : "border-transparent text-gray-400 hover:text-gray-300"}`}>
                   {label}
                 </button>
               ))}

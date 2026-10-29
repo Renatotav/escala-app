@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import jsPDF from "jspdf";
@@ -141,7 +141,7 @@ function DonutChart({ itens, cores }: { itens: DonutItem[]; cores?: string[] }) 
             <span className="w-3 h-3 rounded-full shrink-0" style={{ background: s.cor }} />
             <span className="text-xs text-gray-300 truncate">{s.label}</span>
             <span className="text-xs font-bold text-white ml-auto pl-3 shrink-0">{s.value}</span>
-            <span className="text-xs text-gray-500 shrink-0">({(s.frac * 100).toFixed(1)}%)</span>
+            <span className="text-xs text-gray-400 shrink-0">({(s.frac * 100).toFixed(1)}%)</span>
           </div>
         ))}
       </div>
@@ -599,9 +599,9 @@ export default function RedmineResolvidosPage() {
                   placeholder="Pesquisar chamado..."
                   className="bg-gray-900 border border-gray-700 text-white text-xs rounded-lg pl-7 pr-7 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[220px]"
                 />
-                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 text-xs pointer-events-none">🔍</span>
+                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none">🔍</span>
                 {busca && (
-                  <button onClick={() => setBusca("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white text-xs">✕</button>
+                  <button onClick={() => setBusca("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white text-xs">✕</button>
                 )}
               </div>
             </div>
@@ -609,9 +609,9 @@ export default function RedmineResolvidosPage() {
 
           <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto">
             {loading ? (
-              <p className="px-4 py-8 text-center text-gray-500 text-sm">Carregando...</p>
+              <p className="px-4 py-8 text-center text-gray-400 text-sm">Carregando...</p>
             ) : !dados || resolvidos.length === 0 ? (
-              <p className="px-4 py-12 text-center text-gray-500 text-sm">
+              <p className="px-4 py-12 text-center text-gray-400 text-sm">
                 {dados?.totalRedmine === 0
                   ? "Nenhum Chamado Redmine importado ainda. Importe os chamados primeiro."
                   : "Nenhum arquivo de Resolvidos importado. Clique em \"Importar Resolvidos\"."}
@@ -689,7 +689,7 @@ export default function RedmineResolvidosPage() {
                                   <div key={n} className="flex items-center gap-1.5">
                                     <button onClick={() => toggleMarcadorRes(n, paginaResAtual)}
                                       title={esMarcadoAssyst ? "Remover marcador" : "Marcar posição aqui"}
-                                      className={`text-sm leading-none transition shrink-0 ${esMarcadoAssyst ? "text-blue-400 hover:text-gray-500" : "text-gray-700 hover:text-blue-400"}`}>
+                                      className={`text-sm leading-none transition shrink-0 ${esMarcadoAssyst ? "text-blue-400 hover:text-gray-400" : "text-gray-700 hover:text-blue-400"}`}>
                                       📍
                                     </button>
                                     <a href={assystUrl(n)} target="_blank" rel="noopener noreferrer"
@@ -705,7 +705,7 @@ export default function RedmineResolvidosPage() {
                                 );
                               })}
                             </div>
-                          ) : <span className="text-gray-500">—</span>}
+                          ) : <span className="text-gray-400">—</span>}
                         </td>
                         <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">{r.tipo ?? "—"}</td>
                         <td className="px-4 py-3">
@@ -724,7 +724,7 @@ export default function RedmineResolvidosPage() {
 
           {aba === "esquecidos" && totalPaginasEsq > 1 && semResolvido.length > 0 && (
             <div className="flex items-center justify-between mt-4 px-1">
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-400">
                 Exibindo <span className="text-gray-300">{(paginaEsqAtual - 1) * POR_PAGINA + 1}–{Math.min(paginaEsqAtual * POR_PAGINA, semResolvido.length)}</span> de <span className="text-gray-300">{semResolvido.length}</span> registros
               </p>
               <div className="flex items-center gap-2">
@@ -742,7 +742,7 @@ export default function RedmineResolvidosPage() {
           )}
           {aba === "resolvidos" && totalPaginasRes > 1 && (dados?.totalResolvidos ?? 0) > 0 && (
             <div className="flex items-center justify-between mt-4 px-1">
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-400">
                 Exibindo <span className="text-gray-300">{(paginaResAtual - 1) * POR_PAGINA + 1}–{Math.min(paginaResAtual * POR_PAGINA, dados?.totalResolvidos ?? 0)}</span> de <span className="text-gray-300">{dados?.totalResolvidos ?? 0}</span> registros
               </p>
               <div className="flex items-center gap-2">
@@ -765,9 +765,9 @@ export default function RedmineResolvidosPage() {
       {abaVis === "quantitativo" && (
         <div ref={quantRef}>
           {loading ? (
-            <p className="py-12 text-center text-gray-500 text-sm">Carregando...</p>
+            <p className="py-12 text-center text-gray-400 text-sm">Carregando...</p>
           ) : !dados ? (
-            <p className="py-12 text-center text-gray-500 text-sm">Nenhum dado disponível.</p>
+            <p className="py-12 text-center text-gray-400 text-sm">Nenhum dado disponível.</p>
           ) : (
             <>
               {/* Cards */}
@@ -779,17 +779,17 @@ export default function RedmineResolvidosPage() {
                 <div className="bg-gray-900 border border-green-800/40 rounded-xl p-4">
                   <p className="text-xs text-gray-400 mb-1">Resolvidos</p>
                   <p className="text-3xl font-bold text-green-400">{qtdResolvidos}</p>
-                  {totalRedmine > 0 && <p className="text-xs text-gray-500 mt-1">{((qtdResolvidos/totalRedmine)*100).toFixed(1)}%</p>}
+                  {totalRedmine > 0 && <p className="text-xs text-gray-400 mt-1">{((qtdResolvidos/totalRedmine)*100).toFixed(1)}%</p>}
                 </div>
                 <div className={`bg-gray-900 rounded-xl p-4 border ${qtdAguardando > 0 ? "border-yellow-700/60" : "border-gray-800"}`}>
                   <p className="text-xs text-gray-400 mb-1">Aguardando encerramento</p>
                   <p className={`text-3xl font-bold ${qtdAguardando > 0 ? "text-yellow-400" : "text-white"}`}>{qtdAguardando}</p>
-                  {totalRedmine > 0 && <p className="text-xs text-gray-500 mt-1">{((qtdAguardando/totalRedmine)*100).toFixed(1)}%</p>}
+                  {totalRedmine > 0 && <p className="text-xs text-gray-400 mt-1">{((qtdAguardando/totalRedmine)*100).toFixed(1)}%</p>}
                 </div>
                 <div className={`bg-gray-900 rounded-xl p-4 border ${qtdNaoResolvidos > 0 ? "border-red-700/60" : "border-gray-800"}`}>
                   <p className="text-xs text-gray-400 mb-1">Não resolvidos</p>
                   <p className={`text-3xl font-bold ${qtdNaoResolvidos > 0 ? "text-red-400" : "text-white"}`}>{qtdNaoResolvidos}</p>
-                  {totalRedmine > 0 && <p className="text-xs text-gray-500 mt-1">{((qtdNaoResolvidos/totalRedmine)*100).toFixed(1)}%</p>}
+                  {totalRedmine > 0 && <p className="text-xs text-gray-400 mt-1">{((qtdNaoResolvidos/totalRedmine)*100).toFixed(1)}%</p>}
                 </div>
               </div>
 
@@ -802,7 +802,7 @@ export default function RedmineResolvidosPage() {
               )}
 
               {totalRedmine === 0 && (
-                <p className="py-12 text-center text-gray-500 text-sm">
+                <p className="py-12 text-center text-gray-400 text-sm">
                   Nenhum Chamado Redmine importado ainda.
                 </p>
               )}
@@ -838,7 +838,7 @@ export default function RedmineResolvidosPage() {
               <p className="text-gray-400 text-sm">
                 {selectedFiles.length === 0 ? "Clique para selecionar os arquivos (.csv)" : selectedFiles.length === 1 ? selectedFiles[0].name : `${selectedFiles.length} arquivos selecionados`}
               </p>
-              {selectedFiles.length > 1 && <p className="text-xs text-gray-500 mt-1">{selectedFiles.map(f => f.name).join(", ")}</p>}
+              {selectedFiles.length > 1 && <p className="text-xs text-gray-400 mt-1">{selectedFiles.map(f => f.name).join(", ")}</p>}
               {importResult?.error && <p className="text-red-400 text-xs mt-2">{importResult.error}</p>}
             </div>
             <input ref={fileRef} type="file" accept=".csv,.txt" multiple className="hidden" onChange={e => { setSelectedFiles(Array.from(e.target.files ?? [])); setImportResult(null); }} />

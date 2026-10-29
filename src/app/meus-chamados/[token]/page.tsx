@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState, useCallback, use } from "react";
 
@@ -156,7 +156,7 @@ export default function MeusChamadosPage({ params }: { params: Promise<{ token: 
   if (loading && !dados) {
     return (
       <div className="min-h-dvh bg-gray-950 flex items-center justify-center">
-        <p className="text-gray-500 text-sm">Carregando...</p>
+        <p className="text-gray-400 text-sm">Carregando...</p>
       </div>
     );
   }
@@ -166,7 +166,7 @@ export default function MeusChamadosPage({ params }: { params: Promise<{ token: 
       <div className="min-h-dvh bg-gray-950 flex items-center justify-center px-4">
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-8 text-center max-w-sm">
           <p className="text-red-400 font-medium mb-1">Link indisponível</p>
-          <p className="text-sm text-gray-500">{erro}</p>
+          <p className="text-sm text-gray-400">{erro}</p>
         </div>
       </div>
     );
@@ -199,13 +199,13 @@ export default function MeusChamadosPage({ params }: { params: Promise<{ token: 
         {(dados.total > 0 || urgentes) && (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6 max-w-2xl">
             <div className="bg-gray-900 rounded-xl border border-gray-800 p-4">
-              <p className="text-xs text-gray-500 mb-1">Total de chamados</p>
+              <p className="text-xs text-gray-400 mb-1">Total de chamados</p>
               <p className="text-3xl font-bold text-white tabular-nums">{dados.total.toLocaleString("pt-BR")}</p>
             </div>
             <div
               onClick={toggleUrgentes}
               className={`rounded-xl border p-4 cursor-pointer transition ${urgentes ? "bg-red-900/30 border-red-500/50" : "bg-gray-900 border-gray-800 hover:border-red-500/30"}`}>
-              <p className="text-xs text-gray-500 mb-1">Solicitação de Urgência</p>
+              <p className="text-xs text-gray-400 mb-1">Solicitação de Urgência</p>
               <p className={`text-3xl font-bold tabular-nums ${dados.totalUrgentes > 0 ? "text-red-400" : "text-gray-600"}`}>
                 {dados.totalUrgentes.toLocaleString("pt-BR")}
               </p>
@@ -214,18 +214,18 @@ export default function MeusChamadosPage({ params }: { params: Promise<{ token: 
             <div
               onClick={() => setFiltroResolvido(f => !f)}
               className={`rounded-xl border p-4 cursor-pointer transition ${filtroResolvido ? "bg-orange-900/30 border-orange-500/50 animate-pulse" : aguardandoCount > 0 ? "bg-orange-950/20 border-orange-800 hover:border-orange-600" : "bg-gray-900 border-gray-800"}`}>
-              <p className="text-xs text-gray-500 mb-1">Redmine resolvido</p>
+              <p className="text-xs text-gray-400 mb-1">Redmine resolvido</p>
               <p className={`text-3xl font-bold tabular-nums ${aguardandoCount > 0 ? "text-orange-400" : "text-gray-600"}`}>
                 {aguardandoCount}
               </p>
-              <p className="text-xs mt-1 text-gray-500">{filtroResolvido ? "✓ Filtro ativo" : "⚡ Clique para filtrar"}</p>
+              <p className="text-xs mt-1 text-gray-400">{filtroResolvido ? "✓ Filtro ativo" : "⚡ Clique para filtrar"}</p>
             </div>
           </div>
         )}
 
         {dados.total === 0 ? (
           <div className="bg-gray-900 rounded-xl border border-gray-800 p-12 text-center">
-            <p className="text-gray-500 text-sm">
+            <p className="text-gray-400 text-sm">
               {urgentes ? "Nenhum chamado urgente no momento." : "Nenhum chamado atribuído a você no momento."}
             </p>
           </div>
@@ -295,7 +295,7 @@ export default function MeusChamadosPage({ params }: { params: Promise<{ token: 
                         <td className="px-4 py-2.5">
                           <span className="text-xs text-gray-300">{c.nomeDpsAtribuido ?? "—"}</span>
                           {c.nomeSecao && (
-                            <p className="text-[10px] text-gray-500 mt-0.5 truncate max-w-[240px]">{c.nomeSecao}</p>
+                            <p className="text-[10px] text-gray-400 mt-0.5 truncate max-w-[240px]">{c.nomeSecao}</p>
                           )}
                         </td>
                         <td className="px-4 py-2.5">
@@ -310,7 +310,7 @@ export default function MeusChamadosPage({ params }: { params: Promise<{ token: 
 
             {dados.totalPages > 1 && (
               <div className="flex items-center justify-between mt-4">
-                <p className="text-xs text-gray-500">Página {dados.page} de {dados.totalPages}</p>
+                <p className="text-xs text-gray-400">Página {dados.page} de {dados.totalPages}</p>
                 <div className="flex gap-1">
                   <button
                     onClick={() => setPage((p) => p - 1)}

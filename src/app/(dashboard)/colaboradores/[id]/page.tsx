@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -135,7 +135,7 @@ export default function FichaPage() {
     setTimeout(() => setCopied(false), 2000);
   }
 
-  if (!colab) return <div className="text-gray-500 text-sm p-6">Carregando...</div>;
+  if (!colab) return <div className="text-gray-400 text-sm p-6">Carregando...</div>;
 
   const inputCls = "w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50";
 
@@ -186,7 +186,7 @@ export default function FichaPage() {
               { label: "Telefone de emergência", key: "telefoneEmerg", type: "text", placeholder: "(00) 00000-0000" },
             ].map(({ label, key, type, placeholder }) => (
               <div key={key}>
-                <label className="block text-xs text-gray-500 mb-1">{label}</label>
+                <label className="block text-xs text-gray-400 mb-1">{label}</label>
                 {editando
                   ? <input type={type} value={dadosForm[key as keyof typeof dadosForm]} placeholder={placeholder}
                       onChange={e => setDadosForm(f => ({ ...f, [key]: e.target.value }))}
@@ -195,7 +195,7 @@ export default function FichaPage() {
               </div>
             ))}
             <div className="sm:col-span-2">
-              <label className="block text-xs text-gray-500 mb-1">Endereço</label>
+              <label className="block text-xs text-gray-400 mb-1">Endereço</label>
               {editando
                 ? <input value={dadosForm.endereco} placeholder="Rua, número, bairro, cidade"
                     onChange={e => setDadosForm(f => ({ ...f, endereco: e.target.value }))}
@@ -203,7 +203,7 @@ export default function FichaPage() {
                 : <p className="text-sm text-gray-300">{dadosForm.endereco || "—"}</p>}
             </div>
             <div className="sm:col-span-2">
-              <label className="block text-xs text-gray-500 mb-1">Alergias</label>
+              <label className="block text-xs text-gray-400 mb-1">Alergias</label>
               {editando
                 ? <input value={dadosForm.alergia} placeholder="Ex: Dipirona, Penicilina, látex..."
                     onChange={e => setDadosForm(f => ({ ...f, alergia: e.target.value }))}
@@ -218,7 +218,7 @@ export default function FichaPage() {
       {tab === "dados" && (
         <div className="bg-gray-900 rounded-xl border border-gray-800 p-6 mt-4">
           <h3 className="text-sm font-medium text-gray-300 mb-1">Link de atendimento</h3>
-          <p className="text-xs text-gray-500 mb-4">Acesso somente aos chamados deste colaborador, sem senha.</p>
+          <p className="text-xs text-gray-400 mb-4">Acesso somente aos chamados deste colaborador, sem senha.</p>
           {colab.tokenAtendimento ? (
             <div className="space-y-2">
               <div className="flex flex-col sm:flex-row gap-2">
@@ -233,7 +233,7 @@ export default function FichaPage() {
                 </button>
               </div>
               <div className="flex items-center justify-between">
-                <p className="text-[11px] text-gray-500">
+                <p className="text-[11px] text-gray-400">
                   {colab.acessosAtendimento > 0 && colab.ultimoAcessoAtendimento
                     ? `Último acesso: ${new Date(colab.ultimoAcessoAtendimento).toLocaleString("pt-BR")} · ${colab.acessosAtendimento} acesso${colab.acessosAtendimento !== 1 ? "s" : ""}`
                     : "Ainda não acessado"}
@@ -265,7 +265,7 @@ export default function FichaPage() {
               <th className="text-left px-4 py-3">Observação</th>
             </tr></thead>
             <tbody>
-              {colab.plantoes.length === 0 && <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-500">Nenhum plantão registrado</td></tr>}
+              {colab.plantoes.length === 0 && <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400">Nenhum plantão registrado</td></tr>}
               {colab.plantoes.map(p => (
                 <tr key={p.id} className="border-b border-gray-800 last:border-0">
                   <td className="px-4 py-3 text-gray-300 font-mono text-xs">{fmt(p.data)}</td>
@@ -295,7 +295,7 @@ export default function FichaPage() {
                 <th className="px-4 py-3" />
               </tr></thead>
               <tbody>
-                {colab.feedbacks.length === 0 && <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-500">Nenhum feedback registrado</td></tr>}
+                {colab.feedbacks.length === 0 && <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400">Nenhum feedback registrado</td></tr>}
                 {colab.feedbacks.map(f => (
                   <tr key={f.id} className="border-b border-gray-800 last:border-0 hover:bg-gray-800/50">
                     <td className="px-4 py-3 text-gray-400 font-mono text-xs whitespace-nowrap">{fmt(f.data)}</td>
@@ -326,7 +326,7 @@ export default function FichaPage() {
                 <th className="px-4 py-3" />
               </tr></thead>
               <tbody>
-                {colab.ocorrencias.length === 0 && <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-500">Nenhuma ocorrência registrada</td></tr>}
+                {colab.ocorrencias.length === 0 && <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400">Nenhuma ocorrência registrada</td></tr>}
                 {colab.ocorrencias.map(o => (
                   <tr key={o.id} className="border-b border-gray-800 last:border-0 hover:bg-gray-800/50">
                     <td className="px-4 py-3 text-gray-400 font-mono text-xs whitespace-nowrap">{fmt(o.data)}</td>
@@ -354,14 +354,14 @@ export default function FichaPage() {
               <th className="text-left px-4 py-3">Observação</th>
             </tr></thead>
             <tbody>
-              {colab.atestados.length === 0 && <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-500">Nenhum atestado registrado</td></tr>}
+              {colab.atestados.length === 0 && <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400">Nenhum atestado registrado</td></tr>}
               {colab.atestados.map(a => (
                 <tr key={a.id} className="border-b border-gray-800 last:border-0">
                   <td className="px-4 py-3 text-gray-300 font-mono text-xs">{fmt(a.dataInicio)}</td>
                   <td className="px-4 py-3 text-gray-300 font-mono text-xs">{fmt(a.dataFim)}</td>
                   <td className="px-4 py-3 text-center text-orange-400 font-bold">{a.dias}</td>
                   <td className="px-4 py-3">
-                    {a.cid ? <div><p className="text-blue-400 font-mono text-xs">{a.cid}</p>{cidDescricoes[a.cid] && <p className="text-gray-500 text-xs">{cidDescricoes[a.cid]}</p>}</div> : <span className="text-gray-600 text-xs">—</span>}
+                    {a.cid ? <div><p className="text-blue-400 font-mono text-xs">{a.cid}</p>{cidDescricoes[a.cid] && <p className="text-gray-400 text-xs">{cidDescricoes[a.cid]}</p>}</div> : <span className="text-gray-600 text-xs">—</span>}
                   </td>
                   <td className="px-4 py-3 text-gray-400 text-xs">{a.descricao ?? "—"}</td>
                 </tr>

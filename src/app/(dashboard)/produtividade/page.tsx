@@ -195,9 +195,101 @@ function TaxaBadge({ taxa }: { taxa: number }) {
   );
 }
 
+type EvolucaoItem = { semana: string; label: string; recebidos: number; resolvidos: number };
+type TMRBucket    = { label: string; count: number };
+type AntigoItem   = { numero: string; dataAbertura: string; diasAberto: number; usuario: string | null; equipe: string | null; situacao: string | null };
+type DiaSemana    = { dia: number; label: string; total: number };
+type AnaliseData  = { evolucao: EvolucaoItem[]; distribuicaoTMR: TMRBucket[]; top10Antigos: AntigoItem[]; porDiaSemana: DiaSemana[]; totalRegistros: number };
+
+function LinhaChart({ data }: { data: EvolucaoItem[] }) {
+  if (data.length < 2) return <p className="text-gray-400 text-sm text-center py-8">Dados insuficientes para o gráfico</p>;
+  const W = 800, H = 180, PL = 46, PR = 20, PT = 10, PB = 36;
+  const cw = W - PL - PR, ch = H - PT - PB;
+  const maxVal = Math.max(...data.map(d => Math.max(d.recebidos, d.resolvidos)), 1);
+  const yMax = Math.ceil(maxVal * 1.15 / 10) * 10;
+  const n = data.length;
+  const px = (i: number) => PL + (i / Math.max(n - 1, 1)) * cw;
+  const py = (v: number) => PT + ch - (v / yMax) * ch;
+  const ptRec = data.map((d, i) => `${px(i).toFixed(1)},${py(d.recebidos).toFixed(1)}`).join(" ");
+  const ptRes = data.map((d, i) => `${px(i).toFixed(1)},${py(d.resolvidos).toFixed(1)}`).join(" ");
+  const yTicks = [0, Math.round(yMax / 4), Math.round(yMax / 2), Math.round(3 * yMax / 4), yMax];
+  const xStep = Math.max(1, Math.ceil(n / 8));
+  return (
+    <div>
+      <div className="flex items-center gap-5 mb-3">
+        <div className="flex items-center gap-1.5"><span className="w-4 h-0.5 bg-blue-400 inline-block rounded-full" /><span className="text-xs text-gray-400">Recebidos</span></div>
+        <div className="flex items-center gap-1.5"><span className="w-4 h-0.5 bg-green-400 inline-block rounded-full" /><span className="text-xs text-gray-400">Resolvidos</span></div>
+      </div>
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" aria-label="Gráfico de evolução temporal">
+        {yTicks.map(v => (
+          <g key={v}>
+            <line x1={PL} y1={py(v)} x2={W - PR} y2={py(v)} stroke="#1e293b" strokeWidth="1" />
+            <text x={PL - 6} y={py(v)} textAnchor="end" dominantBaseline="middle" fontSize="9" fill="#64748b">{v}</text>
+          </g>
+        ))}
+        <line x1={PL} y1={PT} x2={PL} y2={PT + ch} stroke="#334155" strokeWidth="1" />
+        <line x1={PL} y1={PT + ch} x2={W - PR} y2={PT + ch} stroke="#334155" strokeWidth="1" />
+        <polyline points={ptRec} fill="none" stroke="#60a5fa" strokeWidth="2" strokeLinejoin="round" />
+        <polyline points={ptRes} fill="none" stroke="#4ade80" strokeWidth="2" strokeLinejoin="round" />
+        {data.map((d, i) => (
+          <g key={i}>
+            <circle cx={px(i)} cy={py(d.recebidos)} r="2.5" fill="#60a5fa" />
+            <circle cx={px(i)} cy={py(d.resolvidos)} r="2.5" fill="#4ade80" />
+          </g>
+        ))}
+        {data.filter((_, i) => i % xStep === 0 || i === n - 1).map((d, _k) => {
+          const i = data.indexOf(d);
+          return <text key={i} x={px(i)} y={H - PB + 14} textAnchor="middle" fontSize="9" fill="#64748b">{d.label}</text>;
+        })}
+      </svg>
+    </div>
+  );
+}
+
+function HistogramaTMR({ data }: { data: TMRBucket[] }) {
+  const max = Math.max(...data.map(d => d.count), 1);
+  const total = data.reduce((s, d) => s + d.count, 0);
+  return (
+    <div className="space-y-3">
+      {data.map(d => (
+        <div key={d.label}>
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs text-gray-300 w-24 shrink-0">{d.label}</span>
+            <div className="flex-1 mx-3 h-3 bg-gray-800 rounded-full overflow-hidden">
+              <div className="h-full bg-purple-500/70 rounded-full" style={{ width: `${(d.count / max) * 100}%` }} />
+            </div>
+            <span className="text-xs font-mono text-white tabular-nums w-20 text-right shrink-0">
+              {d.count.toLocaleString("pt-BR")} <span className="text-gray-500">({total > 0 ? ((d.count / total) * 100).toFixed(1) : "0"}%)</span>
+            </span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function HeatmapDias({ data }: { data: DiaSemana[] }) {
+  const max = Math.max(...data.map(d => d.total), 1);
+  return (
+    <div className="flex gap-2">
+      {data.map(d => {
+        const intensity = d.total / max;
+        return (
+          <div key={d.dia} className="flex-1 flex flex-col items-center gap-1.5">
+            <div className="w-full h-14 rounded-lg flex items-center justify-center"
+              style={{ background: `rgba(59,130,246,${0.08 + intensity * 0.65})` }}>
+              <span className="font-mono font-bold text-sm text-white tabular-nums">{d.total.toLocaleString("pt-BR")}</span>
+            </div>
+            <span className="text-xs text-gray-400">{d.label}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 export default function ProdutividadePage() {
-  const [view, setView] = useState<"lista" | "quantitativo">("lista");
+  const [view, setView] = useState<"lista" | "quantitativo" | "analises">("lista");
   const [dados, setDados] = useState<Dados | null>(null);
   const [statsData, setStatsData] = useState<DadosStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -219,6 +311,9 @@ export default function ProdutividadePage() {
   const [substituir, setSubstituir] = useState(true);
   const [subViewQuant, setSubViewQuant] = useState<"lista" | "graficos">("lista");
   const [equipeGrafico, setEquipeGrafico] = useState("");
+  const [analiseData, setAnaliseData] = useState<AnaliseData | null>(null);
+  const [loadingAnalises, setLoadingAnalises] = useState(false);
+  const [limiteAberto, setLimiteAberto] = useState(10);
   const fileRef = useRef<HTMLInputElement>(null);
 
   function buildDateParams(p: URLSearchParams) {
@@ -253,10 +348,18 @@ export default function ProdutividadePage() {
       .then((d: DadosStats) => { setStatsData(d); setLoadingStats(false); });
   }
 
+  function loadAnalises() {
+    setLoadingAnalises(true);
+    fetch("/api/produtividade/analises")
+      .then(r => r.json())
+      .then((d: AnaliseData) => { setAnaliseData(d); setLoadingAnalises(false); });
+  }
+
   useEffect(() => { load(); }, []);
 
   useEffect(() => {
-    if (view === "quantitativo") loadStats(equipe, atendente);
+    if (view === "quantitativo" || view === "analises") loadStats(equipe, atendente);
+    if (view === "analises" && !analiseData) loadAnalises();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view, equipe, atendente, anoRec, dataRecDe, dataRecAte, anoRes, dataResDe, dataResAte]);
 
@@ -699,6 +802,10 @@ export default function ProdutividadePage() {
             className={`text-sm px-4 py-1.5 rounded-md transition ${view === "quantitativo" ? "bg-gray-700 text-white font-medium" : "text-gray-400 hover:text-gray-300"}`}>
             Quantitativo
           </button>
+          <button onClick={() => setView("analises")}
+            className={`text-sm px-4 py-1.5 rounded-md transition ${view === "analises" ? "bg-gray-700 text-white font-medium" : "text-gray-400 hover:text-gray-300"}`}>
+            Análises
+          </button>
         </div>
         <a href="/produtividade/como-funciona" target="_blank" rel="noopener noreferrer"
           className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-blue-900/30 border border-blue-700/40 text-blue-400 hover:bg-blue-800/40 hover:text-blue-300 transition font-medium">
@@ -1015,6 +1122,197 @@ export default function ProdutividadePage() {
             </table>
           </div>
         )
+      )}
+
+      {/* ── ANÁLISES ── */}
+      {view === "analises" && (
+        loadingAnalises || loadingStats ? (
+          <p className="text-gray-400 text-sm py-8 text-center">Calculando análises...</p>
+        ) : !analiseData || !statsData || statsData.stats.length === 0 ? (
+          <div className="bg-gray-900 rounded-xl border border-gray-800 p-12 text-center">
+            <p className="text-gray-400 text-sm">Nenhum dado importado ainda.</p>
+          </div>
+        ) : (() => {
+          const abaixoDaMeta = statsData.stats.filter(s => s.taxaResolucao < 80);
+          const naMeta       = statsData.stats.filter(s => s.taxaResolucao >= 80 && s.taxaResolucao < 85);
+          const acimaDaMeta  = statsData.stats.filter(s => s.taxaResolucao >= 85);
+          const comSobrecarga = statsData.stats.filter(s => s.emAberto >= limiteAberto).sort((a, b) => b.emAberto - a.emAberto);
+          const rankingTMR = [...statsData.stats].filter(s => s.tmrDias > 0 || s.tmrHoras > 0).sort((a, b) => a.tmrDias - b.tmrDias || a.tmrHoras - b.tmrHoras);
+          return (
+            <div className="space-y-6">
+
+              {/* Evolução temporal */}
+              <div className="bg-gray-900 rounded-xl border border-gray-800 p-5">
+                <p className="text-sm font-semibold text-white mb-0.5">📈 Evolução Temporal</p>
+                <p className="text-xs text-gray-400 mb-4">Recebimentos e resoluções por semana (últimas 52 semanas)</p>
+                <LinhaChart data={analiseData.evolucao} />
+              </div>
+
+              {/* Meta 80% + Alertas sobrecarga */}
+              <div className="grid md:grid-cols-2 gap-6">
+
+                {/* Meta 80% */}
+                <div className="bg-gray-900 rounded-xl border border-gray-800 p-5">
+                  <p className="text-sm font-semibold text-white mb-0.5">🎯 Meta 80% por atendente</p>
+                  <p className="text-xs text-gray-400 mb-4">Taxa de resolução mínima exigida</p>
+                  <div className="flex gap-3 mb-4">
+                    <div className="flex-1 bg-green-900/30 border border-green-700/40 rounded-lg p-3 text-center">
+                      <p className="text-2xl font-bold text-green-400">{acimaDaMeta.length}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">≥ 85% ✓</p>
+                    </div>
+                    <div className="flex-1 bg-yellow-900/30 border border-yellow-700/40 rounded-lg p-3 text-center">
+                      <p className="text-2xl font-bold text-yellow-400">{naMeta.length}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">80–84% ⚠</p>
+                    </div>
+                    <div className="flex-1 bg-red-900/30 border border-red-700/40 rounded-lg p-3 text-center">
+                      <p className="text-2xl font-bold text-red-400">{abaixoDaMeta.length}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">&lt; 80% ✗</p>
+                    </div>
+                  </div>
+                  {abaixoDaMeta.length > 0 && (
+                    <div className="space-y-1.5">
+                      <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Abaixo da meta</p>
+                      {abaixoDaMeta.sort((a, b) => a.taxaResolucao - b.taxaResolucao).map(s => (
+                        <div key={s.usuario} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-red-900/20 border border-red-800/30">
+                          <TaxaBadge taxa={s.taxaResolucao} />
+                          <span className="text-xs text-gray-300 truncate flex-1">{s.usuario}</span>
+                          <span className="text-xs text-gray-500">{s.equipe ?? "—"}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Alertas sobrecarga */}
+                <div className="bg-gray-900 rounded-xl border border-gray-800 p-5">
+                  <div className="flex items-center justify-between mb-0.5">
+                    <p className="text-sm font-semibold text-white">⚠ Alertas de Sobrecarga</p>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-gray-400">Limite em aberto:</span>
+                      <input type="number" min="1" max="999" value={limiteAberto}
+                        onChange={e => setLimiteAberto(Math.max(1, Number(e.target.value)))}
+                        className="w-14 bg-gray-800 border border-gray-700 text-white text-xs rounded px-2 py-0.5 text-center focus:outline-none focus:ring-1 focus:ring-yellow-500" />
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-400 mb-4">Atendentes com chamados em aberto acima do limite</p>
+                  {comSobrecarga.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-8 gap-2 text-center">
+                      <span className="text-2xl">✅</span>
+                      <p className="text-sm text-gray-400">Nenhum atendente acima do limite de {limiteAberto}</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+                      {comSobrecarga.map(s => (
+                        <div key={s.usuario} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-yellow-900/20 border border-yellow-800/30">
+                          <span className="font-mono font-bold text-yellow-400 text-sm tabular-nums w-8 text-right shrink-0">{s.emAberto}</span>
+                          <span className="text-xs text-gray-300 truncate flex-1">{s.usuario}</span>
+                          <span className="text-xs text-gray-500 shrink-0">{s.equipe ?? "—"}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Ranking TMR */}
+              <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto">
+                <div className="px-5 py-4 border-b border-gray-800">
+                  <p className="text-sm font-semibold text-white">🏆 Ranking por Agilidade (menor TMR)</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Atendentes ordenados pelo menor tempo médio de resolução</p>
+                </div>
+                <table className="w-full min-w-[600px] text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wide bg-gray-800/40">
+                      <th className="text-center px-4 py-2.5 w-10">#</th>
+                      <th className="text-left px-4 py-2.5">Atendente</th>
+                      <th className="text-left px-4 py-2.5">Equipe</th>
+                      <th className="text-center px-4 py-2.5">TMR Dias</th>
+                      <th className="text-center px-4 py-2.5">TMR Horas</th>
+                      <th className="text-center px-4 py-2.5">Resolvidos</th>
+                      <th className="text-center px-4 py-2.5">Taxa Res.</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rankingTMR.map((s, i) => (
+                      <tr key={s.usuario} className="border-b border-gray-800/60 last:border-0 hover:bg-gray-800/40 transition">
+                        <td className="px-4 py-2 text-center font-mono text-xs text-gray-500">{i + 1}</td>
+                        <td className="px-4 py-2 text-sm text-gray-200 font-medium">{s.usuario}</td>
+                        <td className="px-4 py-2 text-xs text-gray-400">{s.equipe ?? "—"}</td>
+                        <td className="px-4 py-2 text-center font-mono text-sm text-white tabular-nums">{s.tmrDias || "—"}</td>
+                        <td className="px-4 py-2 text-center font-mono text-sm text-gray-300 tabular-nums">{s.tmrHoras || "—"}</td>
+                        <td className="px-4 py-2 text-center font-mono text-sm text-white tabular-nums">{s.resolvidos.toLocaleString("pt-BR")}</td>
+                        <td className="px-4 py-2 text-center"><TaxaBadge taxa={s.taxaResolucao} /></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Distribuição TMR + Heatmap */}
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="bg-gray-900 rounded-xl border border-gray-800 p-5">
+                  <p className="text-sm font-semibold text-white mb-0.5">📊 Distribuição por TMR</p>
+                  <p className="text-xs text-gray-400 mb-4">Quantidade de chamados por faixa de tempo de resolução</p>
+                  <HistogramaTMR data={analiseData.distribuicaoTMR} />
+                </div>
+                <div className="bg-gray-900 rounded-xl border border-gray-800 p-5">
+                  <p className="text-sm font-semibold text-white mb-0.5">📅 Volume por dia da semana</p>
+                  <p className="text-xs text-gray-400 mb-4">Total de chamados recebidos por dia</p>
+                  <HeatmapDias data={analiseData.porDiaSemana} />
+                </div>
+              </div>
+
+              {/* Top 10 mais antigos */}
+              {analiseData.top10Antigos.length > 0 && (
+                <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto">
+                  <div className="px-5 py-4 border-b border-gray-800">
+                    <p className="text-sm font-semibold text-white">🔴 Top 10 chamados mais antigos em aberto</p>
+                    <p className="text-xs text-gray-400 mt-0.5">Chamados sem resolução há mais tempo</p>
+                  </div>
+                  <table className="w-full min-w-[600px] text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wide bg-gray-800/40">
+                        <th className="text-left px-4 py-2.5">Número</th>
+                        <th className="text-left px-4 py-2.5">Data Abertura</th>
+                        <th className="text-center px-4 py-2.5">Dias Aberto</th>
+                        <th className="text-left px-4 py-2.5">Atribuído</th>
+                        <th className="text-left px-4 py-2.5">Equipe</th>
+                        <th className="text-left px-4 py-2.5">Situação</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {analiseData.top10Antigos.map((c, i) => (
+                        <tr key={c.numero + i} className="border-b border-gray-800/60 last:border-0 hover:bg-gray-800/40 transition">
+                          <td className="px-4 py-2.5">
+                            <a href={`https://cati.tjce.jus.br/assystnet/#events/${c.numero}?eventType=1&currentIndex=0`}
+                              target="_blank" rel="noopener noreferrer"
+                              className="text-blue-400 hover:text-blue-300 font-mono text-xs hover:underline transition">
+                              {c.numero}
+                            </a>
+                          </td>
+                          <td className="px-4 py-2.5 text-xs text-gray-400 font-mono whitespace-nowrap">
+                            {new Date(c.dataAbertura).toLocaleDateString("pt-BR")}
+                          </td>
+                          <td className="px-4 py-2.5 text-center">
+                            <span className={`font-mono font-bold text-sm tabular-nums ${c.diasAberto > 30 ? "text-red-400" : c.diasAberto > 15 ? "text-yellow-400" : "text-gray-300"}`}>
+                              {c.diasAberto}d
+                            </span>
+                          </td>
+                          <td className="px-4 py-2.5 text-xs text-gray-300">{c.usuario ?? "—"}</td>
+                          <td className="px-4 py-2.5 text-xs text-gray-400">{c.equipe ?? "—"}</td>
+                          <td className="px-4 py-2.5">
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-gray-700 text-gray-300">{c.situacao ?? "—"}</span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+            </div>
+          );
+        })()
       )}
 
       {/* Modal Importar */}

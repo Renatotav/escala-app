@@ -46,6 +46,7 @@ const navGroups: NavGroup[] = [
     label: "Relatórios",
     items: [
       { href: "/relatorio-chamados", label: "Relatório Chamados", icon: "📄" },
+      { href: "/relatorio-mensal", label: "Relatório Mensal", icon: "📅" },
       { href: "/plantoes", label: "Plantões & Folgas", icon: "🔔" },
     ],
   },

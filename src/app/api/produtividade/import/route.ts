@@ -25,6 +25,9 @@ const HEADER_MAP: Record<string, string> = {
   "data movimentacao":          "dataMovimentacao",
   "equipe atribuida":           "equipeAtribuida",
   "equipe":                     "equipeAtribuida",
+  "equipe de resolucao":        "equipeResolucao",
+  "equipe resolucao":           "equipeResolucao",
+  "equipe responsavel":         "equipeResolucao",
   "usuario atribuido":          "usuarioAtribuido",
   "usuario fechamento":         "usuarioFechamento",
   "data/hora da resolucao":     "dataResolucao",
@@ -58,6 +61,7 @@ type RawRow = {
   dataMovimentacao: string | null;
   equipeAtribuida: string | null;
   usuarioAtribuido: string | null;
+  equipeResolucao: string | null;
   usuarioFechamento: string | null;
   dataResolucao: string | null;
   pausa: string | null;
@@ -135,12 +139,19 @@ function buildFinalRows(rawRows: RawRow[]) {
       if (totalH > 0) tmrExclusivoHoras = totalH;
     }
 
+    // Equipe de resolução: pega da linha que tem usuarioFechamento, ou da última movimentação
+    const equipeResolucao =
+      deduped.find(m => m.usuarioFechamento && m.equipeResolucao)?.equipeResolucao
+      ?? deduped.find(m => m.equipeResolucao)?.equipeResolucao
+      ?? null;
+
     result.push({
       numeroChamado,
       dataAbertura: deduped[0].dataAbertura,
       dataMovimentacao,
       equipeAtribuida: lastMov.equipeAtribuida,
       usuarioAtribuido: lastMov.usuarioAtribuido,
+      equipeResolucao,
       usuarioFechamento: lastMov.usuarioFechamento || deduped.find(m => m.usuarioFechamento)?.usuarioFechamento || null,
       dataResolucao: deduped.find(m => m.dataResolucao)?.dataResolucao ?? null,
       pausa: lastMov.pausa,
@@ -203,6 +214,7 @@ export async function POST(request: NextRequest) {
         dataMovimentacao: toIso(obj.dataMovimentacao),
         equipeAtribuida: obj.equipeAtribuida ? String(obj.equipeAtribuida).trim() : null,
         usuarioAtribuido: obj.usuarioAtribuido ? String(obj.usuarioAtribuido).trim() : null,
+        equipeResolucao: obj.equipeResolucao ? String(obj.equipeResolucao).trim() : null,
         usuarioFechamento: obj.usuarioFechamento ? String(obj.usuarioFechamento).trim() : null,
         dataResolucao: toIso(obj.dataResolucao),
         pausa: obj.pausa ? String(obj.pausa).trim() : null,
@@ -249,6 +261,7 @@ export async function POST(request: NextRequest) {
         dataMovimentacao: r.dataMovimentacao ? new Date(r.dataMovimentacao) : null,
         equipeAtribuida: r.equipeAtribuida || null,
         usuarioAtribuido: r.usuarioAtribuido || null,
+        equipeResolucao: r.equipeResolucao || null,
         usuarioFechamento: r.usuarioFechamento || null,
         dataResolucao: r.dataResolucao ? new Date(r.dataResolucao) : null,
         pausa: r.pausa || null,

@@ -284,6 +284,7 @@ model Produtividade {
   dataMovimentacao    DateTime?
   equipeAtribuida     String?
   usuarioAtribuido    String?
+  equipeResolucao     String?
   usuarioFechamento   String?
   dataResolucao       DateTime?
   pausa               String?

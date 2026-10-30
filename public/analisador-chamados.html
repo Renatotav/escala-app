@@ -1,0 +1,907 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Analisador de Chamados</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root {
+  --bg: #0d1117; --surface: #161b22; --surface-hi: #1c2333;
+  --border: #30363d; --fg: #e6edf3; --muted: #7d8590;
+  --rec: #58a6ff; --res: #3fb950; --warn: #d29922; --danger: #f85149;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; margin: 0; padding: 0 }
+body {
+  background: var(--bg); color: var(--fg);
+  font-family: 'Outfit', system-ui, sans-serif;
+  padding-block: 24px;
+  padding-left:  max(16px, env(safe-area-inset-left,  0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  max-width: 1020px; margin-inline: auto;
+}
+h1 { font-size: 1.2rem; font-weight: 700 }
+.sub { font-size: .78rem; color: var(--muted); margin-top: 2px }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 14px }
+.ct { font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 14px }
+.drop {
+  border: 2px dashed var(--border); border-radius: 12px;
+  padding: 40px 20px; text-align: center; cursor: pointer;
+  transition: .2s; margin-bottom: 16px;
+}
+.drop:hover, .drop.over { border-color: var(--rec); background: rgba(88,166,255,.05) }
+.drop-icon { font-size: 2.5rem; margin-bottom: 10px }
+.drop p { color: var(--muted); font-size: .9rem }
+.drop strong { color: var(--fg) }
+.file-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; max-height: 220px; overflow-y: auto }
+.file-item {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--surface-hi); border: 1px solid var(--border);
+  border-radius: 8px; padding: 8px 12px; font-size: .82rem;
+}
+.file-item .fi-name { flex: 1; color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.file-item .fi-size { color: var(--muted); font-size: .74rem; white-space: nowrap }
+.fi-rm { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 1rem; padding: 0 4px }
+.fi-rm:hover { color: var(--danger) }
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--rec); color: #0d1117; font-family: 'Outfit', sans-serif;
+  font-size: .85rem; font-weight: 600; border: none;
+  padding: 9px 20px; border-radius: 8px; cursor: pointer; transition: .15s;
+}
+.btn:hover { opacity: .9 }
+.btn:disabled { opacity: .4; cursor: default }
+.btn-ghost { background: var(--surface); color: var(--muted); border: 1px solid var(--border) }
+.btn-ghost:hover { color: var(--fg) }
+#v-proc { text-align: center; padding: 60px 20px }
+.prog-wrap { background: var(--surface); border-radius: 99px; height: 8px; overflow: hidden; margin: 20px auto; max-width: 400px }
+.prog-bar { height: 100%; background: var(--rec); border-radius: 99px; transition: width .3s }
+.proc-status { color: var(--muted); font-size: .85rem; margin-top: 10px }
+.proc-file { color: var(--fg); font-size: .88rem; margin-top: 6px; font-weight: 500 }
+.hdr { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 20px }
+select.fsel, .yr-tabs button {
+  background: var(--surface); border: 1px solid var(--border); color: var(--fg);
+  font-family: 'Outfit', sans-serif; font-size: .78rem;
+  padding: 5px 10px; border-radius: 6px; cursor: pointer;
+}
+.yr-tabs button:hover { border-color: rgba(88,166,255,.4) }
+.yr-tabs button.on { background: rgba(88,166,255,.12); border-color: var(--rec); color: var(--rec) }
+.ms-wrap { position: relative }
+.ms-btn {
+  background: var(--surface); border: 1px solid var(--border); color: var(--fg);
+  font-family: 'Outfit', sans-serif; font-size: .78rem;
+  padding: 5px 28px 5px 10px; border-radius: 6px; cursor: pointer;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 240px;
+  position: relative; text-align: left;
+}
+.ms-btn::after { content: '▾'; position: absolute; right: 8px; top: 50%; transform: translateY(-50%); color: var(--muted) }
+.ms-btn:hover { border-color: rgba(88,166,255,.4) }
+.ms-panel {
+  position: absolute; top: calc(100% + 4px); left: 0; z-index: 50;
+  background: #1c2333; border: 1px solid var(--border); border-radius: 8px;
+  padding: 8px; min-width: 240px; max-height: 320px; overflow-y: auto;
+  box-shadow: 0 8px 24px rgba(0,0,0,.5);
+}
+.ms-actions { display: flex; gap: 6px; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid var(--border) }
+.ms-a { background: none; border: 1px solid var(--border); color: var(--muted); font-size: .72rem; font-family: 'Outfit',sans-serif; cursor: pointer; padding: 3px 10px; border-radius: 4px }
+.ms-a:hover { background: var(--surface-hi); color: var(--fg) }
+.ms-item { display: flex; align-items: center; gap: 8px; padding: 6px 6px; border-radius: 6px; cursor: pointer; font-size: .81rem; color: var(--fg) }
+.ms-item:hover { background: rgba(88,166,255,.08) }
+.ms-item input[type=checkbox] { accent-color: var(--rec); width: 14px; height: 14px; cursor: pointer; flex-shrink: 0 }
+.kpi-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 14px }
+@media (max-width: 700px) { .kpi-row { grid-template-columns: repeat(2,1fr) } }
+@media (max-width: 400px) { .kpi-row { grid-template-columns: 1fr } }
+.kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px }
+.kv { font-family: 'JetBrains Mono', monospace; font-size: 1.55rem; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums }
+.kv.blue { color: var(--rec) } .kv.green { color: var(--res) }
+.kv.white { color: var(--fg) } .kv.red { color: var(--danger) }
+.kl { font-size: .7rem; color: var(--muted); margin-top: 5px; text-transform: uppercase; letter-spacing: .05em }
+.legend { display: flex; gap: 16px; margin-top: 10px; font-size: .73rem; color: var(--muted) }
+.ld { width: 10px; height: 10px; border-radius: 2px; display: inline-block; margin-right: 4px; vertical-align: middle }
+.tbl-wrap { overflow-x: auto }
+table { width: 100%; min-width: 440px; border-collapse: collapse; font-size: .82rem }
+th { text-align: left; padding: 8px 10px; color: var(--muted); font-weight: 600; font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; border-bottom: 1px solid var(--border) }
+td { padding: 9px 10px; border-bottom: 1px solid #1f2937; font-family: 'JetBrains Mono', monospace; font-size: .79rem; font-variant-numeric: tabular-nums }
+tbody tr:last-child td { border-bottom: none }
+tbody tr:hover td { background: var(--surface-hi) }
+.tf td { border-top: 1px solid var(--border); font-weight: 600; background: var(--surface-hi) }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: .74rem; font-family: 'JetBrains Mono', monospace; font-weight: 600 }
+.bg-g { background: rgba(63,185,80,.14); color: #3fb950; border: 1px solid rgba(63,185,80,.28) }
+.bg-r { background: rgba(248,81,73,.14); color: #f85149; border: 1px solid rgba(248,81,73,.28) }
+.bg-y { background: rgba(210,153,34,.14); color: #d29922; border: 1px solid rgba(210,153,34,.28) }
+.info-bar { background: rgba(88,166,255,.08); border: 1px solid rgba(88,166,255,.2); border-radius: 8px; padding: 10px 14px; font-size: .8rem; color: var(--rec); margin-bottom: 14px }
+</style>
+
+<div id="v-upload">
+  <div style="margin-bottom:20px">
+    <h1>Analisador de Chamados</h1>
+    <p class="sub">Sobe os arquivos mensais do Power BI — processamento local, sem banco de dados</p>
+  </div>
+  <div class="drop" id="dropzone" onclick="document.getElementById('fi').click()">
+    <div class="drop-icon">📂</div>
+    <p><strong>Clique aqui ou arraste os arquivos</strong></p>
+    <p style="margin-top:6px">Aceita vários arquivos .xlsx ao mesmo tempo — pode selecionar todos de uma vez</p>
+  </div>
+  <input type="file" id="fi" multiple accept=".xlsx,.xls" style="display:none">
+  <div id="flist" class="file-list"></div>
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+    <button class="btn" id="btnProc" onclick="processFiles()" disabled>Processar arquivos</button>
+    <span id="fcount" class="sub"></span>
+  </div>
+  <div id="db-status" hidden style="margin-top:10px;font-size:.78rem;color:var(--muted);padding:7px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px"></div>
+</div>
+
+<div id="v-proc" hidden>
+  <div class="drop-icon">⚙️</div>
+  <p style="font-size:1rem;font-weight:600;margin-top:10px">Processando arquivos...</p>
+  <div class="prog-wrap"><div class="prog-bar" id="pbar" style="width:0%"></div></div>
+  <p class="proc-status" id="pstatus">Aguarde</p>
+  <p class="proc-file" id="pfile"></p>
+</div>
+
+<div id="v-res" hidden>
+  <div class="hdr">
+    <div>
+      <h1>Relatório Mensal de Chamados</h1>
+      <p class="sub" id="res-sub"></p>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+      <div class="ms-wrap">
+        <button class="ms-btn" id="msBtnLabel" onclick="toggleMsPanel(event)">Todas as equipes</button>
+        <div class="ms-panel" id="msPanel" hidden>
+          <div class="ms-actions">
+            <button class="ms-a" onclick="msSelAll()">Todas</button>
+            <button class="ms-a" onclick="msSelNone()">Limpar</button>
+            <button class="ms-a" onclick="msSelPje()" style="border-color:rgba(52,211,153,.4);color:#34d399">⚡ PJe</button>
+          </div>
+          <div id="msItems"></div>
+        </div>
+      </div>
+      <div class="yr-tabs" style="display:flex;gap:4px">
+        <button class="on" onclick="setAno(this,'todos')">Todos</button>
+        <button onclick="setAno(this,'2024')">2024</button>
+        <button onclick="setAno(this,'2025')">2025</button>
+        <button onclick="setAno(this,'2026')">2026</button>
+      </div>
+      <button class="btn btn-ghost" onclick="resetar()">↩ Nova análise</button>
+    </div>
+  </div>
+
+  <div id="info-bar" class="info-bar" hidden></div>
+  <div id="sugestao-pje" hidden style="display:flex;align-items:center;gap:10px;background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.25);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:.8rem;color:#a7f3d0">
+    <span>💡</span>
+    <span>Foram encontradas <strong id="n-equipes-pje" style="color:#34d399"></strong> equipes SUPJUD PJe nos seus arquivos. Para análise do PJe, filtre só elas:</span>
+    <button class="btn" onclick="msSelPje();document.getElementById('sugestao-pje').hidden=true" style="padding:5px 14px;font-size:.78rem;flex-shrink:0">⚡ Selecionar equipes PJe</button>
+    <button onclick="document.getElementById('sugestao-pje').hidden=true" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;padding:0 4px;flex-shrink:0">✕</button>
+  </div>
+  <div class="kpi-row" id="kpis"></div>
+
+  <div class="card">
+    <p class="ct">Recebidos × Resolvidos por mês</p>
+    <div style="overflow-x:auto"><svg id="gchart" width="100%" style="display:block"></svg></div>
+    <div class="legend">
+      <span><span class="ld" style="background:#58a6ff"></span>Recebidos</span>
+      <span><span class="ld" style="background:#3fb950"></span>Resolvidos</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <p class="ct">Backlog mensal (recebidos − resolvidos)</p>
+    <div style="overflow-x:auto"><svg id="schart" width="100%" style="display:block"></svg></div>
+  </div>
+
+  <div class="card">
+    <p class="ct">Detalhamento por mês</p>
+    <p style="font-size:.76rem;color:var(--muted);margin:-6px 0 12px">
+      Cada linha fecha sozinha: <strong style="color:var(--fg)">Recebidos total − Terceiros = Recebidos</strong> ·
+      <strong style="color:var(--fg)">Recebidos − Resolvidos = Backlog</strong> ·
+      <strong style="color:var(--fg)">Taxa = Resolvidos ÷ Recebidos</strong>.
+      Recebidos e Terceiros contam no mês em que o chamado chegou; Resolvidos, no mês em que foi resolvido.
+    </p>
+    <div class="tbl-wrap"><table id="tbl"></table></div>
+  </div>
+
+  <div class="card" id="bd-card" hidden>
+    <p class="ct">Quem fechou os chamados recebidos pela equipe</p>
+    <p style="font-size:.78rem;color:var(--muted);margin-bottom:14px">
+      Apenas chamados <strong style="color:var(--fg)">resolvidos</strong> no período filtrado · por equipe de resolução ·
+      <strong style="color:var(--fg)">linhas marcadas</strong> contam em "Resolvidos pela equipe"
+    </p>
+    <div id="bd-tabs" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px"></div>
+    <div id="bd-resumo-ext"></div>
+    <div class="tbl-wrap"><table id="bd-tbl"></table></div>
+  </div>
+</div>
+
+<script>
+const COLS = {
+  "numero do chamado":"numero","numero de chamado":"numero","numero chamado":"numero","chamado":"numero",
+  "data/hora da abertura":"dataAb","data hora da abertura":"dataAb","data abertura":"dataAb",
+  "equipe atribuida":"equipeAt","equipe atribuida ":"equipeAt","equipe":"equipeAt",
+  "usuario atribuido":"usuAt","usuario atribuido ":"usuAt",
+  "equipe de resolucao":"equipeRes","equipe resolucao":"equipeRes","equipe de resolucao ":"equipeRes",
+  "data/hora da movimentacao":"dataMov","data hora da movimentacao":"dataMov","ultima movimentacao":"dataMov","data movimentacao":"dataMov",
+  "usuario fechamento":"usuFech","usuario de fechamento":"usuFech",
+  "data/hora da resolucao":"dataRes","data hora da resolucao":"dataRes","data resolucao":"dataRes","data/hora resolucao":"dataRes",
+  "situacao regra":"situacao","situacao":"situacao",
+  "pausa":"pausa",
+};
+
+const EQUIPES_INVALIDAS = [/^template\s+users?$/i];
+function equipeInvalida(nome) {
+  const s = String(nome||'').trim().replace(/\s+/g,' ');
+  return !!s && EQUIPES_INVALIDAS.some(re => re.test(s));
+}
+
+function ehEquipePje(e) {
+  const n = String(e||'').toUpperCase();
+  return n.includes('SUPJUD') && !n.includes('REDMINE');
+}
+
+function normEquipe(nome) {
+  const s = String(nome||'').trim();
+  if (!s || equipeInvalida(s)) return null;
+  return s;
+}
+
+function norm(s) {
+  return String(s||'').toLowerCase()
+    .normalize("NFD").replace(/[̀-ͯ]/g,'')
+    .replace(/[^a-z0-9 /]/g,'').trim();
+}
+
+let selectedFiles = [];
+let chamadoMap = new Map();
+let temPlanilhaAbertos = false;
+let equipesList = [];
+let dbAbertosRefs = null;
+let dbAbertosInfo = null;
+let filtroEquipes = new Set();
+let filtroAno = 'todos';
+let selIdx = null;
+let filtroBd = 'Todas';
+
+const BD_KEY = 'analisador-chamados:linhas-marcadas';
+let bdIncluidos = new Set();
+let bdExcluidos = new Set();
+function carregarMarcacoes() {
+  try {
+    const s = JSON.parse(localStorage.getItem(BD_KEY) || 'null');
+    if (s) { bdIncluidos = new Set(s.inc || []); bdExcluidos = new Set(s.exc || []); }
+  } catch (e) {}
+}
+function salvarMarcacoes() {
+  try { localStorage.setItem(BD_KEY, JSON.stringify({ inc: [...bdIncluidos], exc: [...bdExcluidos] })); } catch (e) {}
+}
+carregarMarcacoes();
+
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+async function fetchDbAbertos() {
+  const el = document.getElementById('db-status');
+  if (!el) return;
+  try {
+    const r = await fetch('/api/chamados-abertos');
+    if (!r.ok) throw new Error('status ' + r.status);
+    const data = await r.json();
+    dbAbertosRefs = new Set(data.referencias);
+    dbAbertosInfo = { total: data.total, atualizadoEm: data.atualizadoEm };
+    const dt = data.atualizadoEm ? new Date(data.atualizadoEm).toLocaleString('pt-BR') : '';
+    el.innerHTML = `<span style="color:#3fb950">✓</span> ${data.total.toLocaleString('pt-BR')} chamados abertos carregados do banco${dt ? ` · atualizado ${dt}` : ''}`;
+    el.hidden = false;
+  } catch {
+    el.hidden = true;
+  }
+}
+fetchDbAbertos();
+
+document.addEventListener('change', e => {
+  if (e.target.dataset.msEq !== undefined) msToggle(e.target.dataset.msEq, e.target.checked);
+  if (e.target.dataset.bdEq !== undefined) bdToggle(e.target.dataset.bdEq, e.target.checked);
+});
+
+document.getElementById('fi').addEventListener('change', e => addFiles([...e.target.files]));
+const dz = document.getElementById('dropzone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('over') });
+dz.addEventListener('dragleave', () => dz.classList.remove('over'));
+dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('over'); addFiles([...e.dataTransfer.files]) });
+
+function addFiles(files) {
+  files.forEach(f => { if (!selectedFiles.find(x => x.name === f.name)) selectedFiles.push(f); });
+  renderFileList();
+}
+
+function removeFile(i) { selectedFiles.splice(i, 1); renderFileList(); }
+
+function renderFileList() {
+  const fl = document.getElementById('flist');
+  fl.innerHTML = selectedFiles.map((f,i) => `
+    <div class="file-item">
+      <span>📄</span>
+      <span class="fi-name">${esc(f.name)}</span>
+      <span class="fi-size">${(f.size/1024).toFixed(0)} KB</span>
+      <button class="fi-rm" onclick="removeFile(${i})" title="Remover">✕</button>
+    </div>`).join('');
+  document.getElementById('fcount').textContent = selectedFiles.length ? `${selectedFiles.length} arquivo(s) selecionado(s)` : '';
+  document.getElementById('btnProc').disabled = selectedFiles.length === 0;
+}
+
+function show(id) {
+  ['v-upload','v-proc','v-res'].forEach(v => document.getElementById(v).hidden = (v !== id));
+}
+
+function yld() { return new Promise(r => setTimeout(r, 0)) }
+
+function toDate(v) {
+  if (!v) return null;
+  if (v instanceof Date) return isNaN(v) ? null : v;
+  if (typeof v === 'number') {
+    const d = XLSX.SSF.parse_date_code(v);
+    if (d) return new Date(Date.UTC(d.y, d.m-1, d.d, d.H, d.M, d.S));
+  }
+  if (typeof v === 'string') {
+    const d = new Date(v.trim());
+    return isNaN(d) ? null : d;
+  }
+  return null;
+}
+
+function anoMes(d) {
+  if (!d) return null;
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}`;
+}
+
+async function processFiles() {
+  if (!selectedFiles.length) return;
+  show('v-proc');
+  chamadoMap = new Map();
+  temPlanilhaAbertos = false;
+
+  for (let i = 0; i < selectedFiles.length; i++) {
+    const f = selectedFiles[i];
+    document.getElementById('pbar').style.width = `${Math.round(i/selectedFiles.length*90)}%`;
+    document.getElementById('pstatus').textContent = `Arquivo ${i+1} de ${selectedFiles.length}`;
+    document.getElementById('pfile').textContent = f.name;
+    await yld();
+    try {
+      const buf = await f.arrayBuffer();
+      const wb = XLSX.read(buf, { type:'array', cellDates:true });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { header:1, defval:null });
+      parseSheet(rows);
+    } catch(e) { console.error('Erro ao ler', f.name, e); }
+    await yld();
+  }
+
+  if (!temPlanilhaAbertos && dbAbertosRefs && dbAbertosRefs.size > 0) aplicarDbAbertos();
+  document.getElementById('pstatus').textContent = 'Consolidando chamados...';
+  document.getElementById('pbar').style.width = '95%';
+  await yld();
+  buildResults();
+  document.getElementById('pbar').style.width = '100%';
+  await yld();
+  show('v-res');
+  render();
+}
+
+function aplicarDbAbertos() {
+  for (const ref of dbAbertosRefs) {
+    if (!chamadoMap.has(ref)) {
+      chamadoMap.set(ref, { dataAb: null, movs: [], dataRes: null, situacao: '', equipeAt: null, equipeRes: null, usuFech: null });
+    }
+    chamadoMap.get(ref).abertoAgora = true;
+  }
+  temPlanilhaAbertos = true;
+}
+
+function parseSheet(rows) {
+  if (rows.length < 2) return;
+  let hdrIdx = 0;
+  for (let i = 0; i < Math.min(5, rows.length); i++) {
+    const matches = (rows[i]||[]).filter(h => COLS[norm(h)]).length;
+    if (matches >= 3) { hdrIdx = i; break; }
+  }
+  const hdr = rows[hdrIdx] || [];
+  const fieldMap = hdr.map(h => COLS[norm(h)] || null);
+
+  const jNum = fieldMap.indexOf('numero'), jSit = fieldMap.indexOf('situacao');
+  let nValidas = 0, nAbertas = 0;
+  for (let i = hdrIdx+1; i < rows.length; i++) {
+    const cols = rows[i] || [];
+    const n = String(cols[jNum] ?? '').trim();
+    if (!n || n.includes(' ') || !n.match(/\d/)) continue;
+    nValidas++;
+    if (/^(aberto|pausado)$/i.test(String(cols[jSit] ?? '').trim())) nAbertas++;
+  }
+  const ehPlanilhaAbertos = jSit >= 0 && nValidas > 0 && nAbertas / nValidas >= 0.9;
+  if (ehPlanilhaAbertos) temPlanilhaAbertos = true;
+
+  for (let i = hdrIdx+1; i < rows.length; i++) {
+    const cols = rows[i] || [];
+    const obj = {};
+    fieldMap.forEach((f,j) => { if (f) obj[f] = cols[j] ?? null });
+
+    const num = String(obj.numero||'').trim();
+    if (!num || num.includes(' ') || !num.match(/\d/)) continue;
+
+    const dataMov = toDate(obj.dataMov);
+    const dataAb  = toDate(obj.dataAb);
+    const dataRes = toDate(obj.dataRes);
+    const situacao = String(obj.situacao||'').trim();
+    const equipeAt  = normEquipe(obj.equipeAt);
+    const equipeRes = normEquipe(obj.equipeRes);
+    const usuAt   = String(obj.usuAt  ||'').trim() || null;
+    const usuFech = String(obj.usuFech||'').trim() || null;
+
+    if (!chamadoMap.has(num)) {
+      chamadoMap.set(num, { dataAb: null, movs: [], dataRes: null, situacao: '', equipeAt: null, equipeRes: null, usuFech: null });
+    }
+    const c = chamadoMap.get(num);
+
+    if (dataAb && (!c.dataAb || dataAb < c.dataAb)) c.dataAb = dataAb;
+    if (dataMov && (!c.ultMov || dataMov > c.ultMov)) c.ultMov = dataMov;
+
+    if (ehPlanilhaAbertos) {
+      c.abertoAgora = true;
+      if (equipeAt) c.equipeAtual = equipeAt;
+    } else {
+      if (dataRes && (!c.dataRes || dataRes > c.dataRes)) { c.dataRes = dataRes; c.situacao = situacao; }
+      if (!c.dataRes && situacao) c.situacao = situacao;
+      if (usuFech && !c.usuFech) c.usuFech = usuFech;
+      if (equipeRes && !c.equipeRes) c.equipeRes = equipeRes;
+    }
+
+    const movKey = `${anoMes(dataMov)||''}|${(usuAt||'').toUpperCase()}|${equipeAt||''}`;
+    const movExistente = c.movs.find(m => m.key === movKey);
+    if (!movExistente) {
+      c.movs.push({ key: movKey, dataMov, equipeAt, usuAt });
+    } else if (dataMov && (!movExistente.dataMov || dataMov < movExistente.dataMov)) {
+      movExistente.dataMov = dataMov;
+    }
+  }
+}
+
+function buildResults() {
+  for (const [, c] of chamadoMap) {
+    c.movs.sort((a,b) => (a.dataMov?.getTime()||0) - (b.dataMov?.getTime()||0));
+    if (c.movs.length > 0 && !c.equipeAt) c.equipeAt = c.movs[0].equipeAt;
+    c.dataMov = c.movs[0]?.dataMov || null;
+  }
+
+  const eSet = new Set();
+  for (const [,c] of chamadoMap) {
+    c.movs.forEach(m => { if (m.equipeAt) eSet.add(m.equipeAt); });
+    if (c.equipeRes) eSet.add(c.equipeRes);
+  }
+  equipesList = [...eSet].sort();
+  filtroEquipes = new Set(equipesList);
+
+  renderMsItems();
+  updateMsBtn();
+
+  const pjeList = equipesList.filter(ehEquipePje);
+  const sugestao = document.getElementById('sugestao-pje');
+  if (pjeList.length > 0 && equipesList.length > pjeList.length) {
+    filtroEquipes = new Set(pjeList);
+    document.getElementById('n-equipes-pje').textContent = pjeList.length;
+    sugestao.hidden = false;
+  } else {
+    sugestao.hidden = true;
+  }
+
+  document.getElementById('res-sub').textContent =
+    `${chamadoMap.size.toLocaleString('pt-BR')} chamados únicos · ${selectedFiles.length} arquivo(s) processados` +
+    (temPlanilhaAbertos
+      ? ` · ${dbAbertosRefs ? 'banco de dados' : 'planilha de abertos'}: ${[...chamadoMap.values()].filter(c => c.abertoAgora).length.toLocaleString('pt-BR')} abertos`
+      : ' · sem dados de abertos');
+}
+
+function renderMsItems() {
+  document.getElementById('msItems').innerHTML = equipesList.map(e => {
+    const chk = filtroEquipes.has(e);
+    const id = 'eq_' + e.replace(/[^a-z0-9]/gi,'_');
+    return `<label class="ms-item" for="${id}">
+      <input type="checkbox" id="${id}" ${chk?'checked':''} data-ms-eq="${esc(e)}">
+      <span>${esc(e)}</span>
+    </label>`;
+  }).join('');
+}
+
+function updateMsBtn() {
+  const n = filtroEquipes.size, total = equipesList.length;
+  document.getElementById('msBtnLabel').textContent =
+    n === total ? `Todas as equipes (${total})`
+    : n === 0 ? 'Nenhuma equipe'
+    : n === 1 ? [...filtroEquipes][0]
+    : `${n} de ${total} equipes`;
+}
+
+function toggleMsPanel(e) {
+  e.stopPropagation();
+  const p = document.getElementById('msPanel');
+  p.hidden = !p.hidden;
+}
+
+document.addEventListener('click', () => {
+  const p = document.getElementById('msPanel');
+  if (p) p.hidden = true;
+});
+
+function msToggle(equipe, checked) {
+  if (checked) filtroEquipes.add(equipe);
+  else filtroEquipes.delete(equipe);
+  updateMsBtn(); selIdx = null; render();
+}
+
+function msSelAll() {
+  filtroEquipes = new Set(equipesList);
+  renderMsItems(); updateMsBtn(); selIdx = null; render();
+}
+
+function msSelNone() {
+  filtroEquipes = new Set();
+  renderMsItems(); updateMsBtn(); selIdx = null; render();
+}
+
+function bdToggle(eq, checked) {
+  if (checked) { bdIncluidos.add(eq); bdExcluidos.delete(eq); }
+  else { bdExcluidos.add(eq); bdIncluidos.delete(eq); }
+  salvarMarcacoes();
+  render();
+}
+
+function bdPadrao() {
+  bdIncluidos = new Set(); bdExcluidos = new Set();
+  salvarMarcacoes();
+  render();
+}
+
+function contaComoDaEquipe(realEq) {
+  const nome = nomeNoQuadro(realEq);
+  if (bdIncluidos.has(nome)) return true;
+  if (bdExcluidos.has(nome)) return false;
+  return filtroEquipes.has(realEq);
+}
+
+function msSelPje() {
+  const pje = equipesList.filter(ehEquipePje);
+  filtroEquipes = new Set(pje);
+  renderMsItems(); updateMsBtn(); selIdx = null; render();
+  document.getElementById('msPanel').hidden = true;
+}
+
+function noUniverso(c) {
+  if (filtroEquipes.size === 0) return false;
+  if (temPlanilhaAbertos && c.abertoAgora) return equipeDoBacklog(c.equipeAtual);
+  return filtroEquipes.has(c.equipeAt);
+}
+
+function equipeDoBacklog(e) {
+  if (!e) return false;
+  if (filtroEquipes.has(e) || contaComoDaEquipe(e)) return true;
+  return /REDMINE/i.test(e) && [...filtroEquipes].some(ehEquipePje);
+}
+
+function estaAberto(c) {
+  if (temPlanilhaAbertos) return !!c.abertoAgora;
+  return !/resolv/i.test(c.situacao||'');
+}
+
+function dataResolucao(c) {
+  return c.dataRes || c.ultMov || null;
+}
+
+function resolvido(c) {
+  return !estaAberto(c) && !!dataResolucao(c);
+}
+
+function noPeriodo(mes) {
+  if (!mes) return false;
+  return filtroAno === 'todos' || mes.startsWith(filtroAno);
+}
+
+function recebidoNoPeriodo(c) {
+  return noPeriodo(anoMes(c.dataMov));
+}
+
+function resolvidoNoPeriodo(c) {
+  return resolvido(c) && noPeriodo(anoMes(dataResolucao(c)));
+}
+
+function fechadoPorTerceiros(c) {
+  return resolvido(c) && !contaComoDaEquipe(equipeQueFechou(c));
+}
+
+function equipeQueFechou(c) {
+  return c.equipeRes || c.equipeAt || '(equipe não registrada)';
+}
+
+function dadosFiltrados() {
+  const byMes = new Map();
+  for (const [, c] of chamadoMap) {
+    if (!noUniverso(c)) continue;
+    const mesRec = anoMes(c.dataMov);
+    const mesRes = anoMes(dataResolucao(c));
+
+    if (recebidoNoPeriodo(c)) {
+      if (!byMes.has(mesRec)) byMes.set(mesRec, {rec:0, res:0, pelaEquipe:0, porOutra:0, recTerc:0});
+      if (fechadoPorTerceiros(c)) byMes.get(mesRec).recTerc++;
+      else byMes.get(mesRec).rec++;
+    }
+    if (resolvidoNoPeriodo(c)) {
+      if (!byMes.has(mesRes)) byMes.set(mesRes, {rec:0, res:0, pelaEquipe:0, porOutra:0, recTerc:0});
+      byMes.get(mesRes).res++;
+      const nossa = contaComoDaEquipe(equipeQueFechou(c));
+      if (nossa) byMes.get(mesRes).pelaEquipe++;
+      else byMes.get(mesRes).porOutra++;
+    }
+  }
+
+  return [...byMes.entries()]
+    .sort((a,b) => a[0].localeCompare(b[0]))
+    .map(([mes, v]) => {
+      const [ano, m] = mes.split('-');
+      const label = new Date(Number(ano), Number(m)-1, 1)
+        .toLocaleDateString('pt-BR', {month:'short', year:'2-digit'})
+        .replace('.','');
+      return { mes, label, rec: v.rec, res: v.res, pelaEquipe: v.pelaEquipe||0, porOutra: v.porOutra||0, recTerc: v.recTerc||0 };
+    });
+}
+
+function setAno(btn, v) {
+  filtroAno = v; selIdx = null;
+  document.querySelectorAll('.yr-tabs button').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  render();
+}
+function clickBar(i) { selIdx = selIdx===i?null:i; render(); }
+
+const f = n => Number(n).toLocaleString('pt-BR');
+
+function render() {
+  const d = dadosFiltrados();
+  renderKPIs(d);
+  barSVG(d, 'gchart', 200);
+  saldoSVG(d);
+  renderTabela(d);
+  renderBreakdown();
+}
+
+const JUNTAR_NO_QUADRO = [
+  '3N SUPJUD PJE Orientação', '3N SUPJUD PJE Erro ou Falha', '3N SUPJUD PJE Cadastro',
+  '3N SUPJUD PJe APC', '3N SUPJUD PJE Migração', '3N SUPJUD PJe APOF', '3N SUPJUD PJe APMC',
+].map(e => e.toUpperCase());
+function nomeNoQuadro(eq) {
+  return JUNTAR_NO_QUADRO.includes(String(eq||'').trim().toUpperCase()) ? '3N SUPJUD PJe' : eq;
+}
+
+function dadosBreakdown() {
+  const byEq = new Map();
+  for (const [, c] of chamadoMap) {
+    if (!noUniverso(c)) continue;
+    if (!resolvidoNoPeriodo(c)) continue;
+    const real = equipeQueFechou(c);
+    const eq = nomeNoQuadro(real);
+    const r = byEq.get(eq) || { eq, count: 0, nossa: 0 };
+    r.count++;
+    if (contaComoDaEquipe(real)) r.nossa++;
+    byEq.set(eq, r);
+  }
+  return [...byEq.values()].sort((a,b)=>b.count-a.count);
+}
+
+function eqCor(eq) {
+  const n = eq.toUpperCase();
+  if (n.includes('REDMINE'))                             return { cor:'#a78bfa', tag:'Repositório' };
+  if (n.includes('SUPJUD'))                              return { cor:'#34d399', tag:'Equipe PJe' };
+  if (n.includes('DNPJE') || n.includes('DPJE'))         return { cor:'#fb923c', tag:'Migração/Infra' };
+  if (n.startsWith('1N '))                               return { cor:'#f87171', tag:'1ª Linha' };
+  return { cor:'#7d8590', tag:'Outra' };
+}
+
+function setBdFiltro(cat) { filtroBd = cat; renderBreakdown(); }
+
+function renderBreakdown() {
+  const bdAll = dadosBreakdown();
+  const card = document.getElementById('bd-card');
+  if (!bdAll.length) { card.hidden = true; return; }
+  card.hidden = false;
+
+  const cats = ['Todas','Equipe PJe','Migração/Infra','Outra','1ª Linha','Repositório'];
+  const tabsHtml = cats.map(c => {
+    const ativo = filtroBd === c;
+    return `<button onclick="setBdFiltro('${c}')" style="padding:4px 12px;border-radius:20px;font-size:.76rem;cursor:pointer;border:none;background:${ativo?'var(--rec)':'var(--surface-hi)'};color:${ativo?'#fff':'var(--muted)'};font-family:'Outfit',sans-serif;transition:.15s">${c}</button>`;
+  }).join('');
+  const temEscolha = bdIncluidos.size || bdExcluidos.size;
+  const btnPadrao = temEscolha
+    ? `<button onclick="bdPadrao()" style="margin-left:auto;padding:4px 12px;border-radius:20px;font-size:.76rem;cursor:pointer;background:none;border:1px solid var(--border);color:var(--muted);font-family:'Outfit',sans-serif">↺ Voltar ao padrão</button>`
+    : '';
+  document.getElementById('bd-tabs').innerHTML = tabsHtml + btnPadrao;
+
+  const bd = filtroBd === 'Todas' ? bdAll : bdAll.filter(r => eqCor(r.eq).tag === filtroBd);
+  const totalGeral = bd.reduce((s,r)=>s+r.count,0);
+
+  const totalGeralAll = bdAll.reduce((s,r)=>s+r.count,0);
+  const totalPJe = bdAll.reduce((s,r)=>s+r.nossa,0);
+  const totalExt = totalGeralAll - totalPJe;
+  const pctExt = totalGeralAll ? Math.round(totalExt/totalGeralAll*100) : 0;
+  const resumoExt = totalExt > 0
+    ? `<div style="display:flex;align-items:flex-start;gap:8px;background:rgba(251,146,60,.07);border:1px solid rgba(251,146,60,.3);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:.78rem;color:#fed7aa">
+        <span style="font-size:1rem;flex-shrink:0">🔔</span>
+        <span><strong>${f(totalExt)} chamados (${pctExt}%)</strong> foram fechados por terceiros (linhas desmarcadas) — veja a lista abaixo.</span>
+       </div>` : '';
+
+  const maxCV = bd[0]?.count || 1;
+  const rows = bd.map(r => {
+    const excluido = r.nossa === 0;
+    const pct = totalGeral ? Math.round(r.count/totalGeral*100) : 0;
+    const barW = Math.round(r.count/maxCV*120);
+    const {cor, tag} = eqCor(r.eq);
+    const eid = 'bd_' + r.eq.replace(/[^a-z0-9]/gi,'_');
+    return `<tr style="opacity:${excluido?.4:1};transition:.15s">
+      <td style="display:flex;align-items:center;gap:8px">
+        <input type="checkbox" id="${eid}" ${excluido?'':'checked'} data-bd-eq="${esc(r.eq)}" style="accent-color:var(--rec);width:14px;height:14px;flex-shrink:0;cursor:pointer">
+        <span style="color:${excluido?'var(--muted)':cor}">${esc(r.eq)}</span>
+        <span style="font-size:.68rem;background:${cor}22;color:${cor};border:1px solid ${cor}44;border-radius:4px;padding:1px 6px;flex-shrink:0">${tag}</span>
+      </td>
+      <td style="color:${excluido?'var(--muted)':'var(--fg)'};font-family:'JetBrains Mono',monospace;text-align:right">${f(r.count)}</td>
+      <td style="min-width:160px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="background:${excluido?'var(--border)':cor};width:${excluido?0:barW}px;height:6px;border-radius:3px;opacity:.7;flex-shrink:0;transition:.2s"></div>
+          <span style="color:var(--muted);font-size:.76rem;white-space:nowrap">${pct}%</span>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('bd-resumo-ext').innerHTML = resumoExt;
+  const linhasRodape = [
+    ['Resolvidos pela equipe (linhas marcadas)', totalPJe, '#3fb950'],
+    ['Fechados por terceiros (linhas desmarcadas)', totalExt, '#fb923c'],
+    ['Total resolvidos (equipe + terceiros)', totalGeralAll, 'var(--fg)'],
+  ];
+  document.getElementById('bd-tbl').innerHTML = `
+    <thead><tr>
+      <th>Equipe de resolução</th>
+      <th style="text-align:right">Chamados</th>
+      <th>Distribuição</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+    <tfoot>${linhasRodape.map(([rot, val, cor]) => `<tr class="tf">
+      <td>${rot}</td>
+      <td style="color:${cor};text-align:right">${f(val)}</td>
+      <td></td>
+    </tr>`).join('')}</tfoot>`;
+}
+
+function renderKPIs(d) {
+  const tR  = d.reduce((s,m)=>s+m.rec,0);
+  const tPE = d.reduce((s,m)=>s+m.pelaEquipe,0);
+  const taxa = tR ? Math.round(tPE/tR*100) : 0;
+  const bl = tR - tPE;
+  const tRT = d.reduce((s,m)=>s+(m.recTerc||0),0);
+  let abertosHoje = 0;
+  if (temPlanilhaAbertos) for (const [, c] of chamadoMap) if (c.abertoAgora && noUniverso(c)) abertosHoje++;
+  const fonteAbertos = dbAbertosRefs ? 'banco de dados' : 'planilha de abertos';
+  const notaBl = `<div style="font-size:.66rem;color:var(--muted);margin-top:3px">${temPlanilhaAbertos
+    ? `em aberto hoje (${fonteAbertos}): ${f(abertosHoje)}`
+    : (dbAbertosRefs ? 'banco de dados não retornou abertos' : 'carregue a planilha de abertos para o backlog real')}</div>`;
+  const notaRec = tRT ? `<div style="font-size:.66rem;color:var(--muted);margin-top:3px">já sem ${f(tRT)} fechados por terceiros</div>` : '';
+  document.getElementById('kpis').innerHTML = `
+    <div class="kpi"><div class="kv blue">${f(tR)}</div><div class="kl">Total Recebidos</div>${notaRec}</div>
+    <div class="kpi"><div class="kv green">${f(tPE)}</div><div class="kl">Resolvidos pela equipe</div></div>
+    <div class="kpi"><div class="kv white">${taxa}%</div><div class="kl">Taxa média de Resolução</div></div>
+    <div class="kpi"><div class="kv" style="color:#fb923c">${f(tRT)}</div><div class="kl">Fechados por terceiros</div></div>
+    <div class="kpi"><div class="kv red">${f(bl)}</div><div class="kl">Backlog</div>${notaBl}</div>`;
+}
+
+function barSVG(d, id, cH) {
+  const svg = document.getElementById(id);
+  if (!d.length) { svg.innerHTML='<text x="50%" y="60" text-anchor="middle" fill="#7d8590" font-family="Outfit,sans-serif" font-size="13">Sem dados para o período</text>'; svg.setAttribute('height',120); return; }
+  const W = Math.max(svg.parentElement.clientWidth||760, d.length*40);
+  const pL=52,pR=16,pT=14,pB=44, cW=W-pL-pR;
+  svg.setAttribute('viewBox',`0 0 ${W} ${cH+pT+pB}`);
+  svg.setAttribute('height', cH+pT+pB);
+  const maxV = Math.max(...d.map(m=>Math.max(m.rec,m.pelaEquipe)),1);
+  const yMax = Math.ceil(maxV/1000)*1000 || 100;
+  const colW = cW/d.length, bW = Math.min(13, colW*.32), gap=2;
+  let h='';
+  [0,.25,.5,.75,1].forEach(t=>{
+    const v=yMax*t, y=pT+cH-t*cH;
+    h+=`<line x1="${pL}" y1="${y}" x2="${W-pR}" y2="${y}" stroke="#30363d"/>`;
+    h+=`<text x="${pL-5}" y="${y+4}" text-anchor="end" font-size="10" fill="#7d8590" font-family="JetBrains Mono,monospace">${v>=1000?(v/1000).toFixed(0)+'k':v}</text>`;
+  });
+  d.forEach((m,i)=>{
+    const cx=pL+i*colW+colW/2, hR=(m.rec/yMax)*cH, hS=(m.pelaEquipe/yMax)*cH, op=selIdx===i?1:.82;
+    h+=`<rect x="${cx-bW-gap/2}" y="${pT+cH-hR}" width="${bW}" height="${hR}" fill="#58a6ff" opacity="${op}" rx="2" style="cursor:pointer" onclick="clickBar(${i})"/>`;
+    h+=`<rect x="${cx+gap/2}" y="${pT+cH-hS}" width="${bW}" height="${hS}" fill="#3fb950" opacity="${op}" rx="2" style="cursor:pointer" onclick="clickBar(${i})"/>`;
+    if(selIdx===i) h+=`<rect x="${cx-bW-gap/2-3}" y="${pT-2}" width="${bW*2+gap+6}" height="${cH+4}" fill="white" opacity="0.05" rx="2"/>`;
+    const rot=d.length>12?`rotate(-40 ${cx} ${pT+cH+16})`:'';
+    h+=`<text x="${cx}" y="${pT+cH+16}" text-anchor="${d.length>12?'end':'middle'}" transform="${rot}" font-size="${d.length>12?9:11}" fill="#7d8590">${m.label}</text>`;
+  });
+  if(selIdx!==null && selIdx<d.length){
+    const m=d[selIdx], cx=pL+selIdx*colW+colW/2, s=m.rec-m.pelaEquipe;
+    const tx=Math.min(cx+10,W-126), ty=pT+4;
+    h+=`<rect x="${tx}" y="${ty}" width="118" height="68" rx="6" fill="#161b22" stroke="#30363d"/>`;
+    h+=`<text x="${tx+8}" y="${ty+16}" font-size="11" font-weight="600" fill="#e6edf3" font-family="Outfit,sans-serif">${m.label}</text>`;
+    h+=`<text x="${tx+8}" y="${ty+32}" font-size="10" fill="#58a6ff" font-family="JetBrains Mono,monospace">Rec: ${f(m.rec)}</text>`;
+    h+=`<text x="${tx+8}" y="${ty+47}" font-size="10" fill="#3fb950" font-family="JetBrains Mono,monospace">Res: ${f(m.pelaEquipe)}</text>`;
+    h+=`<text x="${tx+8}" y="${ty+62}" font-size="10" fill="${s>0?'#f85149':'#3fb950'}" font-family="JetBrains Mono,monospace">${s>0?'+':''}${f(s)}</text>`;
+  }
+  svg.innerHTML=h;
+}
+
+function saldoSVG(d) {
+  const svg=document.getElementById('schart');
+  if(!d.length){svg.innerHTML='';svg.setAttribute('height',80);return;}
+  const W=Math.max(svg.parentElement.clientWidth||760,d.length*40);
+  const pL=52,pR=16,pT=14,pB=44,cH=80;
+  svg.setAttribute('viewBox',`0 0 ${W} ${cH+pT+pB}`);
+  svg.setAttribute('height',cH+pT+pB);
+  const saldos=d.map(m=>m.rec-m.pelaEquipe);
+  const maxA=Math.max(Math.abs(Math.max(...saldos)),Math.abs(Math.min(...saldos)),1);
+  const colW=(W-pL-pR)/d.length, bW=Math.min(16,colW*.42), y0=pT+cH/2;
+  let h='';
+  h+=`<line x1="${pL}" y1="${y0}" x2="${W-pR}" y2="${y0}" stroke="#30363d" stroke-dasharray="4 3"/>`;
+  h+=`<text x="${pL-5}" y="${y0+4}" text-anchor="end" font-size="10" fill="#7d8590" font-family="JetBrains Mono,monospace">0</text>`;
+  saldos.forEach((s,i)=>{
+    const cx=pL+i*colW+colW/2, ht=Math.max(2,Math.abs(s)/maxA*(cH/2));
+    const yB=s>=0?y0-ht:y0, col=s>0?'#f85149':'#3fb950';
+    h+=`<rect x="${cx-bW/2}" y="${yB}" width="${bW}" height="${ht}" fill="${col}" opacity="0.85" rx="2"/>`;
+    if(Math.abs(s)>maxA*.25){
+      const yL=s>=0?y0-ht-6:y0+ht+12;
+      const lbl=Math.abs(s)>=1000?`${(s/1000).toFixed(1)}k`:(s>0?`+${s}`:String(s));
+      h+=`<text x="${cx}" y="${yL}" text-anchor="middle" fill="${col}" font-size="9" font-family="JetBrains Mono,monospace">${lbl}</text>`;
+    }
+    const rot=d.length>12?`rotate(-40 ${cx} ${pT+cH+16})`:'';
+    h+=`<text x="${cx}" y="${pT+cH+16}" text-anchor="${d.length>12?'end':'middle'}" transform="${rot}" font-size="${d.length>12?9:11}" fill="#7d8590">${d[i].label}</text>`;
+  });
+  svg.innerHTML=h;
+}
+
+function renderTabela(d) {
+  const tPE=d.reduce((s,m)=>s+m.pelaEquipe,0), tRT=d.reduce((s,m)=>s+(m.recTerc||0),0);
+  const tR=d.reduce((s,m)=>s+m.rec,0);
+  const badgeTx = tx => tx>=95?'bg-g':tx>=85?'bg-y':'bg-r';
+  const linha = (rotulo, total, terc, rec, res, extra='') => {
+    const s=rec-res, tx=rec?Math.round(res/rec*100):0;
+    return `<tr ${extra}>
+      <td style="font-family:'Outfit',sans-serif;color:var(--fg)">${rotulo}</td>
+      <td style="color:var(--muted)">${f(total)}</td>
+      <td style="color:#fb923c">${terc?'−'+f(terc):'0'}</td>
+      <td style="color:#58a6ff">${f(rec)}</td>
+      <td style="color:#3fb950">${f(res)}</td>
+      <td><span class="badge ${s<=0?'bg-g':'bg-r'}">${s>0?'+':''}${f(s)}</span></td>
+      <td><span class="badge ${badgeTx(tx)}">${tx}%</span></td>
+    </tr>`;
+  };
+  const rows=d.map((m,i)=>{
+    const sel=selIdx===i?'background:var(--surface-hi);':'';
+    return linha(m.label, m.rec+(m.recTerc||0), m.recTerc||0, m.rec, m.pelaEquipe, `onclick="clickBar(${i})" style="cursor:pointer;${sel}"`);
+  }).join('');
+  document.getElementById('tbl').innerHTML=`
+    <thead><tr>
+      <th>Mês</th>
+      <th title="Todos os chamados recebidos pela equipe no mês">Recebidos total</th>
+      <th style="color:#fb923c" title="Recebidos no mês e fechados por terceiros (linhas desmarcadas no quadro) — saem dos Recebidos">− Terceiros</th>
+      <th title="Recebidos total − Terceiros">= Recebidos</th>
+      <th title="Resolvidos pela equipe no mês">Resolvidos</th>
+      <th title="Recebidos − Resolvidos">Backlog</th>
+      <th title="Resolvidos ÷ Recebidos">Taxa</th>
+    </tr></thead>
+    <tbody>${rows||'<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px">Sem dados</td></tr>'}</tbody>
+    ${d.length>1?`<tfoot>${linha('Total', tR+tRT, tRT, tR, tPE, 'class="tf"')}</tfoot>`:''}`;
+}
+
+function resetar() {
+  selectedFiles=[]; chamadoMap=new Map(); filtroEquipes=new Set(); equipesList=[]; filtroAno='todos'; selIdx=null; temPlanilhaAbertos=false;
+  document.getElementById('flist').innerHTML='';
+  document.getElementById('fcount').textContent='';
+  document.getElementById('btnProc').disabled=true;
+  document.querySelectorAll('.yr-tabs button').forEach((b,i)=>b.classList[i===0?'add':'remove']('on'));
+  show('v-upload');
+}
+
+window.addEventListener('resize', ()=>{ if(!document.getElementById('v-res').hidden) render(); });
+</script>
+
+</body></html>
